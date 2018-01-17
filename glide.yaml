@@ -1,0 +1,16 @@
+package: arthurgustin.fr/teddycare
+import:
+- package: github.com/Pallinder/go-randomdata
+- package: github.com/facebookgo/inject
+- package: github.com/gorilla/mux
+  version: ^1.6.1
+- package: github.com/jinzhu/gorm
+  version: ^1.0.0
+  subpackages:
+  - dialects/postgres
+- package: github.com/kelseyhightower/envconfig
+  version: ^1.3.0
+- package: github.com/pkg/errors
+  version: ^0.8.0
+- package: github.com/satori/go.uuid
+  version: ^1.2.0
