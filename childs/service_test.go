@@ -17,15 +17,14 @@ import (
 var _ = Describe("Service", func() {
 
 	var (
-		ctx                    = context.Background()
-		childService           Service
-		mockStore              *mocks.MockStore
-		mockStringGenerator    *shared.MockStringGenerator
-		concreteStore          *store.Store
-		concreteDb             *gorm.DB
-		addChildErr, err       error
-		responsibleId, childId string
-		childRequest           ChildRequest
+		ctx                 = context.Background()
+		childService        Service
+		mockStore           *mocks.MockStore
+		mockStringGenerator *shared.MockStringGenerator
+		concreteStore       *store.Store
+		concreteDb          *gorm.DB
+		addChildErr, err    error
+		childRequest        ChildRequest
 	)
 
 	BeforeSuite(func() {
@@ -56,80 +55,85 @@ var _ = Describe("Service", func() {
 		childService = &ChildService{
 			Store: concreteStore,
 		}
+		mockStringGenerator.On("GenerateUuid").Return("aaa")
+		mockStringGenerator.On("GenerateUuid").Return("bbb")
+		mockStringGenerator.On("GenerateUuid").Return("ccc")
+		mockStringGenerator.On("GenerateUuid").Return("ddd")
 	})
 
-	JustBeforeEach(func() {
-		childId, addChildErr = childService.AddChild(ctx, childRequest)
-	})
+	Context("AddChild", func() {
 
-	Context("default", func() {
+		var (
+			createdChild store.Child
+		)
+
 		BeforeEach(func() {
-			var err error
-			responsibleId, err = concreteStore.AddAdultResponsible(ctx, store.AdultResponsible{
-				FirstName: "Patrick",
-				LastName:  "Gustin",
-				Gender:    "M",
+			concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","password") VALUES ('aaa','arthur.gustin@gmail.com','$2a$10$nvGMsswN2Dtwy0iWg590ruMfwZTMaN8tR8/FpiW7ZG..WYEfpjKoS')`)
+			concreteStore.Db.Exec(`INSERT INTO "adult_responsibles" ("responsible_id","email","first_name","last_name","gender") VALUES ('aaa','arthur.gustin@gmail.com','Patrick','Gustin','M')`)
+		})
+
+		AfterEach(func() {
+			concreteStore.Db.Exec(`TRUNCATE TABLE "users" CASCADE`)
+			concreteStore.Db.Exec(`TRUNCATE TABLE "children" CASCADE`)
+		})
+
+		JustBeforeEach(func() {
+			createdChild, addChildErr = childService.AddChild(ctx, childRequest)
+		})
+
+		Context("default", func() {
+			BeforeEach(func() {
+				childRequest = ChildRequest{
+					FirstName:     "Arthur",
+					LastName:      "Gustin",
+					BirthDate:     "1992/10/13",
+					Relationship:  "father",
+					ResponsibleId: "aaa",
+				}
 			})
-			if err != nil {
-				panic(err)
-			}
-			childRequest = ChildRequest{
-				FirstName:     "Arthur",
-				LastName:      "Gustin",
-				BirthDate:     "1992/10/13",
-				Relationship:  "father",
-				ResponsibleId: responsibleId,
-			}
-		})
 
-		It("should work", func() {
-			Expect(addChildErr).To(BeNil())
-			Expect(childId).NotTo(BeZero())
-		})
-	})
-
-	Context("when the responsibleId does not exists", func() {
-		BeforeEach(func() {
-			childRequest = ChildRequest{
-				FirstName:     "Arthur",
-				LastName:      "Gustin",
-				BirthDate:     "1992/10/13",
-				Relationship:  "father",
-				ResponsibleId: "unknown",
-			}
-		})
-
-		It("should fail", func() {
-			Expect(addChildErr).NotTo(BeNil())
-			Expect(childId).To(BeZero())
-		})
-	})
-
-	Context("when the relationship is invalid", func() {
-		BeforeEach(func() {
-			var err error
-			responsibleId, err = concreteStore.AddAdultResponsible(ctx, store.AdultResponsible{
-				FirstName: "Patrick",
-				LastName:  "Gustin",
-				Gender:    "M",
+			It("should work", func() {
+				Expect(addChildErr).To(BeNil())
+				Expect(createdChild.ChildId).NotTo(BeZero())
 			})
-			if err != nil {
-				panic(err)
-			}
-			childRequest = ChildRequest{
-				FirstName:     "Arthur",
-				LastName:      "Gustin",
-				BirthDate:     "1992/10/13",
-				Relationship:  "zefzef",
-				ResponsibleId: responsibleId,
-			}
 		})
 
-		It("should work", func() {
-			Expect(addChildErr).NotTo(BeNil())
-			Expect(addChildErr.Error()).To(Equal("failed to set responsible: relationship is not valid, it should be one of [father mother grandfather grandmother guardian]"))
-			Expect(childId).To(BeZero())
+		Context("when the responsibleId does not exists", func() {
+			BeforeEach(func() {
+				childRequest = ChildRequest{
+					FirstName:     "Arthur",
+					LastName:      "Gustin",
+					BirthDate:     "1992/10/13",
+					Relationship:  "father",
+					ResponsibleId: "unknown",
+				}
+			})
+
+			It("should fail", func() {
+				Expect(addChildErr).NotTo(BeNil())
+				Expect(createdChild).To(BeZero())
+			})
 		})
+
+		Context("when the relationship is invalid", func() {
+			BeforeEach(func() {
+				childRequest = ChildRequest{
+					FirstName:     "Arthur",
+					LastName:      "Gustin",
+					BirthDate:     "1992/10/13",
+					Relationship:  "zefzef",
+					ResponsibleId: "aaa",
+				}
+			})
+
+			It("should return an error", func() {
+				Expect(addChildErr).NotTo(BeNil())
+
+				Expect(addChildErr.Error()).To(Equal("failed to set responsible: relationship is not valid, it should be one of [father mother grandfather grandmother guardian]"))
+				Expect(createdChild).To(BeZero())
+			})
+		})
+
 	})
 
 })

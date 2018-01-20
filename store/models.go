@@ -5,11 +5,12 @@ import (
 )
 
 type User struct {
-	UserId string `gorm:"primary_key:true"`
+	UserId   string `gorm:"primary_key:true"`
+	Email    string
+	Password string
 }
 
 type Child struct {
-	//User User `gorm:"ForeignKey:user_id;AssociationForeignKey:child_id"`
 	ChildId   string `sql:"type:varchar(64) REFERENCES users(user_id)"`
 	FirstName string
 	LastName  string
@@ -18,8 +19,8 @@ type Child struct {
 }
 
 type AdultResponsible struct {
-	//User User `gorm:"ForeignKey:user_id;AssociationForeignKey:responsible_id"`
 	ResponsibleId string `sql:"type:varchar(64) REFERENCES users(user_id)"`
+	Email         string `sql:"type:varchar(128) REFERENCES users(email)"`
 	FirstName     string
 	LastName      string
 	Gender        string

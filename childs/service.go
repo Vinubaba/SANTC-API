@@ -13,7 +13,7 @@ var (
 )
 
 type Service interface {
-	AddChild(ctx context.Context, request ChildRequest) (string, error)
+	AddChild(ctx context.Context, request ChildRequest) (store.Child, error)
 }
 
 type ChildService struct {
@@ -21,40 +21,40 @@ type ChildService struct {
 		BeginTransaction()
 		Commit()
 		Rollback()
-		AddChild(ctx context.Context, child store.Child) (id string, err error)
+		AddChild(context.Context, store.Child) (store.Child, error)
 		SetResponsible(ctx context.Context, responsibleOf store.ResponsibleOf) error
 	} `inject:""`
 }
 
-func (c ChildService) AddChild(ctx context.Context, request ChildRequest) (string, error) {
+func (c ChildService) AddChild(ctx context.Context, request ChildRequest) (store.Child, error) {
 	t, err := dateparse.ParseIn(request.BirthDate, time.UTC)
 	if err != nil {
-		return "", err
+		return store.Child{}, err
 	}
 
 	if request.ResponsibleId == "" {
-		return "", ErrNoParent
+		return store.Child{}, ErrNoParent
 	}
 
 	c.Store.BeginTransaction()
 
-	childId, err := c.Store.AddChild(ctx, store.Child{
+	child, err := c.Store.AddChild(ctx, store.Child{
 		BirthDate: t,
 		FirstName: request.FirstName,
 		LastName:  request.LastName,
 	})
 	if err != nil {
 		c.Store.Rollback()
-		return "", errors.Wrap(err, "failed to add child")
+		return store.Child{}, errors.Wrap(err, "failed to add child")
 	}
 
-	err = c.Store.SetResponsible(ctx, store.ResponsibleOf{Relationship: request.Relationship, ChildId: childId, ResponsibleId: request.ResponsibleId})
+	err = c.Store.SetResponsible(ctx, store.ResponsibleOf{Relationship: request.Relationship, ChildId: child.ChildId, ResponsibleId: request.ResponsibleId})
 	if err != nil {
 		c.Store.Rollback()
-		return "", errors.Wrap(err, "failed to set responsible")
+		return store.Child{}, errors.Wrap(err, "failed to set responsible")
 	}
 	c.Store.Commit()
-	return childId, nil
+	return child, nil
 }
 
 // ServiceMiddleware is a chainable behavior modifier for childService.

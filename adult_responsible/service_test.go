@@ -12,6 +12,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"log"
 	"os/exec"
 )
@@ -27,7 +28,7 @@ var _ = Describe("Service", func() {
 		concreteDb                  *gorm.DB
 		addAdultResponsibleErr, err error
 		responsibleId               string
-		adultResponsibleRequest     AdultResponsibleRequest
+		adultResponsibleRequest     AddAdultResponsibleRequest
 	)
 
 	BeforeSuite(func() {
@@ -58,6 +59,11 @@ var _ = Describe("Service", func() {
 		adultResponsibleService = &AdultResponsibleService{
 			Store: concreteStore,
 		}
+
+		mockStringGenerator.On("GenerateUuid").Return("aaa").Once()
+		mockStringGenerator.On("GenerateUuid").Return("bbb").Once()
+		mockStringGenerator.On("GenerateUuid").Return("ccc").Once()
+		mockStringGenerator.On("GenerateUuid").Return("ddd").Once()
 	})
 
 	AfterEach(func() {
@@ -73,16 +79,54 @@ var _ = Describe("Service", func() {
 
 		Context("default", func() {
 			BeforeEach(func() {
-				adultResponsibleRequest = AdultResponsibleRequest{
+				adultResponsibleRequest = AddAdultResponsibleRequest{
 					FirstName: "Arthur",
 					LastName:  "Gustin",
 					Gender:    "M",
+					Email:     "arthur.gustin@gmail.com",
+					Password:  "azerty",
 				}
 			})
 
 			It("should work", func() {
 				Expect(addAdultResponsibleErr).To(BeNil())
 				Expect(responsibleId).NotTo(BeZero())
+			})
+		})
+
+		Context("when the email is invalid", func() {
+			BeforeEach(func() {
+				adultResponsibleRequest = AddAdultResponsibleRequest{
+					FirstName: "Arthur",
+					LastName:  "Gustin",
+					Gender:    "M",
+					Email:     "arthur.gustingmail.com",
+					Password:  "azerty",
+				}
+			})
+
+			It("should return an error", func() {
+				Expect(addAdultResponsibleErr).NotTo(BeNil())
+				Expect(errors.Cause(addAdultResponsibleErr)).To(Equal(ErrInvalidEmail))
+				Expect(responsibleId).To(BeZero())
+			})
+		})
+
+		Context("when the password is too short", func() {
+			BeforeEach(func() {
+				adultResponsibleRequest = AddAdultResponsibleRequest{
+					FirstName: "Arthur",
+					LastName:  "Gustin",
+					Gender:    "M",
+					Email:     "arthur.gustin@gmail.com",
+					Password:  "123",
+				}
+			})
+
+			It("should return an error", func() {
+				Expect(addAdultResponsibleErr).NotTo(BeNil())
+				Expect(errors.Cause(addAdultResponsibleErr)).To(Equal(ErrInvalidPasswordFormat))
+				Expect(responsibleId).To(BeZero())
 			})
 		})
 	})
@@ -100,21 +144,210 @@ var _ = Describe("Service", func() {
 
 		Context("default", func() {
 			BeforeEach(func() {
-				adultResponsibleService.AddAdultResponsible(ctx, AdultResponsibleRequest{
+				adultResponsibleService.AddAdultResponsible(ctx, AddAdultResponsibleRequest{
 					FirstName: "Arthur",
 					LastName:  "Gustin",
 					Gender:    "M",
+					Email:     "arthur.gustin@gmail.com",
+					Password:  "azerty",
 				})
-				adultResponsibleService.AddAdultResponsible(ctx, AdultResponsibleRequest{
+				adultResponsibleService.AddAdultResponsible(ctx, AddAdultResponsibleRequest{
 					FirstName: "Vinu",
 					LastName:  "Singh",
 					Gender:    "M",
+					Email:     "vinu.singh@gmail.com",
+					Password:  "qwerty",
 				})
 			})
 
 			It("should work", func() {
 				Expect(allAdultsResponsible).To(HaveLen(2))
 				Expect(err).To(BeNil())
+			})
+		})
+	})
+
+	Context("UpdateAdultResponsible", func() {
+
+		var (
+			adult         store.AdultResponsible
+			adultToUpdate UpdateAdultResponsibleRequest
+			err           error
+		)
+
+		BeforeEach(func() {
+			adultResponsibleService.AddAdultResponsible(ctx, AddAdultResponsibleRequest{
+				FirstName: "Arthur",
+				LastName:  "Gustin",
+				Gender:    "M",
+				Email:     "arthur.gustin@gmail.com",
+				Password:  "azerty",
+			})
+			adultResponsibleService.AddAdultResponsible(ctx, AddAdultResponsibleRequest{
+				FirstName: "Vinu",
+				LastName:  "Singh",
+				Gender:    "M",
+				Email:     "vinu.singh@gmail.com",
+				Password:  "qwerty",
+			})
+		})
+
+		JustBeforeEach(func() {
+			adult, err = adultResponsibleService.UpdateAdultResponsible(ctx, adultToUpdate)
+		})
+
+		Context("default", func() {
+
+			BeforeEach(func() {
+				adultToUpdate = UpdateAdultResponsibleRequest{
+					Id:        "aaa",
+					FirstName: "john",
+					LastName:  "doe",
+					Gender:    "F",
+					Email:     "jonhdoe@gmail.com",
+				}
+			})
+
+			It("should update all fields", func() {
+				Expect(adult).To(Equal(store.AdultResponsible{
+					ResponsibleId: "aaa",
+					FirstName:     "john",
+					LastName:      "doe",
+					Gender:        "F",
+					Email:         "jonhdoe@gmail.com",
+				}))
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("when the email is invalid", func() {
+			BeforeEach(func() {
+				adultToUpdate = UpdateAdultResponsibleRequest{
+					Email: "jonhdoegmail.com",
+				}
+			})
+
+			It("should returns an error", func() {
+				Expect(adult).To(BeZero())
+				Expect(err).NotTo(BeNil())
+				Expect(errors.Cause(err)).To(Equal(ErrInvalidEmail))
+			})
+		})
+	})
+
+	Context("GetAdultResponsible", func() {
+
+		var (
+			adult   store.AdultResponsible
+			err     error
+			request GetOrDeleteAdultResponsibleRequest
+		)
+
+		JustBeforeEach(func() {
+			adult, err = adultResponsibleService.GetAdultResponsible(ctx, request)
+		})
+
+		BeforeEach(func() {
+			adultResponsibleService.AddAdultResponsible(ctx, AddAdultResponsibleRequest{
+				FirstName: "Arthur",
+				LastName:  "Gustin",
+				Gender:    "M",
+				Email:     "arthur.gustin@gmail.com",
+				Password:  "azerty",
+			})
+			adultResponsibleService.AddAdultResponsible(ctx, AddAdultResponsibleRequest{
+				FirstName: "Vinu",
+				LastName:  "Singh",
+				Gender:    "M",
+				Email:     "vinu.singh@gmail.com",
+				Password:  "qwerty",
+			})
+		})
+
+		Context("default", func() {
+			BeforeEach(func() {
+				request = GetOrDeleteAdultResponsibleRequest{
+					Id: "aaa",
+				}
+			})
+
+			It("should return an user", func() {
+				Expect(adult).To(Equal(store.AdultResponsible{
+					FirstName:     "Arthur",
+					LastName:      "Gustin",
+					Gender:        "M",
+					Email:         "arthur.gustin@gmail.com",
+					ResponsibleId: "aaa",
+				}))
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("when the user does not exists", func() {
+			BeforeEach(func() {
+				request = GetOrDeleteAdultResponsibleRequest{
+					Id: "rgrgdfgb",
+				}
+			})
+
+			It("should return an error", func() {
+				Expect(adult).To(BeZero())
+				Expect(err).NotTo(BeNil())
+				Expect(errors.Cause(err)).To(Equal(store.ErrUserNotFound))
+			})
+		})
+	})
+
+	Context("DeleteAdultResponsible", func() {
+
+		var (
+			err     error
+			request GetOrDeleteAdultResponsibleRequest
+		)
+
+		JustBeforeEach(func() {
+			err = adultResponsibleService.DeleteAdultResponsible(ctx, request)
+		})
+
+		BeforeEach(func() {
+			adultResponsibleService.AddAdultResponsible(ctx, AddAdultResponsibleRequest{
+				FirstName: "Arthur",
+				LastName:  "Gustin",
+				Gender:    "M",
+				Email:     "arthur.gustin@gmail.com",
+				Password:  "azerty",
+			})
+			adultResponsibleService.AddAdultResponsible(ctx, AddAdultResponsibleRequest{
+				FirstName: "Vinu",
+				LastName:  "Singh",
+				Gender:    "M",
+				Email:     "vinu.singh@gmail.com",
+				Password:  "qwerty",
+			})
+		})
+
+		Context("default", func() {
+			BeforeEach(func() {
+				request = GetOrDeleteAdultResponsibleRequest{
+					Id: "aaa",
+				}
+			})
+
+			It("should not return an error", func() {
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("when the user does not exists", func() {
+			BeforeEach(func() {
+				request = GetOrDeleteAdultResponsibleRequest{
+					Id: "rgrgdfgb",
+				}
+			})
+
+			It("should return an error", func() {
+				Expect(err).NotTo(BeNil())
+				Expect(errors.Cause(err)).To(Equal(store.ErrUserNotFound))
 			})
 		})
 	})

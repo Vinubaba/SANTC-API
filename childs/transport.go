@@ -9,11 +9,14 @@ import (
 	"net/http"
 
 	"arthurgustin.fr/teddycare/api"
+	"arthurgustin.fr/teddycare/store"
 	kitlog "github.com/go-kit/kit/log"
 	kithttp "github.com/go-kit/kit/transport/http"
+	"github.com/pkg/errors"
 )
 
 type ChildRequest struct {
+	Id            string `json:"id"`
 	FirstName     string `json:"firstName"`
 	LastName      string `json:"lastName"`
 	BirthDate     string `json:"birthDate"` // dd/mm/yyyy
@@ -22,8 +25,10 @@ type ChildRequest struct {
 }
 
 type ChildResponse struct {
-	ChildRequest
-	Id string `json:"id"`
+	Id        string `json:"id"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	BirthDate string `json:"birthDate"` // dd/mm/yyyy
 }
 
 // MakeHandler returns a handler for the booking service.
@@ -36,7 +41,7 @@ func MakeHandler(r *mux.Router, svc Service, logger kitlog.Logger) http.Handler 
 	addChildHandler := kithttp.NewServer(
 		makeAddEndpoint(svc),
 		decodeAddChildRequest,
-		encodeResponse,
+		shared.EncodeResponse201,
 		opts...,
 	)
 
@@ -51,14 +56,16 @@ func MakeHandler(r *mux.Router, svc Service, logger kitlog.Logger) http.Handler 
 func makeAddEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(ChildRequest)
-		id, err := svc.AddChild(ctx, req)
+		child, err := svc.AddChild(ctx, req)
 		if err != nil {
 			return shared.NewError(err.Error()), nil
 		}
 
 		return ChildResponse{
-			ChildRequest: req,
-			Id:           id,
+			Id:        child.ChildId,
+			LastName:  child.LastName,
+			FirstName: child.FirstName,
+			BirthDate: child.BirthDate.UTC().String(),
 		}, nil
 	}
 }
@@ -71,14 +78,14 @@ func decodeAddChildRequest(_ context.Context, r *http.Request) (interface{}, err
 	return request, nil
 }
 
-func encodeResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
-	return json.NewEncoder(w).Encode(response)
-}
-
 // encode errors from business-logic
 func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	switch err {
+	switch errors.Cause(err) {
+	case ErrNoParent:
+		w.WriteHeader(http.StatusBadRequest)
+	case store.ErrUserNotFound:
+		w.WriteHeader(http.StatusNotFound)
 	default:
 		w.WriteHeader(http.StatusInternalServerError)
 	}
