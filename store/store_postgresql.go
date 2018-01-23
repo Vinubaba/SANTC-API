@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	ErrUserNotFound = errors.New("user not found")
+	ErrUserNotFound        = errors.New("user not found")
+	ErrInvalidRelationship = errors.New(fmt.Sprintf("relationship is not valid, it should be one of %s", allRelationships))
 )
 
 type Store struct {
@@ -51,12 +52,12 @@ func (s *Store) AddUser(ctx context.Context, user User) (id string, err error) {
 	return user.UserId, nil
 }
 
-func (s *Store) AddAdultResponsible(ctx context.Context, adult AdultResponsible) (id string, err error) {
+func (s *Store) AddAdultResponsible(ctx context.Context, adult AdultResponsible) (AdultResponsible, error) {
 	if err := s.Db.Create(&adult).Error; err != nil {
-		return "", err
+		return AdultResponsible{}, err
 	}
 
-	return adult.ResponsibleId, nil
+	return adult, nil
 }
 
 func (s *Store) AddChild(ctx context.Context, child Child) (Child, error) {
@@ -71,7 +72,7 @@ func (s *Store) AddChild(ctx context.Context, child Child) (Child, error) {
 
 func (s *Store) SetResponsible(ctx context.Context, responsibleOf ResponsibleOf) error {
 	if !s.isRelationshipValid(responsibleOf.Relationship) {
-		return fmt.Errorf("relationship is not valid, it should be one of %s", allRelationships)
+		return errors.Wrap(ErrInvalidRelationship, fmt.Sprintf("relationship %s is not valid", responsibleOf.Relationship))
 	}
 
 	if err := s.Db.Create(&responsibleOf).Error; err != nil {

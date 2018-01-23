@@ -12,6 +12,8 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
+	"time"
 )
 
 var _ = Describe("Service", func() {
@@ -23,9 +25,33 @@ var _ = Describe("Service", func() {
 		mockStringGenerator *shared.MockStringGenerator
 		concreteStore       *store.Store
 		concreteDb          *gorm.DB
-		addChildErr, err    error
-		childRequest        ChildRequest
+		returnedError, err  error
+		childRef1           ChildRequest
 	)
+
+	var (
+		assertNoError = func() {
+			It("should not return an error", func() {
+				Expect(returnedError).To(BeNil())
+			})
+		}
+		assertErrorWithCause = func(cause error) {
+			It("should return an error", func() {
+				Expect(returnedError).NotTo(BeNil())
+				Expect(errors.Cause(returnedError)).To(Equal(cause))
+			})
+		}
+	)
+
+	BeforeEach(func() {
+		childRef1 = ChildRequest{
+			FirstName:     "Arthur",
+			LastName:      "Gustin",
+			BirthDate:     "1992/10/13",
+			Relationship:  "father",
+			ResponsibleId: "aaa",
+		}
+	})
 
 	BeforeSuite(func() {
 		connectString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -67,9 +93,22 @@ var _ = Describe("Service", func() {
 			createdChild store.Child
 		)
 
+		var (
+			assertCreatedTheRightChild = func() {
+				It("should create the right child", func() {
+					Expect(createdChild).To(Equal(store.Child{
+						FirstName: "Arthur",
+						LastName:  "Gustin",
+						BirthDate: time.Date(1992, 10, 13, 0, 0, 0, 0, time.UTC),
+						ChildId:   "aaa",
+					}))
+				})
+			}
+		)
+
 		BeforeEach(func() {
 			concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","password") VALUES ('aaa','arthur.gustin@gmail.com','$2a$10$nvGMsswN2Dtwy0iWg590ruMfwZTMaN8tR8/FpiW7ZG..WYEfpjKoS')`)
-			concreteStore.Db.Exec(`INSERT INTO "adult_responsibles" ("responsible_id","email","first_name","last_name","gender") VALUES ('aaa','arthur.gustin@gmail.com','Patrick','Gustin','M')`)
+			concreteStore.Db.Exec(`INSERT INTO "adult_responsibles" ("responsible_id","email","first_name","last_name","gender","phone","addres_1","addres_2","city","state","zip") VALUES ('aaa','arthur.gustin@gmail.com','Arthur','Gustin','M','0633326825','11, rue hergé','app 8','Toulouse','FRANCE','31')`)
 		})
 
 		AfterEach(func() {
@@ -78,60 +117,33 @@ var _ = Describe("Service", func() {
 		})
 
 		JustBeforeEach(func() {
-			createdChild, addChildErr = childService.AddChild(ctx, childRequest)
+			createdChild, returnedError = childService.AddChild(ctx, childRef1)
 		})
 
 		Context("default", func() {
-			BeforeEach(func() {
-				childRequest = ChildRequest{
-					FirstName:     "Arthur",
-					LastName:      "Gustin",
-					BirthDate:     "1992/10/13",
-					Relationship:  "father",
-					ResponsibleId: "aaa",
-				}
-			})
-
-			It("should work", func() {
-				Expect(addChildErr).To(BeNil())
-				Expect(createdChild.ChildId).NotTo(BeZero())
-			})
+			assertNoError()
+			assertCreatedTheRightChild()
 		})
 
 		Context("when the responsibleId does not exists", func() {
 			BeforeEach(func() {
-				childRequest = ChildRequest{
-					FirstName:     "Arthur",
-					LastName:      "Gustin",
-					BirthDate:     "1992/10/13",
-					Relationship:  "father",
-					ResponsibleId: "unknown",
-				}
+				childRef1.ResponsibleId = "unknown"
 			})
-
-			It("should fail", func() {
-				Expect(addChildErr).NotTo(BeNil())
-				Expect(createdChild).To(BeZero())
-			})
+			assertErrorWithCause(ErrSetResponsible)
 		})
 
 		Context("when the relationship is invalid", func() {
 			BeforeEach(func() {
-				childRequest = ChildRequest{
-					FirstName:     "Arthur",
-					LastName:      "Gustin",
-					BirthDate:     "1992/10/13",
-					Relationship:  "zefzef",
-					ResponsibleId: "aaa",
-				}
+				childRef1.Relationship = "zefzef"
 			})
+			assertErrorWithCause(ErrSetResponsible)
+		})
 
-			It("should return an error", func() {
-				Expect(addChildErr).NotTo(BeNil())
-
-				Expect(addChildErr.Error()).To(Equal("failed to set responsible: relationship is not valid, it should be one of [father mother grandfather grandmother guardian]"))
-				Expect(createdChild).To(BeZero())
+		Context("when the responsableId is empty", func() {
+			BeforeEach(func() {
+				childRef1.ResponsibleId = ""
 			})
+			assertErrorWithCause(ErrNoParent)
 		})
 
 	})

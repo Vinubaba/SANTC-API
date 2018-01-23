@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	ErrNoParent = errors.New("responsibleId is mandatory")
+	ErrNoParent       = errors.New("responsibleId is mandatory")
+	ErrSetResponsible = errors.New("failed to set responsibleId")
 )
 
 type Service interface {
@@ -51,7 +52,7 @@ func (c ChildService) AddChild(ctx context.Context, request ChildRequest) (store
 	err = c.Store.SetResponsible(ctx, store.ResponsibleOf{Relationship: request.Relationship, ChildId: child.ChildId, ResponsibleId: request.ResponsibleId})
 	if err != nil {
 		c.Store.Rollback()
-		return store.Child{}, errors.Wrap(err, "failed to set responsible")
+		return store.Child{}, errors.Wrap(ErrSetResponsible, "failed to set responsible. err: "+err.Error())
 	}
 	c.Store.Commit()
 	return child, nil

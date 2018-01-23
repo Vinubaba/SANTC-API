@@ -24,6 +24,12 @@ type AdultResponsible struct {
 	FirstName     string
 	LastName      string
 	Gender        string
+	Phone         string
+	Addres_1      string
+	Addres_2      string
+	City          string
+	State         string
+	Zip           string
 }
 
 type ResponsibleOf struct {

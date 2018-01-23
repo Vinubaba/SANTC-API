@@ -18,32 +18,19 @@ var (
 	ErrBadRouting = errors.New("inconsistent mapping between route and handler (programmer error)")
 )
 
-type AddAdultResponsibleRequest struct {
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Gender    string `json:"gender"`
-	Email     string `json:"email"`
-	Password  string `json:"password"`
-}
-
-type AdultResponsibleResponse struct {
+type AdultResponsibleTransport struct {
 	Id        string `json:"id"`
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
 	Gender    string `json:"gender"`
 	Email     string `json:"email"`
-}
-
-type GetOrDeleteAdultResponsibleRequest struct {
-	Id string `json:"id"`
-}
-
-type UpdateAdultResponsibleRequest struct {
-	Id        string `json:"id"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Gender    string `json:"gender"`
-	Email     string `json:"email"`
+	Password  string `json:"password,omitempty"`
+	Phone     string `json:"phone"`
+	Addres_1  string `json:"address_1"`
+	Addres_2  string `json:"address_2"`
+	City      string `json:"city"`
+	State     string `json:"state"`
+	Zip       string `json:"zip"`
 }
 
 // MakeHandler returns a handler for the booking service.
@@ -98,45 +85,59 @@ func MakeHandler(r *mux.Router, svc Service, logger kitlog.Logger) http.Handler 
 
 func makeAddEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(AddAdultResponsibleRequest)
+		req := request.(AdultResponsibleTransport)
 
-		id, err := svc.AddAdultResponsible(ctx, req)
+		adult, err := svc.AddAdultResponsible(ctx, req)
 		if err != nil {
 			return nil, err
 		}
 
-		return AdultResponsibleResponse{
-			FirstName: req.FirstName,
-			LastName:  req.LastName,
-			Email:     req.Email,
-			Gender:    req.Gender,
-			Id:        id,
+		return AdultResponsibleTransport{
+			Id:        adult.ResponsibleId,
+			FirstName: adult.FirstName,
+			LastName:  adult.LastName,
+			Email:     adult.Email,
+			Gender:    adult.Gender,
+			Password:  "", // never return the password
+			Addres_1:  adult.Addres_1,
+			Addres_2:  adult.Addres_2,
+			City:      adult.City,
+			Phone:     adult.Phone,
+			State:     adult.State,
+			Zip:       adult.Zip,
 		}, nil
 	}
 }
 
 func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(UpdateAdultResponsibleRequest)
+		req := request.(AdultResponsibleTransport)
 
 		adult, err := svc.UpdateAdultResponsible(ctx, req)
 		if err != nil {
 			return nil, err
 		}
 
-		return AdultResponsibleResponse{
+		return AdultResponsibleTransport{
+			Id:        adult.ResponsibleId,
 			FirstName: adult.FirstName,
 			LastName:  adult.LastName,
 			Email:     adult.Email,
 			Gender:    adult.Gender,
-			Id:        adult.ResponsibleId,
+			Password:  "", // never return the password
+			Addres_1:  adult.Addres_1,
+			Addres_2:  adult.Addres_2,
+			City:      adult.City,
+			Phone:     adult.Phone,
+			State:     adult.State,
+			Zip:       adult.Zip,
 		}, nil
 	}
 }
 
 func makeDeleteEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(GetOrDeleteAdultResponsibleRequest)
+		req := request.(AdultResponsibleTransport)
 
 		if err := svc.DeleteAdultResponsible(ctx, req); err != nil {
 			return nil, err
@@ -148,19 +149,26 @@ func makeDeleteEndpoint(svc Service) endpoint.Endpoint {
 
 func makeGetEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(GetOrDeleteAdultResponsibleRequest)
+		req := request.(AdultResponsibleTransport)
 
 		adult, err := svc.GetAdultResponsible(ctx, req)
 		if err != nil {
 			return nil, err
 		}
 
-		return AdultResponsibleResponse{
+		return AdultResponsibleTransport{
 			Id:        adult.ResponsibleId,
-			Email:     adult.Email,
-			LastName:  adult.LastName,
 			FirstName: adult.FirstName,
+			LastName:  adult.LastName,
+			Email:     adult.Email,
 			Gender:    adult.Gender,
+			Password:  "", // never return the password
+			Addres_1:  adult.Addres_1,
+			Addres_2:  adult.Addres_2,
+			City:      adult.City,
+			Phone:     adult.Phone,
+			State:     adult.State,
+			Zip:       adult.Zip,
 		}, nil
 	}
 }
@@ -172,9 +180,9 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 			return nil, err
 		}
 
-		allAdults := []AdultResponsibleResponse{}
+		allAdults := []AdultResponsibleTransport{}
 		for _, adult := range adults {
-			allAdults = append(allAdults, AdultResponsibleResponse{
+			allAdults = append(allAdults, AdultResponsibleTransport{
 				Id:        adult.ResponsibleId,
 				Gender:    adult.Gender,
 				LastName:  adult.LastName,
@@ -188,7 +196,7 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 }
 
 func decodeAddChildRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var request AddAdultResponsibleRequest
+	var request AdultResponsibleTransport
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
@@ -203,7 +211,7 @@ func decodeUpdateChildRequest(_ context.Context, r *http.Request) (interface{}, 
 		return nil, ErrBadRouting
 	}
 	// get informations from payload
-	var request UpdateAdultResponsibleRequest
+	var request AdultResponsibleTransport
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
@@ -217,7 +225,7 @@ func decodeGetOrDeleteRequest(_ context.Context, r *http.Request) (interface{}, 
 	if !ok {
 		return nil, ErrBadRouting
 	}
-	return GetOrDeleteAdultResponsibleRequest{Id: id}, nil
+	return AdultResponsibleTransport{Id: id}, nil
 }
 
 func ignorePayload(_ context.Context, _ *http.Request) (interface{}, error) {
