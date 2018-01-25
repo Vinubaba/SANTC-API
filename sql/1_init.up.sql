@@ -9,10 +9,17 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS children (
   child_id varchar UNIQUE NOT NULL PRIMARY KEY,
-  first_name varchar,
-  last_name varchar,
+  first_name varchar NOT NULL,
+  last_name varchar NOT NULL,
   gender varchar NOT NULL,
-  birth_date date
+  birth_date date NOT NULL,
+  picture_path varchar
+);
+
+CREATE TABLE IF NOT EXISTS allergies (
+  allergy_id varchar UNIQUE NOT NULL PRIMARY KEY,
+  child_id varchar REFERENCES children (child_id) ON DELETE CASCADE,
+  allergy varchar NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS adult_responsibles (
@@ -30,15 +37,15 @@ CREATE TABLE IF NOT EXISTS adult_responsibles (
 );
 
 CREATE TABLE IF NOT EXISTS responsible_of (
-  responsible_id varchar references adult_responsibles (responsible_id),
-  child_id varchar REFERENCES children (child_id),
+  responsible_id varchar references adult_responsibles (responsible_id) ON DELETE CASCADE,
+  child_id varchar REFERENCES children (child_id) ON DELETE CASCADE,
   relationship varchar  NOT NULL --mother, father, grandmother, grandfather, guardian
 );
 
 CREATE TABLE IF NOT EXISTS teachers (
-teacher_id varchar REFERENCES users (user_id) UNIQUE,
-first_name varchar,
-last_name varchar
+  teacher_id varchar REFERENCES users (user_id) UNIQUE,
+  first_name varchar,
+  last_name varchar
 );
 
 CREATE TABLE IF NOT EXISTS daycare (

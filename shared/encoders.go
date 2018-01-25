@@ -18,5 +18,5 @@ func EncodeResponse201(_ context.Context, w http.ResponseWriter, response interf
 
 func EncodeResponse204(_ context.Context, w http.ResponseWriter, response interface{}) error {
 	w.WriteHeader(http.StatusNoContent)
-	return json.NewEncoder(w).Encode(response)
+	return nil
 }

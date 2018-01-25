@@ -7,9 +7,10 @@ import (
 	"os"
 
 	"arthurgustin.fr/teddycare/adult_responsible"
-	"arthurgustin.fr/teddycare/childs"
+	"arthurgustin.fr/teddycare/children"
 	"arthurgustin.fr/teddycare/shared"
 	"arthurgustin.fr/teddycare/store"
+
 	"github.com/facebookgo/inject"
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
@@ -23,7 +24,7 @@ var (
 	config                  *shared.AppConfig
 	db                      *gorm.DB
 	stringGenerator         = &shared.StringGenerator{}
-	childService            = &childs.ChildService{}
+	childService            = &children.ChildService{}
 	adultResponsibleService = adult_responsible.NewDefaultService()
 	storage                 = &store.Store{}
 )
@@ -97,7 +98,7 @@ func startHttpServer(ctx context.Context) {
 	router := mux.NewRouter()
 	apiRouterV1 := router.PathPrefix("/api/v1").Subrouter()
 
-	childs.MakeHandler(apiRouterV1, childService, httpLogger)
+	children.MakeHandler(apiRouterV1, childService, httpLogger)
 	adult_responsible.MakeHandler(apiRouterV1, adultResponsibleService, httpLogger)
 
 	checkErrAndExit(http.ListenAndServe(":8084", router))

@@ -1,4 +1,4 @@
-package childs_test
+package children_test
 
 import (
 	. "github.com/onsi/ginkgo"
