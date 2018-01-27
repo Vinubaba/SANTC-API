@@ -17,6 +17,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/pkg/errors"
+	"arthurgustin.fr/teddycare/office_manager"
 )
 
 var (
@@ -26,6 +27,7 @@ var (
 	stringGenerator         = &shared.StringGenerator{}
 	childService            = &children.ChildService{}
 	adultResponsibleService = adult_responsible.NewDefaultService()
+	officeManagerService = office_manager.NewDefaultService()
 	storage                 = &store.Store{}
 )
 
@@ -61,6 +63,7 @@ func initApplicationGraph() error {
 		config,
 		childService,
 		adultResponsibleService,
+		officeManagerService,
 		db,
 		stringGenerator,
 		storage,
@@ -100,6 +103,7 @@ func startHttpServer(ctx context.Context) {
 
 	children.MakeHandler(apiRouterV1, childService, httpLogger)
 	adult_responsible.MakeHandler(apiRouterV1, adultResponsibleService, httpLogger)
+	office_manager.MakeHandler(apiRouterV1, officeManagerService, httpLogger)
 
 	checkErrAndExit(http.ListenAndServe(":8084", router))
 

@@ -42,28 +42,21 @@ CREATE TABLE IF NOT EXISTS responsible_of (
   relationship varchar  NOT NULL --mother, father, grandmother, grandfather, guardian
 );
 
-CREATE TABLE IF NOT EXISTS teachers (
-  teacher_id varchar REFERENCES users (user_id) UNIQUE,
-  first_name varchar,
-  last_name varchar
+CREATE TABLE IF NOT EXISTS office_managers (
+  office_manager_id varchar REFERENCES users (user_id) ON DELETE CASCADE,
+  email varchar REFERENCES users (email) ON UPDATE CASCADE UNIQUE
 );
 
-CREATE TABLE IF NOT EXISTS daycare (
-  daycare_id varchar NOT NULL PRIMARY KEY,
-  owner_id varchar REFERENCES users (user_id) UNIQUE,
-  zipcode int NOT NULL,
-  phone varchar
-);
+--CREATE TABLE IF NOT EXISTS teachers (
+--  teacher_id varchar REFERENCES users (user_id) UNIQUE,
+--  first_name varchar,
+--  last_name varchar
+--);
 
-CREATE TABLE IF NOT EXISTS daycare_class (
-  class_id varchar NOT NULL PRIMARY KEY,
-  daycare_id varchar REFERENCES daycare (daycare_id)
-);
-
-CREATE TABLE IF NOT EXISTS teacher_teach (
-teacher_id varchar REFERENCES teachers (teacher_id) UNIQUE,
-  class_id varchar REFERENCES daycare_class (class_id)
-)
+--CREATE TABLE IF NOT EXISTS teacher_teach (
+--teacher_id varchar REFERENCES teachers (teacher_id) UNIQUE,
+--  class_id varchar REFERENCES daycare_class (class_id)
+--)
 
 --CREATE TABLE roles (
 --   role_id     int NOT NULL PRIMARY KEY,
