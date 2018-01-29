@@ -8,7 +8,9 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 
-	"arthurgustin.fr/teddycare/store"
+	auth "arthurgustin.fr/teddycare/authentication"
+	. "arthurgustin.fr/teddycare/store"
+
 	kitlog "github.com/go-kit/kit/log"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/pkg/errors"
@@ -75,11 +77,11 @@ func MakeHandler(r *mux.Router, svc Service, logger kitlog.Logger) http.Handler 
 		opts...,
 	)
 
-	r.Handle("/adults", addAdultResponsibleHandler).Methods("POST")
-	r.Handle("/adults", listAdultResponsibleHandler).Methods(http.MethodGet)
-	r.Handle("/adults/{id}", getAdultResponsibleHandler).Methods(http.MethodGet)
-	r.Handle("/adults/{id}", updateAdultResponsibleHandler).Methods(http.MethodPatch)
-	r.Handle("/adults/{id}", deleteAdultResponsibleHandler).Methods(http.MethodDelete)
+	r.Handle("/adults", auth.Roles(addAdultResponsibleHandler, ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_TEACHER)).Methods("POST")
+	r.Handle("/adults", auth.Roles(listAdultResponsibleHandler, ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_TEACHER)).Methods(http.MethodGet)
+	r.Handle("/adults/{id}", auth.Roles(getAdultResponsibleHandler, ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_TEACHER)).Methods(http.MethodGet)
+	r.Handle("/adults/{id}", auth.Roles(updateAdultResponsibleHandler, ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_TEACHER)).Methods(http.MethodPatch)
+	r.Handle("/adults/{id}", auth.Roles(deleteAdultResponsibleHandler, ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_TEACHER)).Methods(http.MethodDelete)
 	return r
 }
 
@@ -238,7 +240,7 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 	switch errors.Cause(err) {
 	case ErrInvalidPasswordFormat, ErrInvalidEmail:
 		w.WriteHeader(http.StatusBadRequest)
-	case store.ErrUserNotFound:
+	case ErrUserNotFound:
 		w.WriteHeader(http.StatusNotFound)
 	default:
 		w.WriteHeader(http.StatusInternalServerError)

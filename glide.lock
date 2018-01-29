@@ -1,14 +1,16 @@
-hash: 3f5019e972fcd29c4550a189e57a78b06d38818f60df608189bd123c24c242f7
-updated: 2018-01-24T16:52:11.759085199+01:00
+hash: fad9b1fdcbc84c33f07610cab88a26640e5961bf1e052d415b1ca0c56b16231f
+updated: 2018-01-29T22:30:51.614928+01:00
 imports:
 - name: github.com/araddon/dateparse
-  version: afa6a0f9344e9569740baf003242328fa2259ede
+  version: f912f7e43f30f3403525bdc3254ee9958ffc1937
 - name: github.com/badoux/checkmail
   version: d0a759655d62bcdc95c50a0676f3e9702ed59453
 - name: github.com/davecgh/go-spew
-  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+  version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
   subpackages:
   - spew
+- name: github.com/dgrijalva/jwt-go
+  version: dbeaa9332f19a944acb5736b4456cfcc02140e29
 - name: github.com/facebookgo/inject
   version: cc1aa653e50f6a9893bcaef89e673e5b24e1e97b
 - name: github.com/facebookgo/structtag
@@ -16,13 +18,23 @@ imports:
 - name: github.com/go-kit/kit
   version: 953e747656a7bbb5e1f998608b460458958b70cc
   subpackages:
+  - auth/jwt
   - endpoint
   - log
+  - transport/grpc
   - transport/http
 - name: github.com/go-logfmt/logfmt
   version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
 - name: github.com/go-stack/stack
   version: 259ab82a6cad3992b4e21ff5cac294ccb06474bc
+- name: github.com/golang/protobuf
+  version: 925541529c1fa6821df4e44ce2723319eb2be768
+  subpackages:
+  - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/timestamp
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
@@ -38,10 +50,12 @@ imports:
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: github.com/lib/pq
-  version: b609790bd85edf8e9ab7e0f8912750a786177bcf
+  version: 19c8e9ad00952ce0c64489b60e8df88bb16dd514
   subpackages:
   - hstore
   - oid
+- name: github.com/mitchellh/mapstructure
+  version: b4575eea38cca1123ec2dc90c26529b5c5acfcff
 - name: github.com/Pallinder/go-randomdata
   version: 442d37d9dbc782dbd737af9ec575d8858b79261b
 - name: github.com/pkg/errors
@@ -55,18 +69,81 @@ imports:
 - name: github.com/stretchr/objx
   version: cbeaeb16a013161a98496fad62933b1d21786672
 - name: github.com/stretchr/testify
-  version: b91bfb9ebec76498946beb6af7c0230c7cc7ba6c
+  version: 87b1dfb5b2fa649f52695dd9eae19abe404a4308
   subpackages:
   - assert
   - mock
 - name: golang.org/x/crypto
-  version: ee41a25c63fb5b74abf2213abb6dee3751e6ac4a
+  version: 1875d0a70c90e57f11972aefd42276df65e895b9
   subpackages:
   - bcrypt
   - blowfish
+- name: golang.org/x/net
+  version: 0ed95abb35c445290478a5348a7b38bb154135fd
+  subpackages:
+  - context
+  - html
+  - html/atom
+  - html/charset
+  - http2
+  - http2/hpack
+  - idna
+  - internal/timeseries
+  - lex/httplex
+  - trace
+- name: golang.org/x/text
+  version: e19ae1496984b1c655b8044a65c0300a3c878dd3
+  subpackages:
+  - encoding
+  - encoding/charmap
+  - encoding/htmlindex
+  - encoding/internal
+  - encoding/internal/identifier
+  - encoding/japanese
+  - encoding/korean
+  - encoding/simplifiedchinese
+  - encoding/traditionalchinese
+  - encoding/unicode
+  - internal/tag
+  - internal/utf8internal
+  - language
+  - runes
+  - secure/bidirule
+  - transform
+  - unicode/bidi
+  - unicode/norm
+- name: google.golang.org/genproto
+  version: 4eb30f4778eed4c258ba66527a0d4f9ec8a36c45
+  subpackages:
+  - googleapis/rpc/status
+- name: google.golang.org/grpc
+  version: 0bd008f5fadb62d228f12b18d016709e8139a7af
+  subpackages:
+  - balancer
+  - balancer/base
+  - balancer/roundrobin
+  - codes
+  - connectivity
+  - credentials
+  - encoding
+  - encoding/proto
+  - grpclb/grpc_lb_v1/messages
+  - grpclog
+  - internal
+  - keepalive
+  - metadata
+  - naming
+  - peer
+  - resolver
+  - resolver/dns
+  - resolver/passthrough
+  - stats
+  - status
+  - tap
+  - transport
 testImports:
 - name: github.com/onsi/ginkgo
-  version: 9eda700730cba42af70d53180f9dcce9266bc2bc
+  version: 747514b53ddd06d5d37d096c1cb313cfe620d7d4
   subpackages:
   - config
   - internal/codelocation
@@ -99,33 +176,9 @@ testImports:
   - matchers/support/goraph/node
   - matchers/support/goraph/util
   - types
-- name: golang.org/x/net
-  version: 5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec
-  subpackages:
-  - html
-  - html/atom
-  - html/charset
 - name: golang.org/x/sys
-  version: 2c42eef0765b9837fbdab12011af7830f55f88f0
+  version: ff2a66f350cefa5c93a634eadb5d25bb60c85a9c
   subpackages:
   - unix
-- name: golang.org/x/text
-  version: e19ae1496984b1c655b8044a65c0300a3c878dd3
-  subpackages:
-  - encoding
-  - encoding/charmap
-  - encoding/htmlindex
-  - encoding/internal
-  - encoding/internal/identifier
-  - encoding/japanese
-  - encoding/korean
-  - encoding/simplifiedchinese
-  - encoding/traditionalchinese
-  - encoding/unicode
-  - internal/tag
-  - internal/utf8internal
-  - language
-  - runes
-  - transform
 - name: gopkg.in/yaml.v2
   version: d670f9405373e636a5a2765eea47fac0c9bc91a4

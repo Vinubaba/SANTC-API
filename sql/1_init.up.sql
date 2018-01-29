@@ -1,8 +1,5 @@
--- TODO: string id for public ressources, int id for internal ressource
--- TODO: set default timezone to UTC
-
 CREATE TABLE IF NOT EXISTS users (
-  user_id varchar UNIQUE NOT NULL PRIMARY KEY,
+  user_id varchar PRIMARY KEY UNIQUE NOT NULL,
   email varchar UNIQUE NOT NULL,
   password varchar(256) NOT NULL
 );
@@ -45,6 +42,11 @@ CREATE TABLE IF NOT EXISTS responsible_of (
 CREATE TABLE IF NOT EXISTS office_managers (
   office_manager_id varchar REFERENCES users (user_id) ON DELETE CASCADE,
   email varchar REFERENCES users (email) ON UPDATE CASCADE UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS roles (
+  user_id varchar REFERENCES users (user_id) ON DELETE CASCADE,
+  role varchar NOT NULL
 );
 
 --CREATE TABLE IF NOT EXISTS teachers (

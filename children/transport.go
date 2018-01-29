@@ -1,16 +1,18 @@
 package children
 
 import (
-	"arthurgustin.fr/teddycare/shared"
 	"context"
 	"encoding/json"
-	"github.com/go-kit/kit/endpoint"
-	"github.com/gorilla/mux"
 	"net/http"
 
+	auth "arthurgustin.fr/teddycare/authentication"
+	"arthurgustin.fr/teddycare/shared"
 	"arthurgustin.fr/teddycare/store"
+
+	"github.com/go-kit/kit/endpoint"
 	kitlog "github.com/go-kit/kit/log"
 	kithttp "github.com/go-kit/kit/transport/http"
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
 
@@ -72,8 +74,8 @@ func MakeHandler(r *mux.Router, svc Service, logger kitlog.Logger) http.Handler 
 		opts...,
 	)
 
-	r.Handle("/childs", addChildHandler).Methods("POST")
-	r.Handle("/childs", listChildHandler).Methods(http.MethodGet)
+	r.Handle("/childs", auth.Roles(addChildHandler, store.ROLE_OFFICE_MANAGER, store.ROLE_ADULT, store.ROLE_ADMIN)).Methods("POST")
+	r.Handle("/childs", auth.Roles(listChildHandler, store.ROLE_OFFICE_MANAGER, store.ROLE_ADULT, store.ROLE_ADMIN)).Methods(http.MethodGet)
 	r.Handle("/childs/{childId}", updateChildHandler).Methods(http.MethodPatch)
 	r.Handle("/childs/{childId}", deleteChildHandler).Methods(http.MethodDelete)
 	r.Handle("/childs/{childId}", getChildHandler).Methods(http.MethodGet)
@@ -234,7 +236,13 @@ func decodeUpdateChildRequest(_ context.Context, r *http.Request) (interface{}, 
 	return request, nil
 }
 
-func ignorePayload(_ context.Context, _ *http.Request) (interface{}, error) {
+type User struct {
+	Username string   `json:"username"`
+	Password string   `json:"password"`
+	Roles    []string `json:"roles"`
+}
+
+func ignorePayload(_ context.Context, r *http.Request) (interface{}, error) {
 	return nil, nil
 }
 

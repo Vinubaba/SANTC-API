@@ -37,6 +37,10 @@ func initDb() {
 		log.Fatal("failed to grant privileges:" + string(out))
 	}
 
+	if out, err := exec.Command("psql", "-U", "postgres", "-h", "localhost", "-d", "test_teddycare", "-c", "create extension pgcrypto;").Output(); err != nil {
+		log.Fatal("failed to create extension pgcrypt:" + string(out))
+	}
+
 	visit := func(files *[]string) filepath.WalkFunc {
 		return func(path string, info os.FileInfo, err error) error {
 			if err != nil {

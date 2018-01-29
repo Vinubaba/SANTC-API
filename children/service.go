@@ -4,6 +4,7 @@ import (
 	"arthurgustin.fr/teddycare/store"
 	"context"
 	"github.com/araddon/dateparse"
+	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"time"
 )
@@ -26,23 +27,21 @@ type Service interface {
 
 type ChildService struct {
 	Store interface {
-		BeginTransaction()
-		Commit()
-		Rollback()
-		AddChild(context.Context, store.Child) (store.Child, error)
-		UpdateChild(context.Context, store.Child) (store.Child, error)
-		GetChild(ctx context.Context, childId string) (store.Child, error)
-		ListChild(context.Context) ([]store.Child, error)
-		DeleteChild(ctx context.Context, childId string) error
-		SetResponsible(ctx context.Context, responsibleOf store.ResponsibleOf) error
+		Tx() *gorm.DB
+		AddChild(tx *gorm.DB, child store.Child) (store.Child, error)
+		UpdateChild(tx *gorm.DB, child store.Child) (store.Child, error)
+		GetChild(tx *gorm.DB, childId string) (store.Child, error)
+		ListChild(tx *gorm.DB) ([]store.Child, error)
+		DeleteChild(tx *gorm.DB, childId string) error
+		SetResponsible(tx *gorm.DB, responsibleOf store.ResponsibleOf) error
 
-		AddAllergy(ctx context.Context, allergy store.Allergy) (store.Allergy, error)
-		FindAllergiesOfChild(ctx context.Context, childId string) ([]store.Allergy, error)
-		RemoveAllergiesOfChild(ctx context.Context, childId string) error
+		AddAllergy(tx *gorm.DB, allergy store.Allergy) (store.Allergy, error)
+		FindAllergiesOfChild(tx *gorm.DB, childId string) ([]store.Allergy, error)
+		RemoveAllergiesOfChild(tx *gorm.DB, childId string) error
 	} `inject:""`
 }
 
-func (c ChildService) AddChild(ctx context.Context, request ChildTransport) (store.Child, error) {
+func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (store.Child, error) {
 	t, err := dateparse.ParseIn(request.BirthDate, time.UTC)
 	if err != nil {
 		return store.Child{}, err
@@ -52,9 +51,9 @@ func (c ChildService) AddChild(ctx context.Context, request ChildTransport) (sto
 		return store.Child{}, ErrNoParent
 	}
 
-	c.Store.BeginTransaction()
+	tx := c.Store.Tx()
 
-	child, err := c.Store.AddChild(ctx, store.Child{
+	child, err := c.Store.AddChild(tx, store.Child{
 		BirthDate:   t,
 		FirstName:   request.FirstName,
 		LastName:    request.LastName,
@@ -62,28 +61,28 @@ func (c ChildService) AddChild(ctx context.Context, request ChildTransport) (sto
 		PicturePath: request.PicturePath,
 	})
 	if err != nil {
-		c.Store.Rollback()
+		tx.Rollback()
 		return store.Child{}, errors.Wrap(err, "failed to add child")
 	}
 
-	if err = c.Store.SetResponsible(ctx, store.ResponsibleOf{Relationship: request.Relationship, ChildId: child.ChildId, ResponsibleId: request.ResponsibleId}); err != nil {
-		c.Store.Rollback()
+	if err = c.Store.SetResponsible(tx, store.ResponsibleOf{Relationship: request.Relationship, ChildId: child.ChildId, ResponsibleId: request.ResponsibleId}); err != nil {
+		tx.Rollback()
 		return store.Child{}, errors.Wrap(ErrSetResponsible, "failed to set responsible. err: "+err.Error())
 	}
 
 	for _, allergy := range request.Allergies {
-		if _, err := c.Store.AddAllergy(ctx, store.Allergy{ChildId: child.ChildId, Allergy: allergy}); err != nil {
-			c.Store.Rollback()
+		if _, err := c.Store.AddAllergy(tx, store.Allergy{ChildId: child.ChildId, Allergy: allergy}); err != nil {
+			tx.Rollback()
 			return store.Child{}, errors.Wrap(ErrSetAllergy, "failed to set allergy. err: "+err.Error())
 		}
 	}
 
-	c.Store.Commit()
+	tx.Commit()
 	return child, nil
 }
 
-func (c ChildService) GetChild(ctx context.Context, request ChildTransport) (store.Child, error) {
-	adult, err := c.Store.GetChild(ctx, request.Id)
+func (c *ChildService) GetChild(ctx context.Context, request ChildTransport) (store.Child, error) {
+	adult, err := c.Store.GetChild(nil, request.Id)
 	if err != nil {
 		return adult, errors.Wrap(err, "failed to get child")
 	}
@@ -91,16 +90,16 @@ func (c ChildService) GetChild(ctx context.Context, request ChildTransport) (sto
 	return adult, nil
 }
 
-func (c ChildService) DeleteChild(ctx context.Context, request ChildTransport) error {
-	if err := c.Store.DeleteChild(ctx, request.Id); err != nil {
+func (c *ChildService) DeleteChild(ctx context.Context, request ChildTransport) error {
+	if err := c.Store.DeleteChild(nil, request.Id); err != nil {
 		return errors.Wrap(err, "failed to delete child")
 	}
 
 	return nil
 }
 
-func (c ChildService) ListChild(ctx context.Context) ([]store.Child, error) {
-	children, err := c.Store.ListChild(ctx)
+func (c *ChildService) ListChild(ctx context.Context) ([]store.Child, error) {
+	children, err := c.Store.ListChild(nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list adult")
 	}
@@ -108,7 +107,7 @@ func (c ChildService) ListChild(ctx context.Context) ([]store.Child, error) {
 	return children, nil
 }
 
-func (c ChildService) UpdateChild(ctx context.Context, request ChildTransport) (store.Child, error) {
+func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) (store.Child, error) {
 	var t time.Time
 	var err error
 
@@ -123,22 +122,22 @@ func (c ChildService) UpdateChild(ctx context.Context, request ChildTransport) (
 		}
 	}
 
-	c.Store.BeginTransaction()
+	tx := c.Store.Tx()
 
 	if len(request.Allergies) > 1 {
-		if err := c.Store.RemoveAllergiesOfChild(ctx, request.Id); err != nil {
-			c.Store.Rollback()
+		if err := c.Store.RemoveAllergiesOfChild(tx, request.Id); err != nil {
+			tx.Rollback()
 			return store.Child{}, errors.Wrap(err, "failed to delete allergies")
 		}
 		for _, allergy := range request.Allergies {
-			if _, err := c.Store.AddAllergy(ctx, store.Allergy{ChildId: request.Id, Allergy: allergy}); err != nil {
-				c.Store.Rollback()
+			if _, err := c.Store.AddAllergy(tx, store.Allergy{ChildId: request.Id, Allergy: allergy}); err != nil {
+				tx.Rollback()
 				return store.Child{}, errors.Wrap(ErrSetAllergy, "failed to set allergy. err: "+err.Error())
 			}
 		}
 	}
 
-	child, err := c.Store.UpdateChild(ctx, store.Child{
+	child, err := c.Store.UpdateChild(tx, store.Child{
 		BirthDate:   t,
 		PicturePath: request.PicturePath,
 		Gender:      request.Gender,
@@ -147,17 +146,17 @@ func (c ChildService) UpdateChild(ctx context.Context, request ChildTransport) (
 		ChildId:     request.Id,
 	})
 	if err != nil {
-		c.Store.Rollback()
+		tx.Rollback()
 		return child, errors.Wrap(err, "failed to update child")
 	}
 
-	c.Store.Commit()
+	tx.Commit()
 
 	return child, nil
 }
 
-func (c ChildService) FindAllergiesOfChild(ctx context.Context, childId string) ([]store.Allergy, error) {
-	allergies, err := c.Store.FindAllergiesOfChild(ctx, childId)
+func (c *ChildService) FindAllergiesOfChild(ctx context.Context, childId string) ([]store.Allergy, error) {
+	allergies, err := c.Store.FindAllergiesOfChild(nil, childId)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to find allergies")
 	}

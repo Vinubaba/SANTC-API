@@ -11,13 +11,14 @@ import (
 	"arthurgustin.fr/teddycare/shared"
 	"arthurgustin.fr/teddycare/store"
 
+	"arthurgustin.fr/teddycare/authentication"
+	"arthurgustin.fr/teddycare/office_manager"
 	"github.com/facebookgo/inject"
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/pkg/errors"
-	"arthurgustin.fr/teddycare/office_manager"
 )
 
 var (
@@ -26,8 +27,9 @@ var (
 	db                      *gorm.DB
 	stringGenerator         = &shared.StringGenerator{}
 	childService            = &children.ChildService{}
-	adultResponsibleService = adult_responsible.NewDefaultService()
-	officeManagerService = office_manager.NewDefaultService()
+	adultResponsibleService = &adult_responsible.AdultResponsibleService{}
+	officeManagerService    = office_manager.NewDefaultService()
+	authenticationService   = &authentication.AuthenticationService{}
 	storage                 = &store.Store{}
 )
 
@@ -64,6 +66,7 @@ func initApplicationGraph() error {
 		childService,
 		adultResponsibleService,
 		officeManagerService,
+		authenticationService,
 		db,
 		stringGenerator,
 		storage,
@@ -99,8 +102,9 @@ func startHttpServer(ctx context.Context) {
 	httpLogger := log.With(logger, "component", "http")
 
 	router := mux.NewRouter()
-	apiRouterV1 := router.PathPrefix("/api/v1").Subrouter()
+	authentication.MakeAuthHandler(router, authenticationService, httpLogger)
 
+	apiRouterV1 := router.PathPrefix("/api/v1").Subrouter()
 	children.MakeHandler(apiRouterV1, childService, httpLogger)
 	adult_responsible.MakeHandler(apiRouterV1, adultResponsibleService, httpLogger)
 	office_manager.MakeHandler(apiRouterV1, officeManagerService, httpLogger)

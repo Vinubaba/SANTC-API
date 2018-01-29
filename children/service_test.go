@@ -5,7 +5,6 @@ import (
 
 	"arthurgustin.fr/teddycare/shared/mocks"
 	"arthurgustin.fr/teddycare/store"
-	"arthurgustin.fr/teddycare/store/mocks"
 	"context"
 	"fmt"
 	"github.com/jinzhu/gorm"
@@ -21,7 +20,6 @@ var _ = Describe("Service", func() {
 	var (
 		ctx                 = context.Background()
 		childService        Service
-		mockStore           *mocks.MockStore
 		mockStringGenerator *shared.MockStringGenerator
 		concreteStore       *store.Store
 		concreteDb          *gorm.DB
@@ -78,7 +76,6 @@ var _ = Describe("Service", func() {
 
 	BeforeEach(func() {
 		mockStringGenerator = &shared.MockStringGenerator{}
-		mockStore = &mocks.MockStore{}
 		concreteStore = &store.Store{
 			Db:              concreteDb,
 			StringGenerator: mockStringGenerator,

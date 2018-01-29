@@ -1,8 +1,8 @@
 package store
 
 import (
-	"context"
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
@@ -29,12 +29,14 @@ func (ResponsibleOf) TableName() string {
 	return "responsible_of"
 }
 
-func (s *Store) SetResponsible(ctx context.Context, responsibleOf ResponsibleOf) error {
+func (s *Store) SetResponsible(tx *gorm.DB, responsibleOf ResponsibleOf) error {
+	db := s.dbOrTx(tx)
+
 	if !s.isRelationshipValid(responsibleOf.Relationship) {
 		return errors.Wrap(ErrInvalidRelationship, fmt.Sprintf("relationship %s is not valid", responsibleOf.Relationship))
 	}
 
-	if err := s.Db.Create(&responsibleOf).Error; err != nil {
+	if err := db.Create(&responsibleOf).Error; err != nil {
 		return err
 	}
 

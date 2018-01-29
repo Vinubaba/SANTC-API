@@ -5,7 +5,6 @@ import (
 
 	"arthurgustin.fr/teddycare/shared/mocks"
 	"arthurgustin.fr/teddycare/store"
-	"arthurgustin.fr/teddycare/store/mocks"
 	"context"
 	"fmt"
 	"github.com/jinzhu/gorm"
@@ -20,27 +19,26 @@ import (
 var _ = Describe("Service", func() {
 
 	var (
-		ctx                     = context.Background()
-		officeManagerResponsibleService Service
-		mockStore               *mocks.MockStore
-		mockStringGenerator     *shared.MockStringGenerator
-		concreteStore           *store.Store
-		concreteDb              *gorm.DB
-		returnedError, err      error
-		createdAdult            store.OfficeManager
-		officeManagerRef1, officeManagerRef2    OfficeManagerTransport
+		ctx                                  = context.Background()
+		officeManagerResponsibleService      Service
+		mockStringGenerator                  *shared.MockStringGenerator
+		concreteStore                        *store.Store
+		concreteDb                           *gorm.DB
+		returnedError, err                   error
+		createdAdult                         store.OfficeManager
+		officeManagerRef1, officeManagerRef2 OfficeManagerTransport
 	)
 
 	BeforeEach(func() {
 		officeManagerRef1 = OfficeManagerTransport{
-			Id:        "aaa",
-			Email:     "arthur.gustin@gmail.com",
-			Password:  "azerty",
+			Id:       "aaa",
+			Email:    "arthur.gustin@gmail.com",
+			Password: "azerty",
 		}
 		officeManagerRef2 = OfficeManagerTransport{
-			Id:        "bbb",
-			Email:     "patrick.gustin@gmail.com",
-			Password:  "azerty",
+			Id:       "bbb",
+			Email:    "patrick.gustin@gmail.com",
+			Password: "azerty",
 		}
 	})
 
@@ -78,7 +76,6 @@ var _ = Describe("Service", func() {
 
 	BeforeEach(func() {
 		mockStringGenerator = &shared.MockStringGenerator{}
-		mockStore = &mocks.MockStore{}
 		concreteStore = &store.Store{
 			Db:              concreteDb,
 			StringGenerator: mockStringGenerator,
@@ -169,7 +166,7 @@ var _ = Describe("Service", func() {
 	Context("UpdateOfficeManager", func() {
 
 		var (
-			updatedAdult  store.OfficeManager
+			updatedAdult          store.OfficeManager
 			officeManagerToUpdate OfficeManagerTransport
 		)
 
@@ -186,16 +183,16 @@ var _ = Describe("Service", func() {
 
 			BeforeEach(func() {
 				officeManagerToUpdate = OfficeManagerTransport{
-					Id:        "aaa",
-					Email:     "jonhdoe@gmail.com",
-					Password:  "123465789",
+					Id:       "aaa",
+					Email:    "jonhdoe@gmail.com",
+					Password: "123465789",
 				}
 			})
 
 			It("should update all fields but the password and the id", func() {
 				Expect(updatedAdult).To(Equal(store.OfficeManager{
 					OfficeManagerId: "aaa",
-					Email:         "jonhdoe@gmail.com",
+					Email:           "jonhdoe@gmail.com",
 				}))
 			})
 			assertNoError()
@@ -240,7 +237,7 @@ var _ = Describe("Service", func() {
 			It("should return an user", func() {
 				Expect(returnedAdult).To(Equal(store.OfficeManager{
 					OfficeManagerId: "aaa",
-					Email:         "arthur.gustin@gmail.com",
+					Email:           "arthur.gustin@gmail.com",
 				}))
 			})
 			assertNoError()

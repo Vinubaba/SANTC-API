@@ -1,20 +1,20 @@
 package adult_responsible_test
 
 import (
-	. "arthurgustin.fr/teddycare/adult_responsible"
-
-	"arthurgustin.fr/teddycare/shared/mocks"
-	"arthurgustin.fr/teddycare/store"
-	"arthurgustin.fr/teddycare/store/mocks"
 	"context"
 	"fmt"
+	"log"
+	"os/exec"
+
+	. "arthurgustin.fr/teddycare/adult_responsible"
+	"arthurgustin.fr/teddycare/shared/mocks"
+	"arthurgustin.fr/teddycare/store"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"log"
-	"os/exec"
 )
 
 var _ = Describe("Service", func() {
@@ -22,7 +22,6 @@ var _ = Describe("Service", func() {
 	var (
 		ctx                     = context.Background()
 		adultResponsibleService Service
-		mockStore               *mocks.MockStore
 		mockStringGenerator     *shared.MockStringGenerator
 		concreteStore           *store.Store
 		concreteDb              *gorm.DB
@@ -96,7 +95,6 @@ var _ = Describe("Service", func() {
 
 	BeforeEach(func() {
 		mockStringGenerator = &shared.MockStringGenerator{}
-		mockStore = &mocks.MockStore{}
 		concreteStore = &store.Store{
 			Db:              concreteDb,
 			StringGenerator: mockStringGenerator,
@@ -262,11 +260,11 @@ var _ = Describe("Service", func() {
 		BeforeEach(func() {
 			_, e1 := adultResponsibleService.AddAdultResponsible(ctx, adultRef1)
 			if e1 != nil {
-				panic(e1)
+				panic(e1.Error())
 			}
 			_, e2 := adultResponsibleService.AddAdultResponsible(ctx, adultRef2)
 			if e2 != nil {
-				panic(e2)
+				panic(e2.Error())
 			}
 		})
 

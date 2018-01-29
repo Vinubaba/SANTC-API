@@ -4,6 +4,7 @@ import (
 	"arthurgustin.fr/teddycare/store"
 	"context"
 	"github.com/badoux/checkmail"
+	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
@@ -22,15 +23,13 @@ type Service interface {
 
 type OfficeManagerService struct {
 	Store interface {
-		BeginTransaction()
-		Commit()
-		Rollback()
-		AddUser(ctx context.Context, user store.User) (id string, err error)
-		AddOfficeManager(ctx context.Context, officeManager store.OfficeManager) (store.OfficeManager, error)
-		ListOfficeManager(ctx context.Context) ([]store.OfficeManager, error)
-		DeleteOfficeManager(ctx context.Context, officeManagerId string) error
-		GetOfficeManager(ctx context.Context, officeManagerId string) (store.OfficeManager, error)
-		UpdateOfficeManager(ctx context.Context, officeManager store.OfficeManager) (store.OfficeManager, error)
+		Tx() *gorm.DB
+		AddUser(tx *gorm.DB, user store.User) (id string, err error)
+		AddOfficeManager(tx *gorm.DB, officeManager store.OfficeManager) (store.OfficeManager, error)
+		ListOfficeManager(tx *gorm.DB) ([]store.OfficeManager, error)
+		DeleteOfficeManager(tx *gorm.DB, officeManagerId string) error
+		GetOfficeManager(tx *gorm.DB, officeManagerId string) (store.OfficeManager, error)
+		UpdateOfficeManager(tx *gorm.DB, officeManager store.OfficeManager) (store.OfficeManager, error)
 	} `inject:""`
 }
 
@@ -40,26 +39,26 @@ func (c OfficeManagerService) AddOfficeManager(ctx context.Context, request Offi
 		return store.OfficeManager{}, err
 	}
 
-	c.Store.BeginTransaction()
+	tx := c.Store.Tx()
 
-	userId, err := c.Store.AddUser(ctx, store.User{
+	userId, err := c.Store.AddUser(tx, store.User{
 		Password: request.Password,
 		Email:    request.Email,
 	})
 	if err != nil {
-		c.Store.Rollback()
+		tx.Rollback()
 		return store.OfficeManager{}, errors.New("failed to create user")
 	}
 
-	officeManager, err := c.Store.AddOfficeManager(ctx, store.OfficeManager{
+	officeManager, err := c.Store.AddOfficeManager(tx, store.OfficeManager{
 		OfficeManagerId: userId,
-		Email:         request.Email,
+		Email:           request.Email,
 	})
 	if err != nil {
-		c.Store.Rollback()
+		tx.Rollback()
 		return store.OfficeManager{}, errors.Wrap(err, "failed to add officeManager")
 	}
-	c.Store.Commit()
+	tx.Commit()
 	return officeManager, nil
 }
 
@@ -74,7 +73,7 @@ func (c OfficeManagerService) validateAddOfficeManagerRequest(req OfficeManagerT
 }
 
 func (c OfficeManagerService) ListOfficeManager(ctx context.Context) ([]store.OfficeManager, error) {
-	officeManagers, err := c.Store.ListOfficeManager(ctx)
+	officeManagers, err := c.Store.ListOfficeManager(nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list officeManager")
 	}
@@ -83,7 +82,7 @@ func (c OfficeManagerService) ListOfficeManager(ctx context.Context) ([]store.Of
 }
 
 func (c OfficeManagerService) DeleteOfficeManager(ctx context.Context, request OfficeManagerTransport) error {
-	if err := c.Store.DeleteOfficeManager(ctx, request.Id); err != nil {
+	if err := c.Store.DeleteOfficeManager(nil, request.Id); err != nil {
 		return errors.Wrap(err, "failed to delete officeManager")
 	}
 
@@ -91,7 +90,7 @@ func (c OfficeManagerService) DeleteOfficeManager(ctx context.Context, request O
 }
 
 func (c OfficeManagerService) GetOfficeManager(ctx context.Context, request OfficeManagerTransport) (store.OfficeManager, error) {
-	officeManager, err := c.Store.GetOfficeManager(ctx, request.Id)
+	officeManager, err := c.Store.GetOfficeManager(nil, request.Id)
 	if err != nil {
 		return officeManager, errors.Wrap(err, "failed to get officeManager")
 	}
@@ -104,9 +103,9 @@ func (c OfficeManagerService) UpdateOfficeManager(ctx context.Context, request O
 		return store.OfficeManager{}, ErrInvalidEmail
 	}
 
-	officeManager, err := c.Store.UpdateOfficeManager(ctx, store.OfficeManager{
+	officeManager, err := c.Store.UpdateOfficeManager(nil, store.OfficeManager{
 		OfficeManagerId: request.Id,
-		Email:         request.Email,
+		Email:           request.Email,
 	})
 	if err != nil {
 		return officeManager, errors.Wrap(err, "failed to update officeManager")

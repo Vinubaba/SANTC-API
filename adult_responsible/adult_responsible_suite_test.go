@@ -30,11 +30,14 @@ func deleteDb() {
 func initDb() {
 	if out, err := exec.Command("psql", "-U", "postgres", "-h", "localhost", "-c", "create database test_teddycare").Output(); err != nil {
 		log.Println(string(out))
-		//log.Fatal("failed to create database:" + err.Error())
 	}
 
 	if out, err := exec.Command("psql", "-U", "postgres", "-h", "localhost", "-c", "grant all privileges on database test_teddycare to postgres").Output(); err != nil {
 		log.Fatal("failed to grant privileges:" + string(out))
+	}
+
+	if out, err := exec.Command("psql", "-U", "postgres", "-h", "localhost", "-d", "test_teddycare", "-c", "create extension pgcrypto;").Output(); err != nil {
+		log.Fatal("failed to create extension pgcrypto: " + string(out))
 	}
 
 	visit := func(files *[]string) filepath.WalkFunc {

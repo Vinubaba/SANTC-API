@@ -1,16 +1,18 @@
 package office_manager
 
 import (
-	"arthurgustin.fr/teddycare/shared"
 	"context"
 	"encoding/json"
-	"github.com/go-kit/kit/endpoint"
-	"github.com/gorilla/mux"
 	"net/http"
 
-	"arthurgustin.fr/teddycare/store"
+	auth "arthurgustin.fr/teddycare/authentication"
+	"arthurgustin.fr/teddycare/shared"
+	. "arthurgustin.fr/teddycare/store"
+
+	"github.com/go-kit/kit/endpoint"
 	kitlog "github.com/go-kit/kit/log"
 	kithttp "github.com/go-kit/kit/transport/http"
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
 
@@ -19,9 +21,9 @@ var (
 )
 
 type OfficeManagerTransport struct {
-	Id        string `json:"id"`
-	Email     string `json:"email"`
-	Password  string `json:"password,omitempty"`
+	Id       string `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password,omitempty"`
 }
 
 // MakeHandler returns a handler for the booking service.
@@ -66,11 +68,11 @@ func MakeHandler(r *mux.Router, svc Service, logger kitlog.Logger) http.Handler 
 		opts...,
 	)
 
-	r.Handle("/office-managers", addOfficeManagerHandler).Methods("POST")
-	r.Handle("/office-managers", listOfficeManagerHandler).Methods(http.MethodGet)
-	r.Handle("/office-managers/{id}", getOfficeManagerHandler).Methods(http.MethodGet)
-	r.Handle("/office-managers/{id}", updateOfficeManagerHandler).Methods(http.MethodPatch)
-	r.Handle("/office-managers/{id}", deleteOfficeManagerHandler).Methods(http.MethodDelete)
+	r.Handle("/office-managers", auth.Roles(addOfficeManagerHandler, ROLE_ADMIN)).Methods(http.MethodPost)
+	r.Handle("/office-managers", auth.Roles(listOfficeManagerHandler, ROLE_ADMIN)).Methods(http.MethodGet)
+	r.Handle("/office-managers/{id}", auth.Roles(getOfficeManagerHandler, ROLE_ADMIN)).Methods(http.MethodGet)
+	r.Handle("/office-managers/{id}", auth.Roles(updateOfficeManagerHandler, ROLE_ADMIN)).Methods(http.MethodPatch)
+	r.Handle("/office-managers/{id}", auth.Roles(deleteOfficeManagerHandler, ROLE_ADMIN)).Methods(http.MethodDelete)
 	return r
 }
 
@@ -84,9 +86,9 @@ func makeAddEndpoint(svc Service) endpoint.Endpoint {
 		}
 
 		return OfficeManagerTransport{
-			Id:        officeManager.OfficeManagerId,
-			Email:     officeManager.Email,
-			Password:  "", // never return the password
+			Id:       officeManager.OfficeManagerId,
+			Email:    officeManager.Email,
+			Password: "", // never return the password
 		}, nil
 	}
 }
@@ -101,9 +103,9 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 		}
 
 		return OfficeManagerTransport{
-			Id:        officeManager.OfficeManagerId,
-			Email:     officeManager.Email,
-			Password:  "", // never return the password
+			Id:       officeManager.OfficeManagerId,
+			Email:    officeManager.Email,
+			Password: "", // never return the password
 		}, nil
 	}
 }
@@ -130,9 +132,9 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 		}
 
 		return OfficeManagerTransport{
-			Id:        officeManager.OfficeManagerId,
-			Email:     officeManager.Email,
-			Password:  "", // never return the password
+			Id:       officeManager.OfficeManagerId,
+			Email:    officeManager.Email,
+			Password: "", // never return the password
 		}, nil
 	}
 }
@@ -147,8 +149,8 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 		allAdults := []OfficeManagerTransport{}
 		for _, officeManager := range officeManagers {
 			allAdults = append(allAdults, OfficeManagerTransport{
-				Id:        officeManager.OfficeManagerId,
-				Email:     officeManager.Email,
+				Id:    officeManager.OfficeManagerId,
+				Email: officeManager.Email,
 			})
 		}
 
@@ -199,7 +201,7 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 	switch errors.Cause(err) {
 	case ErrInvalidPasswordFormat, ErrInvalidEmail:
 		w.WriteHeader(http.StatusBadRequest)
-	case store.ErrUserNotFound:
+	case ErrUserNotFound:
 		w.WriteHeader(http.StatusNotFound)
 	default:
 		w.WriteHeader(http.StatusInternalServerError)

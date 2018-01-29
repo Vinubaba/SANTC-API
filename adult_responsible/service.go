@@ -4,6 +4,7 @@ import (
 	"arthurgustin.fr/teddycare/store"
 	"context"
 	"github.com/badoux/checkmail"
+	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
@@ -22,36 +23,34 @@ type Service interface {
 
 type AdultResponsibleService struct {
 	Store interface {
-		BeginTransaction()
-		Commit()
-		Rollback()
-		AddUser(ctx context.Context, user store.User) (id string, err error)
-		AddAdultResponsible(ctx context.Context, adult store.AdultResponsible) (store.AdultResponsible, error)
-		ListAdultResponsible(ctx context.Context) ([]store.AdultResponsible, error)
-		DeleteAdultResponsible(ctx context.Context, adultId string) error
-		GetAdultResponsible(ctx context.Context, adultId string) (store.AdultResponsible, error)
-		UpdateAdultResponsible(ctx context.Context, adult store.AdultResponsible) (store.AdultResponsible, error)
+		AddUser(tx *gorm.DB, user store.User) (id string, err error)
+		AddAdultResponsible(tx *gorm.DB, adult store.AdultResponsible) (store.AdultResponsible, error)
+		ListAdultResponsible(tx *gorm.DB) ([]store.AdultResponsible, error)
+		DeleteAdultResponsible(tx *gorm.DB, adultId string) error
+		GetAdultResponsible(tx *gorm.DB, adultId string) (store.AdultResponsible, error)
+		UpdateAdultResponsible(tx *gorm.DB, adult store.AdultResponsible) (store.AdultResponsible, error)
+		AddRole(tx *gorm.DB, role store.Role) (store.Role, error)
+		Tx() *gorm.DB
 	} `inject:""`
 }
 
-func (c AdultResponsibleService) AddAdultResponsible(ctx context.Context, request AdultResponsibleTransport) (store.AdultResponsible, error) {
-
+func (c *AdultResponsibleService) AddAdultResponsible(ctx context.Context, request AdultResponsibleTransport) (store.AdultResponsible, error) {
 	if err := c.validateAddAdultResponsibleRequest(request); err != nil {
 		return store.AdultResponsible{}, err
 	}
 
-	c.Store.BeginTransaction()
+	tx := c.Store.Tx()
 
-	userId, err := c.Store.AddUser(ctx, store.User{
+	userId, err := c.Store.AddUser(tx, store.User{
 		Password: request.Password,
 		Email:    request.Email,
 	})
 	if err != nil {
-		c.Store.Rollback()
+		tx.Rollback()
 		return store.AdultResponsible{}, errors.New("failed to create user")
 	}
 
-	adult, err := c.Store.AddAdultResponsible(ctx, store.AdultResponsible{
+	adult, err := c.Store.AddAdultResponsible(tx, store.AdultResponsible{
 		ResponsibleId: userId,
 		FirstName:     request.FirstName,
 		LastName:      request.LastName,
@@ -65,14 +64,24 @@ func (c AdultResponsibleService) AddAdultResponsible(ctx context.Context, reques
 		Addres_2:      request.Addres_2,
 	})
 	if err != nil {
-		c.Store.Rollback()
+		tx.Rollback()
 		return store.AdultResponsible{}, errors.Wrap(err, "failed to add adult")
 	}
-	c.Store.Commit()
+
+	_, err = c.Store.AddRole(tx, store.Role{
+		UserId: adult.ResponsibleId,
+		Role:   store.ROLE_ADULT,
+	})
+	if err != nil {
+		tx.Rollback()
+		return store.AdultResponsible{}, errors.Wrap(err, "failed to add role")
+	}
+
+	tx.Commit()
 	return adult, nil
 }
 
-func (c AdultResponsibleService) validateAddAdultResponsibleRequest(req AdultResponsibleTransport) error {
+func (c *AdultResponsibleService) validateAddAdultResponsibleRequest(req AdultResponsibleTransport) error {
 	if err := checkmail.ValidateFormat(req.Email); err != nil {
 		return ErrInvalidEmail
 	}
@@ -82,8 +91,8 @@ func (c AdultResponsibleService) validateAddAdultResponsibleRequest(req AdultRes
 	return nil
 }
 
-func (c AdultResponsibleService) ListAdultResponsible(ctx context.Context) ([]store.AdultResponsible, error) {
-	adults, err := c.Store.ListAdultResponsible(ctx)
+func (c *AdultResponsibleService) ListAdultResponsible(ctx context.Context) ([]store.AdultResponsible, error) {
+	adults, err := c.Store.ListAdultResponsible(nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list adult")
 	}
@@ -92,15 +101,15 @@ func (c AdultResponsibleService) ListAdultResponsible(ctx context.Context) ([]st
 }
 
 func (c AdultResponsibleService) DeleteAdultResponsible(ctx context.Context, request AdultResponsibleTransport) error {
-	if err := c.Store.DeleteAdultResponsible(ctx, request.Id); err != nil {
+	if err := c.Store.DeleteAdultResponsible(nil, request.Id); err != nil {
 		return errors.Wrap(err, "failed to delete adult")
 	}
 
 	return nil
 }
 
-func (c AdultResponsibleService) GetAdultResponsible(ctx context.Context, request AdultResponsibleTransport) (store.AdultResponsible, error) {
-	adult, err := c.Store.GetAdultResponsible(ctx, request.Id)
+func (c *AdultResponsibleService) GetAdultResponsible(ctx context.Context, request AdultResponsibleTransport) (store.AdultResponsible, error) {
+	adult, err := c.Store.GetAdultResponsible(nil, request.Id)
 	if err != nil {
 		return adult, errors.Wrap(err, "failed to get adult")
 	}
@@ -108,12 +117,12 @@ func (c AdultResponsibleService) GetAdultResponsible(ctx context.Context, reques
 	return adult, nil
 }
 
-func (c AdultResponsibleService) UpdateAdultResponsible(ctx context.Context, request AdultResponsibleTransport) (store.AdultResponsible, error) {
+func (c *AdultResponsibleService) UpdateAdultResponsible(ctx context.Context, request AdultResponsibleTransport) (store.AdultResponsible, error) {
 	if request.Email != "" && checkmail.ValidateFormat(request.Email) != nil {
 		return store.AdultResponsible{}, ErrInvalidEmail
 	}
 
-	adult, err := c.Store.UpdateAdultResponsible(ctx, store.AdultResponsible{
+	adult, err := c.Store.UpdateAdultResponsible(nil, store.AdultResponsible{
 		ResponsibleId: request.Id,
 		Email:         request.Email,
 		Gender:        request.Gender,
@@ -131,10 +140,6 @@ func (c AdultResponsibleService) UpdateAdultResponsible(ctx context.Context, req
 	}
 
 	return adult, nil
-}
-
-func NewDefaultService() Service {
-	return &AdultResponsibleService{}
 }
 
 // ServiceMiddleware is a chainable behavior modifier for adultResponsibleService.
