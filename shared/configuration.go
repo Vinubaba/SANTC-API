@@ -17,6 +17,8 @@ type AppConfig struct {
 	SqlMigrationsSourceDir          string `split_words:"true"  default:"/go/src/airbus/datastore/workspace-manager/sql"`
 	GcpProjectID                    string `split_words:"true" `
 	PubSubServiceAccountKeyFilePath string `split_words:"true" `
+
+	LocalStoragePath string `split_words:"true"`
 }
 
 func InitAppConfiguration() (config *AppConfig, err error) {
