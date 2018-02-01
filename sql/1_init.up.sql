@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS children (
   last_name varchar NOT NULL,
   gender varchar NOT NULL,
   birth_date date NOT NULL,
-  picture_path varchar
+  image_uri varchar
 );
 
 CREATE TABLE IF NOT EXISTS allergies (

@@ -20,7 +20,8 @@ var (
 
 type Storage interface {
 	Store(encodedImage, mimeType string) (string, error)
-	Get(uri string) (string, error)
+	Get(filename string) (string, error)
+	Delete(filename string) error
 }
 
 type LocalStorage struct {

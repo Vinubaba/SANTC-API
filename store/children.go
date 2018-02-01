@@ -12,12 +12,12 @@ var (
 )
 
 type Child struct {
-	ChildId     string
-	FirstName   string
-	LastName    string
-	BirthDate   time.Time
-	Gender      string
-	PicturePath string
+	ChildId   string
+	FirstName string
+	LastName  string
+	BirthDate time.Time
+	Gender    string
+	ImageUri  string
 }
 
 func (s *Store) AddChild(tx *gorm.DB, child Child) (Child, error) {

@@ -26,7 +26,7 @@ type ChildTransport struct {
 	LastName      string   `json:"lastName"`
 	BirthDate     string   `json:"birthDate"` // dd/mm/yyyy
 	Gender        string   `json:"gender"`
-	PicturePath   string   `json:"picturePath"`
+	Image         string   `json:"image"`
 	Allergies     []string `json:"allergies"`
 	ResponsibleId string   `json:"responsibleId,omitempty"`
 	Relationship  string   `json:"relationship,omitempty"`
@@ -96,7 +96,7 @@ func makeAddEndpoint(svc Service) endpoint.Endpoint {
 			FirstName:     child.FirstName,
 			BirthDate:     child.BirthDate.UTC().String(),
 			Gender:        child.Gender,
-			PicturePath:   child.PicturePath,
+			Image:         child.ImageUri,
 			ResponsibleId: req.ResponsibleId,
 			Allergies:     req.Allergies,
 		}
@@ -113,12 +113,12 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 		}
 
 		currentChild := ChildTransport{
-			Id:          child.ChildId,
-			PicturePath: child.PicturePath,
-			Gender:      child.Gender,
-			BirthDate:   child.BirthDate.UTC().String(),
-			FirstName:   child.FirstName,
-			LastName:    child.LastName,
+			Id:        child.ChildId,
+			Image:     child.ImageUri,
+			Gender:    child.Gender,
+			BirthDate: child.BirthDate.UTC().String(),
+			FirstName: child.FirstName,
+			LastName:  child.LastName,
 		}
 		allergies, err := svc.FindAllergiesOfChild(ctx, currentChild.Id)
 		if err != nil {
@@ -152,12 +152,12 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 
 		for _, child := range children {
 			currentChild := ChildTransport{
-				Id:          child.ChildId,
-				PicturePath: child.PicturePath,
-				Gender:      child.Gender,
-				BirthDate:   child.BirthDate.UTC().String(),
-				FirstName:   child.FirstName,
-				LastName:    child.LastName,
+				Id:        child.ChildId,
+				Image:     child.ImageUri,
+				Gender:    child.Gender,
+				BirthDate: child.BirthDate.UTC().String(),
+				FirstName: child.FirstName,
+				LastName:  child.LastName,
 			}
 			allergies, err := svc.FindAllergiesOfChild(ctx, child.ChildId)
 			if err != nil {
@@ -183,12 +183,12 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 		}
 
 		ret := ChildTransport{
-			Id:          child.ChildId,
-			FirstName:   child.FirstName,
-			LastName:    child.LastName,
-			Gender:      child.Gender,
-			BirthDate:   child.BirthDate.UTC().String(),
-			PicturePath: child.PicturePath,
+			Id:        child.ChildId,
+			FirstName: child.FirstName,
+			LastName:  child.LastName,
+			Gender:    child.Gender,
+			BirthDate: child.BirthDate.UTC().String(),
+			Image:     child.ImageUri,
 		}
 
 		allergies, err := svc.FindAllergiesOfChild(ctx, child.ChildId)

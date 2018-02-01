@@ -49,7 +49,7 @@ var _ = Describe("Service", func() {
 			BirthDate:     "1992/10/13",
 			Relationship:  "father",
 			ResponsibleId: "aaa",
-			PicturePath:   "gs://foo/bar/picture.jpg",
+			Image:         "gs://foo/bar/picture.jpg",
 			Gender:        "M",
 			Allergies:     []string{"tomato", "strawberry"},
 		}
@@ -99,12 +99,12 @@ var _ = Describe("Service", func() {
 			assertCreatedTheRightChild = func() {
 				It("should create the right child", func() {
 					Expect(createdChild).To(Equal(store.Child{
-						FirstName:   "Arthur",
-						LastName:    "Gustin",
-						BirthDate:   time.Date(1992, 10, 13, 0, 0, 0, 0, time.UTC),
-						ChildId:     "aaa",
-						PicturePath: "gs://foo/bar/picture.jpg",
-						Gender:      "M",
+						FirstName: "Arthur",
+						LastName:  "Gustin",
+						BirthDate: time.Date(1992, 10, 13, 0, 0, 0, 0, time.UTC),
+						ChildId:   "aaa",
+						ImageUri:  "gs://foo/bar/picture.jpg",
+						Gender:    "M",
 					}))
 				})
 			}
@@ -158,7 +158,7 @@ var _ = Describe("Service", func() {
 		BeforeEach(func() {
 			concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","password") VALUES ('aaa','arthur.gustin@gmail.com','$2a$10$nvGMsswN2Dtwy0iWg590ruMfwZTMaN8tR8/FpiW7ZG..WYEfpjKoS')`)
 			concreteStore.Db.Exec(`INSERT INTO "adult_responsibles" ("responsible_id","email","first_name","last_name","gender","phone","addres_1","addres_2","city","state","zip") VALUES ('aaa','arthur.gustin@gmail.com','Arthur','Gustin','M','0633326825','11, rue hergé','app 8','Toulouse','FRANCE','31')`)
-			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","picture_path") VALUES ('aaa','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
+			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","image_uri") VALUES ('aaa','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
 			concreteStore.Db.Exec(`INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('aaa','aaa','father')`)
 		})
 
@@ -195,7 +195,7 @@ var _ = Describe("Service", func() {
 		BeforeEach(func() {
 			concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","password") VALUES ('aaa','arthur.gustin@gmail.com','$2a$10$nvGMsswN2Dtwy0iWg590ruMfwZTMaN8tR8/FpiW7ZG..WYEfpjKoS')`)
 			concreteStore.Db.Exec(`INSERT INTO "adult_responsibles" ("responsible_id","email","first_name","last_name","gender","phone","addres_1","addres_2","city","state","zip") VALUES ('aaa','arthur.gustin@gmail.com','Arthur','Gustin','M','0633326825','11, rue hergé','app 8','Toulouse','FRANCE','31')`)
-			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","picture_path") VALUES ('aaa','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
+			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","image_uri") VALUES ('aaa','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
 			concreteStore.Db.Exec(`INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('aaa','aaa','father')`)
 		})
 
@@ -240,9 +240,9 @@ var _ = Describe("Service", func() {
 		BeforeEach(func() {
 			concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","password") VALUES ('aaa','arthur.gustin@gmail.com','$2a$10$nvGMsswN2Dtwy0iWg590ruMfwZTMaN8tR8/FpiW7ZG..WYEfpjKoS')`)
 			concreteStore.Db.Exec(`INSERT INTO "adult_responsibles" ("responsible_id","email","first_name","last_name","gender","phone","addres_1","addres_2","city","state","zip") VALUES ('aaa','arthur.gustin@gmail.com','Arthur','Gustin','M','0633326825','11, rue hergé','app 8','Toulouse','FRANCE','31')`)
-			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","picture_path") VALUES ('aaa','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
+			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","image_uri") VALUES ('aaa','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
 			concreteStore.Db.Exec(`INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('aaa','aaa','father')`)
-			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","picture_path") VALUES ('bbb','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
+			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","image_uri") VALUES ('bbb','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
 			concreteStore.Db.Exec(`INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('aaa','bbb','father')`)
 		})
 
@@ -279,29 +279,29 @@ var _ = Describe("Service", func() {
 					Expect(returnedChild.LastName).To(Equal("foo"))
 					Expect(returnedChild.BirthDate.UTC().String()).To(Equal(time.Date(1992, 10, 10, 0, 0, 0, 0, time.UTC).UTC().String()))
 					Expect(returnedChild.Gender).To(Equal("F"))
-					Expect(returnedChild.PicturePath).To(Equal("foo"))
+					Expect(returnedChild.ImageUri).To(Equal("foo"))
 				})
 			}
 		)
 
 		BeforeEach(func() {
 			requestChild = ChildTransport{
-				Id:          "aaa",
-				PicturePath: "foo",
-				BirthDate:   "1992/10/10",
-				Allergies:   []string{"pancake"},
-				LastName:    "foo",
-				FirstName:   "foo",
-				Gender:      "F",
+				Id:        "aaa",
+				Image:     "foo",
+				BirthDate: "1992/10/10",
+				Allergies: []string{"pancake"},
+				LastName:  "foo",
+				FirstName: "foo",
+				Gender:    "F",
 			}
 		})
 
 		BeforeEach(func() {
 			concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","password") VALUES ('aaa','arthur.gustin@gmail.com','$2a$10$nvGMsswN2Dtwy0iWg590ruMfwZTMaN8tR8/FpiW7ZG..WYEfpjKoS')`)
 			concreteStore.Db.Exec(`INSERT INTO "adult_responsibles" ("responsible_id","email","first_name","last_name","gender","phone","addres_1","addres_2","city","state","zip") VALUES ('aaa','arthur.gustin@gmail.com','Arthur','Gustin','M','0633326825','11, rue hergé','app 8','Toulouse','FRANCE','31')`)
-			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","picture_path") VALUES ('aaa','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
+			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","image_uri") VALUES ('aaa','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
 			concreteStore.Db.Exec(`INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('aaa','aaa','father')`)
-			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","picture_path") VALUES ('bbb','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
+			concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","image_uri") VALUES ('bbb','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar/picture.jpg')`)
 			concreteStore.Db.Exec(`INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('aaa','bbb','father')`)
 		})
 

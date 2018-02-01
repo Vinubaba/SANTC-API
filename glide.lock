@@ -1,6 +1,15 @@
-hash: fad9b1fdcbc84c33f07610cab88a26640e5961bf1e052d415b1ca0c56b16231f
-updated: 2018-01-29T22:30:51.614928+01:00
+hash: f0ebbf2b8fdceb1187e4e55893b0c24417a6be0c709b8f070c0a2a5eb917719f
+updated: 2018-02-01T11:24:29.9531002+01:00
 imports:
+- name: cloud.google.com/go
+  version: 767c40d6a2e058483c25fa193e963a22da17236d
+  subpackages:
+  - compute/metadata
+  - iam
+  - internal
+  - internal/optional
+  - internal/version
+  - storage
 - name: github.com/araddon/dateparse
   version: f912f7e43f30f3403525bdc3254ee9958ffc1937
 - name: github.com/badoux/checkmail
@@ -16,12 +25,10 @@ imports:
 - name: github.com/facebookgo/structtag
   version: 217e25fb96916cc60332e399c9aa63f5c422ceed
 - name: github.com/go-kit/kit
-  version: 953e747656a7bbb5e1f998608b460458958b70cc
+  version: 6ce15db334b01fd952bfaec97e467bc1f4db1cb4
   subpackages:
-  - auth/jwt
   - endpoint
   - log
-  - transport/grpc
   - transport/http
 - name: github.com/go-logfmt/logfmt
   version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
@@ -31,10 +38,13 @@ imports:
   version: 925541529c1fa6821df4e44ce2723319eb2be768
   subpackages:
   - proto
+  - protoc-gen-go/descriptor
   - ptypes
   - ptypes/any
   - ptypes/duration
   - ptypes/timestamp
+- name: github.com/googleapis/gax-go
+  version: 317e0006254c44a0ac427cc52a0e083ff0b9622f
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
@@ -69,19 +79,15 @@ imports:
 - name: github.com/stretchr/objx
   version: cbeaeb16a013161a98496fad62933b1d21786672
 - name: github.com/stretchr/testify
-  version: 87b1dfb5b2fa649f52695dd9eae19abe404a4308
+  version: 12b6f73e6084dad08a7c6e575284b177ecafbc71
   subpackages:
   - assert
   - mock
-- name: golang.org/x/crypto
-  version: 1875d0a70c90e57f11972aefd42276df65e895b9
-  subpackages:
-  - bcrypt
-  - blowfish
 - name: golang.org/x/net
-  version: 0ed95abb35c445290478a5348a7b38bb154135fd
+  version: 309822c5b9b9f80db67f016069a12628d94fad34
   subpackages:
   - context
+  - context/ctxhttp
   - html
   - html/atom
   - html/charset
@@ -91,6 +97,13 @@ imports:
   - internal/timeseries
   - lex/httplex
   - trace
+- name: golang.org/x/oauth2
+  version: a032972e28060ca4f5644acffae3dfc268cc09db
+  subpackages:
+  - google
+  - internal
+  - jws
+  - jwt
 - name: golang.org/x/text
   version: e19ae1496984b1c655b8044a65c0300a3c878dd3
   subpackages:
@@ -112,9 +125,35 @@ imports:
   - transform
   - unicode/bidi
   - unicode/norm
+- name: google.golang.org/api
+  version: 987caa2d3895c188c40784ad94fe1dd681a8cf68
+  subpackages:
+  - gensupport
+  - googleapi
+  - googleapi/internal/uritemplates
+  - googleapi/transport
+  - internal
+  - iterator
+  - option
+  - storage/v1
+  - transport/http
+- name: google.golang.org/appengine
+  version: 5bee14b453b4c71be47ec1781b0fa61c2ea182db
+  subpackages:
+  - internal
+  - internal/app_identity
+  - internal/base
+  - internal/datastore
+  - internal/log
+  - internal/modules
+  - internal/remote_api
+  - internal/urlfetch
+  - urlfetch
 - name: google.golang.org/genproto
   version: 4eb30f4778eed4c258ba66527a0d4f9ec8a36c45
   subpackages:
+  - googleapis/api/annotations
+  - googleapis/iam/v1
   - googleapis/rpc/status
 - name: google.golang.org/grpc
   version: 0bd008f5fadb62d228f12b18d016709e8139a7af
@@ -163,7 +202,7 @@ testImports:
   - reporters/stenographer/support/go-isatty
   - types
 - name: github.com/onsi/gomega
-  version: 003f63b7f4cff3fc95357005358af2de0f5fe152
+  version: 4fc17627b66f18840f3604eec277fe1af7f6d4a5
   subpackages:
   - format
   - internal/assertion
@@ -177,7 +216,7 @@ testImports:
   - matchers/support/goraph/util
   - types
 - name: golang.org/x/sys
-  version: ff2a66f350cefa5c93a634eadb5d25bb60c85a9c
+  version: 3dbebcf8efb6a5011a60c2b4591c1022a759af8a
   subpackages:
   - unix
 - name: gopkg.in/yaml.v2

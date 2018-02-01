@@ -18,3 +18,10 @@ import:
 - package: github.com/dgrijalva/jwt-go
   version: ^3.1.0
 - package: github.com/mitchellh/mapstructure
+- package: cloud.google.com/go
+  version: ^0.18.0
+  subpackages:
+  - storage
+- package: google.golang.org/api
+  subpackages:
+  - option

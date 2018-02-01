@@ -54,11 +54,11 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 	tx := c.Store.Tx()
 
 	child, err := c.Store.AddChild(tx, store.Child{
-		BirthDate:   t,
-		FirstName:   request.FirstName,
-		LastName:    request.LastName,
-		Gender:      request.Gender,
-		PicturePath: request.PicturePath,
+		BirthDate: t,
+		FirstName: request.FirstName,
+		LastName:  request.LastName,
+		Gender:    request.Gender,
+		ImageUri:  request.Image,
 	})
 	if err != nil {
 		tx.Rollback()
@@ -138,12 +138,12 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 	}
 
 	child, err := c.Store.UpdateChild(tx, store.Child{
-		BirthDate:   t,
-		PicturePath: request.PicturePath,
-		Gender:      request.Gender,
-		FirstName:   request.FirstName,
-		LastName:    request.LastName,
-		ChildId:     request.Id,
+		BirthDate: t,
+		ImageUri:  request.Image,
+		Gender:    request.Gender,
+		FirstName: request.FirstName,
+		LastName:  request.LastName,
+		ChildId:   request.Id,
 	})
 	if err != nil {
 		tx.Rollback()
