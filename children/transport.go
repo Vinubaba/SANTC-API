@@ -74,11 +74,11 @@ func MakeHandler(r *mux.Router, svc Service, logger kitlog.Logger) http.Handler 
 		opts...,
 	)
 
-	r.Handle("/childs", auth.Roles(addChildHandler, store.ROLE_OFFICE_MANAGER, store.ROLE_ADULT, store.ROLE_ADMIN)).Methods("POST")
-	r.Handle("/childs", auth.Roles(listChildHandler, store.ROLE_OFFICE_MANAGER, store.ROLE_ADULT, store.ROLE_ADMIN)).Methods(http.MethodGet)
-	r.Handle("/childs/{childId}", updateChildHandler).Methods(http.MethodPatch)
-	r.Handle("/childs/{childId}", deleteChildHandler).Methods(http.MethodDelete)
-	r.Handle("/childs/{childId}", getChildHandler).Methods(http.MethodGet)
+	r.Handle("/children", auth.Roles(addChildHandler, store.ROLE_OFFICE_MANAGER, store.ROLE_ADULT, store.ROLE_ADMIN)).Methods("POST")
+	r.Handle("/children", auth.Roles(listChildHandler, store.ROLE_OFFICE_MANAGER, store.ROLE_ADULT, store.ROLE_ADMIN)).Methods(http.MethodGet)
+	r.Handle("/children/{childId}", updateChildHandler).Methods(http.MethodPatch)
+	r.Handle("/children/{childId}", deleteChildHandler).Methods(http.MethodDelete)
+	r.Handle("/children/{childId}", getChildHandler).Methods(http.MethodGet)
 	return r
 }
 
@@ -136,7 +136,7 @@ func makeDeleteEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(ChildTransport)
 		if err := svc.DeleteChild(ctx, req); err != nil {
-			return shared.NewError(err.Error()), nil
+			return nil, err
 		}
 		return nil, nil
 	}
@@ -146,7 +146,7 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		children, err := svc.ListChild(ctx)
 		if err != nil {
-			return shared.NewError(err.Error()), nil
+			return nil, err
 		}
 		childrenRet := []ChildTransport{}
 
@@ -161,7 +161,7 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 			}
 			allergies, err := svc.FindAllergiesOfChild(ctx, child.ChildId)
 			if err != nil {
-				return shared.NewError(err.Error()), nil
+				return nil, err
 			}
 			for _, allergy := range allergies {
 				currentChild.Allergies = append(currentChild.Allergies, allergy.Allergy)
@@ -193,7 +193,7 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 
 		allergies, err := svc.FindAllergiesOfChild(ctx, child.ChildId)
 		if err != nil {
-			return shared.NewError(err.Error()), nil
+			return nil, err
 		}
 		for _, allergy := range allergies {
 			ret.Allergies = append(ret.Allergies, allergy.Allergy)

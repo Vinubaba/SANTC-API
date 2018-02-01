@@ -20,9 +20,7 @@ type GoogleStorage struct {
 	} `inject:""`
 }
 
-func (s *GoogleStorage) Store(encodedImage, mimeType string) (string, error) {
-	ctx := context.Background()
-
+func (s *GoogleStorage) Store(ctx context.Context, encodedImage, mimeType string) (string, error) {
 	if mimeType != jpegMimetype {
 		return "", ErrUnsupportedFileFormat
 	}
@@ -48,7 +46,7 @@ func (s *GoogleStorage) Store(encodedImage, mimeType string) (string, error) {
 }
 
 // returns signedUrls
-func (s *GoogleStorage) Get(fileName string) (string, error) {
+func (s *GoogleStorage) Get(ctx context.Context, fileName string) (string, error) {
 	url, err := storage.SignedURL(s.Config.BucketImagesName, fileName, &storage.SignedURLOptions{
 		GoogleAccessID: s.Config.BucketServiceAccountDetails.ClientEmail,
 		PrivateKey:     []byte(s.Config.BucketServiceAccountDetails.PrivateKey),
@@ -61,9 +59,7 @@ func (s *GoogleStorage) Get(fileName string) (string, error) {
 	return url, nil
 }
 
-func (s *GoogleStorage) Delete(fileName string) error {
-	ctx := context.Background()
-
+func (s *GoogleStorage) Delete(ctx context.Context, fileName string) error {
 	client, err := storage.NewClient(ctx, option.WithCredentialsFile(s.Config.BucketServiceAccount))
 	if err != nil {
 		return fmt.Errorf("failed to create client: %v", err)

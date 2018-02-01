@@ -13,6 +13,7 @@ import (
 
 	"arthurgustin.fr/teddycare/authentication"
 	"arthurgustin.fr/teddycare/office_manager"
+	"arthurgustin.fr/teddycare/storage"
 	"github.com/facebookgo/inject"
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
@@ -30,7 +31,8 @@ var (
 	adultResponsibleService = &adult_responsible.AdultResponsibleService{}
 	officeManagerService    = office_manager.NewDefaultService()
 	authenticationService   = &authentication.AuthenticationService{}
-	storage                 = &store.Store{}
+	dbStore                 = &store.Store{}
+	gcsStorage              = &storage.GoogleStorage{}
 )
 
 func init() {
@@ -69,7 +71,8 @@ func initApplicationGraph() error {
 		authenticationService,
 		db,
 		stringGenerator,
-		storage,
+		dbStore,
+		gcsStorage,
 	); err != nil {
 		return errors.Wrap(err, "failed to populate")
 	}

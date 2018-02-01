@@ -78,7 +78,7 @@ func MakeHandler(r *mux.Router, svc Service, logger kitlog.Logger) http.Handler 
 	)
 
 	r.Handle("/adults", auth.Roles(addAdultResponsibleHandler, ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_TEACHER)).Methods("POST")
-	r.Handle("/adults", auth.Roles(listAdultResponsibleHandler, ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_TEACHER)).Methods(http.MethodGet)
+	r.Handle("/adults", auth.Roles(listAdultResponsibleHandler, ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_TEACHER, ROLE_ADULT)).Methods(http.MethodGet)
 	r.Handle("/adults/{id}", auth.Roles(getAdultResponsibleHandler, ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_TEACHER)).Methods(http.MethodGet)
 	r.Handle("/adults/{id}", auth.Roles(updateAdultResponsibleHandler, ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_TEACHER)).Methods(http.MethodPatch)
 	r.Handle("/adults/{id}", auth.Roles(deleteAdultResponsibleHandler, ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_TEACHER)).Methods(http.MethodDelete)

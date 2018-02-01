@@ -68,7 +68,7 @@ func MakeHandler(r *mux.Router, svc Service, logger kitlog.Logger) http.Handler 
 		opts...,
 	)
 
-	r.Handle("/office-managers", auth.Roles(addOfficeManagerHandler, ROLE_ADMIN)).Methods(http.MethodPost)
+	r.Handle("/office-managers", auth.Roles(addOfficeManagerHandler, ROLE_ADMIN, ROLE_ADULT)).Methods(http.MethodPost)
 	r.Handle("/office-managers", auth.Roles(listOfficeManagerHandler, ROLE_ADMIN)).Methods(http.MethodGet)
 	r.Handle("/office-managers/{id}", auth.Roles(getOfficeManagerHandler, ROLE_ADMIN)).Methods(http.MethodGet)
 	r.Handle("/office-managers/{id}", auth.Roles(updateOfficeManagerHandler, ROLE_ADMIN)).Methods(http.MethodPatch)

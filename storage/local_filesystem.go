@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"arthurgustin.fr/teddycare/shared"
+	"context"
 	"io/ioutil"
 	"os"
 )
@@ -19,9 +20,9 @@ var (
 )
 
 type Storage interface {
-	Store(encodedImage, mimeType string) (string, error)
-	Get(filename string) (string, error)
-	Delete(filename string) error
+	Store(ctx context.Context, encodedImage, mimeType string) (string, error)
+	Get(ctx context.Context, filename string) (string, error)
+	Delete(ctx context.Context, filename string) error
 }
 
 type LocalStorage struct {
@@ -31,7 +32,7 @@ type LocalStorage struct {
 	} `inject:""`
 }
 
-func (s *LocalStorage) Store(encodedImage, mimeType string) (string, error) {
+func (s *LocalStorage) Store(ctx context.Context, encodedImage, mimeType string) (string, error) {
 	if mimeType != jpegMimetype {
 		return "", ErrUnsupportedFileFormat
 	}
@@ -60,7 +61,7 @@ func (s *LocalStorage) Store(encodedImage, mimeType string) (string, error) {
 	return filePath, nil
 }
 
-func (s *LocalStorage) Get(filePath string) (string, error) {
+func (s *LocalStorage) Get(ctx context.Context, filePath string) (string, error) {
 	file, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return "", err

@@ -8,6 +8,7 @@ import (
 	. "arthurgustin.fr/teddycare/shared/mocks"
 	. "arthurgustin.fr/teddycare/storage"
 
+	"context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"os"
@@ -19,6 +20,7 @@ var _ = Describe("LocalFilesystem", func() {
 		storage             LocalStorage
 		config              *shared.AppConfig
 		mockStringGenerator *MockStringGenerator
+		ctx                 = context.Background()
 	)
 
 	BeforeEach(func() {
@@ -52,7 +54,7 @@ var _ = Describe("LocalFilesystem", func() {
 		JustBeforeEach(func() {
 			image, _ := ioutil.ReadFile("test_data/DSCF6458.JPG")
 			encodedImage = b64.RawStdEncoding.EncodeToString(image)
-			uri, returnedError = storage.Store(encodedImage, "image/jpeg")
+			uri, returnedError = storage.Store(ctx, encodedImage, "image/jpeg")
 		})
 
 		It("should not return an error", func() {
@@ -72,7 +74,7 @@ var _ = Describe("LocalFilesystem", func() {
 		)
 
 		JustBeforeEach(func() {
-			encodedFile, returnedError = storage.Get("test_data/DSCF6458.JPG")
+			encodedFile, returnedError = storage.Get(ctx, "test_data/DSCF6458.JPG")
 		})
 
 		It("should not return an error", func() {

@@ -20,9 +20,9 @@ type AppConfig struct {
 	GcpProjectID           string `split_words:"true" default:"teddycare-193910"`
 	LocalStoragePath       string `split_words:"true"`
 
+	BucketImagesName            string `split_words:"true" default:"teddycare-images"`
 	BucketServiceAccount        string `split_words:"true" default:"C:\Users\arthur\gocode\src\arthurgustin.fr\teddycare\adm-bucket-sa.json"`
 	BucketServiceAccountDetails ServiceAccountDetails
-	BucketImagesName            string `split_words:"true" default:"teddycare-photos"`
 }
 
 func InitAppConfiguration() (config *AppConfig, err error) {

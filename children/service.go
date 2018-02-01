@@ -1,12 +1,16 @@
 package children
 
 import (
-	"arthurgustin.fr/teddycare/store"
 	"context"
+	"strings"
+	"time"
+
+	"arthurgustin.fr/teddycare/storage"
+	"arthurgustin.fr/teddycare/store"
+
 	"github.com/araddon/dateparse"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
-	"time"
 )
 
 var (
@@ -39,6 +43,7 @@ type ChildService struct {
 		FindAllergiesOfChild(tx *gorm.DB, childId string) ([]store.Allergy, error)
 		RemoveAllergiesOfChild(tx *gorm.DB, childId string) error
 	} `inject:""`
+	Storage storage.Storage `inject:""`
 }
 
 func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (store.Child, error) {
@@ -51,6 +56,16 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		return store.Child{}, ErrNoParent
 	}
 
+	encoded, mimeType, err := c.validate64EncodedPhoto(request.Image)
+	if err != nil {
+		return store.Child{}, errors.Wrap(err, "failed to validate image")
+	}
+
+	filename, err := c.Storage.Store(context.Background(), encoded, mimeType)
+	if err != nil {
+		return store.Child{}, errors.Wrap(err, "failed to store image")
+	}
+
 	tx := c.Store.Tx()
 
 	child, err := c.Store.AddChild(tx, store.Child{
@@ -58,12 +73,20 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		FirstName: request.FirstName,
 		LastName:  request.LastName,
 		Gender:    request.Gender,
-		ImageUri:  request.Image,
+		ImageUri:  filename,
 	})
 	if err != nil {
 		tx.Rollback()
 		return store.Child{}, errors.Wrap(err, "failed to add child")
 	}
+
+	uri, err := c.Storage.Get(context.Background(), filename)
+	if err != nil {
+		tx.Rollback()
+		return store.Child{}, errors.Wrap(err, "failed to generate image uri")
+	}
+	// When adding a child, the json response will contains a temporary uri, so the frontend can do whatever it wants with it
+	child.ImageUri = uri
 
 	if err = c.Store.SetResponsible(tx, store.ResponsibleOf{Relationship: request.Relationship, ChildId: child.ChildId, ResponsibleId: request.ResponsibleId}); err != nil {
 		tx.Rollback()
@@ -81,18 +104,48 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 	return child, nil
 }
 
+var (
+	ErrInvalidImage = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
+)
+
+func (c *ChildService) validate64EncodedPhoto(photo string) (encoded, mimeType string, err error) {
+	if strings.HasPrefix(photo, "data:image/jpeg;base64,") {
+		mimeType = "image/jpeg"
+		encoded = strings.TrimPrefix(photo, "data:image/jpeg;base64,")
+	} else {
+		err = ErrInvalidImage
+	}
+	return
+}
+
 func (c *ChildService) GetChild(ctx context.Context, request ChildTransport) (store.Child, error) {
-	adult, err := c.Store.GetChild(nil, request.Id)
+	child, err := c.Store.GetChild(nil, request.Id)
 	if err != nil {
-		return adult, errors.Wrap(err, "failed to get child")
+		return child, errors.Wrap(err, "failed to get child")
 	}
 
-	return adult, nil
+	uri, err := c.Storage.Get(ctx, child.ImageUri)
+	if err != nil {
+		return store.Child{}, errors.Wrap(err, "failed to generate image uri")
+	}
+	// When adding a child, the json response will contains a temporary uri, so the frontend can do whatever it wants with it
+	child.ImageUri = uri
+
+	return child, nil
 }
 
 func (c *ChildService) DeleteChild(ctx context.Context, request ChildTransport) error {
+	child, err := c.Store.GetChild(nil, request.Id)
+	if err != nil {
+		return errors.Wrap(err, "failed to get child")
+	}
+
 	if err := c.Store.DeleteChild(nil, request.Id); err != nil {
 		return errors.Wrap(err, "failed to delete child")
+	}
+
+	if err := c.Storage.Delete(ctx, child.ImageUri); err != nil {
+		return errors.Wrap(err, "failed to delete child image")
 	}
 
 	return nil
@@ -102,6 +155,15 @@ func (c *ChildService) ListChild(ctx context.Context) ([]store.Child, error) {
 	children, err := c.Store.ListChild(nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list adult")
+	}
+
+	for i := 0; i < len(children); i++ {
+		uri, err := c.Storage.Get(ctx, children[i].ImageUri)
+		if err != nil {
+			return []store.Child{}, errors.Wrap(err, "failed to generate image uri")
+		}
+		// When adding a child, the json response will contains a temporary uri, so the frontend can do whatever it wants with it
+		children[i].ImageUri = uri
 	}
 
 	return children, nil

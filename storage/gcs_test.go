@@ -8,6 +8,7 @@ import (
 	. "arthurgustin.fr/teddycare/shared/mocks"
 	. "arthurgustin.fr/teddycare/storage"
 
+	"context"
 	"encoding/json"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,6 +21,7 @@ var _ = Describe("Gcs", func() {
 		storage             GoogleStorage
 		config              *shared.AppConfig
 		mockStringGenerator *MockStringGenerator
+		ctx                 = context.Background()
 	)
 
 	BeforeEach(func() {
@@ -60,14 +62,14 @@ var _ = Describe("Gcs", func() {
 			// First store
 			image, _ = ioutil.ReadFile("test_data/DSCF6458.JPG")
 			encodedImage = b64.RawStdEncoding.EncodeToString(image)
-			fileName, storeError = storage.Store(encodedImage, "image/jpeg")
+			fileName, storeError = storage.Store(ctx, encodedImage, "image/jpeg")
 
 			// Then get
-			uri, getError = storage.Get(fileName)
+			uri, getError = storage.Get(ctx, fileName)
 			getResponse, _ = http.Get(uri)
 
 			// Finally delete
-			deleteError = storage.Delete(fileName)
+			deleteError = storage.Delete(ctx, fileName)
 		})
 
 		// Only 1 test to avoid making too much connexion

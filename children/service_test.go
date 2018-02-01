@@ -1,30 +1,38 @@
 package children_test
 
 import (
-	. "arthurgustin.fr/teddycare/children"
-
-	"arthurgustin.fr/teddycare/shared/mocks"
-	"arthurgustin.fr/teddycare/store"
 	"context"
+	b64 "encoding/base64"
 	"fmt"
+	"time"
+
+	. "arthurgustin.fr/teddycare/children"
+	"arthurgustin.fr/teddycare/shared/mocks"
+	. "arthurgustin.fr/teddycare/storage/mocks"
+	"arthurgustin.fr/teddycare/store"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"time"
+	"github.com/stretchr/testify/mock"
+	"io/ioutil"
 )
 
 var _ = Describe("Service", func() {
 
 	var (
-		ctx                 = context.Background()
-		childService        Service
+		ctx          = context.Background()
+		childService Service
+
 		mockStringGenerator *shared.MockStringGenerator
-		concreteStore       *store.Store
-		concreteDb          *gorm.DB
-		returnedError       error
-		childRef1           ChildTransport
+		mockStorage         *MockGcs
+
+		concreteStore *store.Store
+		concreteDb    *gorm.DB
+		returnedError error
+		childRef1     ChildTransport
 	)
 
 	var (
@@ -39,9 +47,16 @@ var _ = Describe("Service", func() {
 				Expect(errors.Cause(returnedError)).To(Equal(cause))
 			})
 		}
+		assertErrorWithMessage = func(message string) {
+			It("should return an error", func() {
+				Expect(returnedError).NotTo(BeNil())
+				Expect(returnedError.Error()).To(ContainSubstring(message))
+			})
+		}
 	)
 
 	BeforeEach(func() {
+		b, _ := ioutil.ReadFile("test_data/DSCF6458.JPG")
 		childRef1 = ChildTransport{
 			Id:            "aaa",
 			FirstName:     "Arthur",
@@ -49,7 +64,7 @@ var _ = Describe("Service", func() {
 			BirthDate:     "1992/10/13",
 			Relationship:  "father",
 			ResponsibleId: "aaa",
-			Image:         "gs://foo/bar/picture.jpg",
+			Image:         "data:image/jpeg;base64," + b64.RawStdEncoding.EncodeToString(b),
 			Gender:        "M",
 			Allergies:     []string{"tomato", "strawberry"},
 		}
@@ -76,23 +91,37 @@ var _ = Describe("Service", func() {
 
 	BeforeEach(func() {
 		mockStringGenerator = &shared.MockStringGenerator{}
+		mockStringGenerator.On("GenerateUuid").Return("aaa").Once()
+		mockStringGenerator.On("GenerateUuid").Return("bbb").Once()
+		mockStringGenerator.On("GenerateUuid").Return("ccc").Once()
+		mockStringGenerator.On("GenerateUuid").Return("ddd").Once()
+
+		mockStorage = &MockGcs{}
+		mockStorage.On("Get", mock.Anything, mock.Anything).Return("gs://foo/bar.jpg", nil).Once()
+		mockStorage.On("Get", mock.Anything, mock.Anything).Return("gs://fizz/buzz.jpg", nil).Once()
+
 		concreteStore = &store.Store{
 			Db:              concreteDb,
 			StringGenerator: mockStringGenerator,
 		}
 		childService = &ChildService{
-			Store: concreteStore,
+			Store:   concreteStore,
+			Storage: mockStorage,
 		}
-		mockStringGenerator.On("GenerateUuid").Return("aaa").Once()
-		mockStringGenerator.On("GenerateUuid").Return("bbb").Once()
-		mockStringGenerator.On("GenerateUuid").Return("ccc").Once()
-		mockStringGenerator.On("GenerateUuid").Return("ddd").Once()
 	})
 
 	Context("AddChild", func() {
 
 		var (
 			createdChild store.Child
+
+			// store mock result
+			fileNameToReturn   string
+			storeErrorToReturn error
+
+			// get mock result
+			uriToReturn      string
+			getErrorToReturn error
 		)
 
 		var (
@@ -103,9 +132,16 @@ var _ = Describe("Service", func() {
 						LastName:  "Gustin",
 						BirthDate: time.Date(1992, 10, 13, 0, 0, 0, 0, time.UTC),
 						ChildId:   "aaa",
-						ImageUri:  "gs://foo/bar/picture.jpg",
+						ImageUri:  "gs://foo/bar.jpg",
 						Gender:    "M",
 					}))
+				})
+			}
+			assertNoChildrenInDb = func() {
+				It("the db should have 0 stored children", func() {
+					var count int
+					concreteStore.Db.Exec(`SELECT COUNT(*) FROM "children"')`).Count(&count)
+					Expect(count).To(Equal(0))
 				})
 			}
 		)
@@ -115,6 +151,16 @@ var _ = Describe("Service", func() {
 			concreteStore.Db.Exec(`INSERT INTO "adult_responsibles" ("responsible_id","email","first_name","last_name","gender","phone","addres_1","addres_2","city","state","zip") VALUES ('aaa','arthur.gustin@gmail.com','Arthur','Gustin','M','0633326825','11, rue hergé','app 8','Toulouse','FRANCE','31')`)
 		})
 
+		BeforeEach(func() {
+			// store mock result
+			fileNameToReturn = "image1.jpg"
+			storeErrorToReturn = nil
+
+			// get mock result
+			uriToReturn = "https://google.com/bucket/image1.jpg"
+			getErrorToReturn = nil
+		})
+
 		AfterEach(func() {
 			concreteStore.Db.Exec(`TRUNCATE TABLE "users" CASCADE`)
 			concreteStore.Db.Exec(`TRUNCATE TABLE "children" CASCADE`)
@@ -122,6 +168,8 @@ var _ = Describe("Service", func() {
 		})
 
 		JustBeforeEach(func() {
+			mockStorage.On("Store", mock.Anything, mock.Anything, mock.Anything).Return(fileNameToReturn, storeErrorToReturn)
+			mockStorage.On("Get", mock.Anything, mock.Anything).Return(uriToReturn, getErrorToReturn)
 			createdChild, returnedError = childService.AddChild(ctx, childRef1)
 		})
 
@@ -133,6 +181,7 @@ var _ = Describe("Service", func() {
 		Context("when the responsibleId does not exists", func() {
 			BeforeEach(func() {
 				childRef1.ResponsibleId = "unknown"
+				storeErrorToReturn = nil
 			})
 			assertErrorWithCause(ErrSetResponsible)
 		})
@@ -142,6 +191,7 @@ var _ = Describe("Service", func() {
 				childRef1.Relationship = "zefzef"
 			})
 			assertErrorWithCause(ErrSetResponsible)
+			assertNoChildrenInDb()
 		})
 
 		Context("when the responsableId is empty", func() {
@@ -149,11 +199,32 @@ var _ = Describe("Service", func() {
 				childRef1.ResponsibleId = ""
 			})
 			assertErrorWithCause(ErrNoParent)
+			assertNoChildrenInDb()
+		})
+
+		Context("when the image has the wrong pattern", func() {
+			BeforeEach(func() {
+				childRef1.Image = "foo"
+			})
+			assertErrorWithCause(ErrInvalidImage)
+			assertNoChildrenInDb()
+		})
+
+		Context("when the store fails", func() {
+			BeforeEach(func() {
+				storeErrorToReturn = errors.New("some kind of error")
+			})
+			assertErrorWithMessage("failed to store image")
+			assertNoChildrenInDb()
 		})
 
 	})
 
 	Context("DeleteChild", func() {
+
+		BeforeEach(func() {
+			mockStorage.On("Delete", mock.Anything, mock.Anything).Return(nil)
+		})
 
 		BeforeEach(func() {
 			concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","password") VALUES ('aaa','arthur.gustin@gmail.com','$2a$10$nvGMsswN2Dtwy0iWg590ruMfwZTMaN8tR8/FpiW7ZG..WYEfpjKoS')`)
