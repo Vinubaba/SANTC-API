@@ -6,9 +6,9 @@ import (
 	"log"
 	"os/exec"
 
-	. "arthurgustin.fr/teddycare/adult_responsible"
-	"arthurgustin.fr/teddycare/shared/mocks"
-	"arthurgustin.fr/teddycare/store"
+	. "github.com/DigitalFrameworksLLC/teddycare/adult_responsible"
+	"github.com/DigitalFrameworksLLC/teddycare/shared/mocks"
+	"github.com/DigitalFrameworksLLC/teddycare/store"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"

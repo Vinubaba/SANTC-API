@@ -1,15 +1,15 @@
 package adult_responsible
 
 import (
-	"arthurgustin.fr/teddycare/shared"
 	"context"
 	"encoding/json"
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/gorilla/mux"
 	"net/http"
 
-	auth "arthurgustin.fr/teddycare/authentication"
-	. "arthurgustin.fr/teddycare/store"
+	auth "github.com/DigitalFrameworksLLC/teddycare/authentication"
+	. "github.com/DigitalFrameworksLLC/teddycare/store"
 
 	kitlog "github.com/go-kit/kit/log"
 	kithttp "github.com/go-kit/kit/transport/http"

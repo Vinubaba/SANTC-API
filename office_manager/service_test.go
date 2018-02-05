@@ -1,12 +1,12 @@
 package office_manager_test
 
 import (
-	. "arthurgustin.fr/teddycare/office_manager"
+	. "github.com/DigitalFrameworksLLC/teddycare/office_manager"
 
-	"arthurgustin.fr/teddycare/shared/mocks"
-	"arthurgustin.fr/teddycare/store"
 	"context"
 	"fmt"
+	"github.com/DigitalFrameworksLLC/teddycare/shared/mocks"
+	"github.com/DigitalFrameworksLLC/teddycare/store"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"

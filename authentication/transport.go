@@ -1,9 +1,9 @@
 package authentication
 
 import (
-	"arthurgustin.fr/teddycare/shared"
 	"context"
 	"encoding/json"
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/gorilla/mux"
 	"net/http"

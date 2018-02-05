@@ -4,9 +4,9 @@ import (
 	b64 "encoding/base64"
 	"io/ioutil"
 
-	"arthurgustin.fr/teddycare/shared"
-	. "arthurgustin.fr/teddycare/shared/mocks"
-	. "arthurgustin.fr/teddycare/storage"
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
+	. "github.com/DigitalFrameworksLLC/teddycare/shared/mocks"
+	. "github.com/DigitalFrameworksLLC/teddycare/storage"
 
 	"context"
 	. "github.com/onsi/ginkgo"

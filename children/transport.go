@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	auth "arthurgustin.fr/teddycare/authentication"
-	"arthurgustin.fr/teddycare/shared"
-	"arthurgustin.fr/teddycare/store"
+	auth "github.com/DigitalFrameworksLLC/teddycare/authentication"
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
+	"github.com/DigitalFrameworksLLC/teddycare/store"
 
 	"github.com/go-kit/kit/endpoint"
 	kitlog "github.com/go-kit/kit/log"

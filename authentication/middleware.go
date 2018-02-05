@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	. "arthurgustin.fr/teddycare/shared"
+	. "github.com/DigitalFrameworksLLC/teddycare/shared"
 
 	"fmt"
 	"github.com/dgrijalva/jwt-go"

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"path"
 
-	"arthurgustin.fr/teddycare/shared"
 	"context"
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
 	"io/ioutil"
 	"os"
 )

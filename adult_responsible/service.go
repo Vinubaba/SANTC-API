@@ -1,8 +1,8 @@
 package adult_responsible
 
 import (
-	"arthurgustin.fr/teddycare/store"
 	"context"
+	"github.com/DigitalFrameworksLLC/teddycare/store"
 	"github.com/badoux/checkmail"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"

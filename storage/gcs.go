@@ -4,7 +4,7 @@ import (
 	"context"
 	b64 "encoding/base64"
 
-	"arthurgustin.fr/teddycare/shared"
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
 
 	"cloud.google.com/go/storage"
 	"fmt"

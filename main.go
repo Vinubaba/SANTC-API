@@ -6,14 +6,14 @@ import (
 	"net/http"
 	"os"
 
-	"arthurgustin.fr/teddycare/adult_responsible"
-	"arthurgustin.fr/teddycare/children"
-	"arthurgustin.fr/teddycare/shared"
-	"arthurgustin.fr/teddycare/store"
+	"github.com/DigitalFrameworksLLC/teddycare/adult_responsible"
+	"github.com/DigitalFrameworksLLC/teddycare/authentication"
+	"github.com/DigitalFrameworksLLC/teddycare/children"
+	"github.com/DigitalFrameworksLLC/teddycare/office_manager"
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
+	"github.com/DigitalFrameworksLLC/teddycare/storage"
+	"github.com/DigitalFrameworksLLC/teddycare/store"
 
-	"arthurgustin.fr/teddycare/authentication"
-	"arthurgustin.fr/teddycare/office_manager"
-	"arthurgustin.fr/teddycare/storage"
 	"github.com/facebookgo/inject"
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
@@ -112,22 +112,7 @@ func startHttpServer(ctx context.Context) {
 	adult_responsible.MakeHandler(apiRouterV1, adultResponsibleService, httpLogger)
 	office_manager.MakeHandler(apiRouterV1, officeManagerService, httpLogger)
 
-	checkErrAndExit(http.ListenAndServe(":8084", router))
-
-	/*router := mux.NewRouter()
-	apiRouterV1 := router.PathPrefix("/api/v1").Subrouter()
-	apiRouterV1.Handle("/", childs.MakeHandler(childService, httpLogger)).Methods(http.MethodPost)
-	apiRouterV1.Handle("/childs/", childs.MakeHandler(childService, httpLogger)).Methods(http.MethodPost)
-	apiRouterV1.Handle("/childs", childs.MakeHandler(childService, httpLogger)).Methods(http.MethodPost)
-	apiRouterV1.Handle("/childs", api.NotImplemented).Methods(http.MethodGet)
-	apiRouterV1.Handle("/childs/{id}", api.NotImplemented).Methods(http.MethodPatch)
-	apiRouterV1.Handle("/childs/{id}", api.NotImplemented).Methods(http.MethodDelete)
-	apiRouterV1.Handle("/childs/{id}", api.NotImplemented).Methods(http.MethodGet)
-
-	http.Handle("/", router)
-
-	//logger.Info(ctx, "starting http server", log.Fields{"port": 8080})
-	checkErrAndExit(http.ListenAndServe(":8083", nil))*/
+	checkErrAndExit(http.ListenAndServe(":8080", router))
 }
 
 func checkErrAndExit(err error) {

@@ -1,8 +1,8 @@
 package authentication
 
 import (
-	"arthurgustin.fr/teddycare/store"
 	"context"
+	"github.com/DigitalFrameworksLLC/teddycare/store"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"

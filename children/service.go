@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"arthurgustin.fr/teddycare/storage"
-	"arthurgustin.fr/teddycare/store"
+	"github.com/DigitalFrameworksLLC/teddycare/storage"
+	"github.com/DigitalFrameworksLLC/teddycare/store"
 
 	"github.com/araddon/dateparse"
 	"github.com/jinzhu/gorm"

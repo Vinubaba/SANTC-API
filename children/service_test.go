@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	. "arthurgustin.fr/teddycare/children"
-	"arthurgustin.fr/teddycare/shared/mocks"
-	. "arthurgustin.fr/teddycare/storage/mocks"
-	"arthurgustin.fr/teddycare/store"
+	. "github.com/DigitalFrameworksLLC/teddycare/children"
+	"github.com/DigitalFrameworksLLC/teddycare/shared/mocks"
+	. "github.com/DigitalFrameworksLLC/teddycare/storage/mocks"
+	"github.com/DigitalFrameworksLLC/teddycare/store"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
