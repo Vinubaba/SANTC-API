@@ -1,4 +1,4 @@
-package adult_responsible_test
+package users_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -13,11 +13,11 @@ import (
 	"testing"
 )
 
-func TestAdultResponsible(t *testing.T) {
+func TestUsers(t *testing.T) {
 	RegisterFailHandler(Fail)
 	initDb()
 	defer deleteDb()
-	RunSpecs(t, "AdultResponsible Suite")
+	RunSpecs(t, "Users Suite")
 }
 
 func deleteDb() {
@@ -30,14 +30,11 @@ func deleteDb() {
 func initDb() {
 	if out, err := exec.Command("psql", "-U", "postgres", "-h", "localhost", "-c", "create database test_teddycare").Output(); err != nil {
 		log.Println(string(out))
+		//log.Fatal("failed to create database:" + err.Error())
 	}
 
 	if out, err := exec.Command("psql", "-U", "postgres", "-h", "localhost", "-c", "grant all privileges on database test_teddycare to postgres").Output(); err != nil {
 		log.Fatal("failed to grant privileges:" + string(out))
-	}
-
-	if out, err := exec.Command("psql", "-U", "postgres", "-h", "localhost", "-d", "test_teddycare", "-c", "create extension pgcrypto;").Output(); err != nil {
-		log.Fatal("failed to create extension pgcrypto: " + string(out))
 	}
 
 	visit := func(files *[]string) filepath.WalkFunc {
@@ -54,9 +51,9 @@ func initDb() {
 
 	root := os.Getenv("TEDDYCARE_SQL_DIR")
 	if root == "" {
+		root = `C:\Users\arthur\gocode\src\github.com\DigitalFrameworksLLC\teddycare\sql`
 		log.Println("please set env TEDDYCARE_SQL_DIR")
-		log.Println("default to " + `C:\Users\arthur\gocode\src\arthurgustin.fr\teddycare\sql\`)
-		root = `C:\Users\arthur\gocode\src\arthurgustin.fr\teddycare\sql\`
+		log.Println("default to " + root)
 	}
 	log.Println("will use " + root)
 
@@ -73,5 +70,4 @@ func initDb() {
 			}
 		}
 	}
-
 }

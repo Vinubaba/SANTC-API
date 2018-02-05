@@ -5,7 +5,6 @@ import (
 
 	"github.com/Pallinder/go-randomdata"
 	"github.com/satori/go.uuid"
-	"log"
 )
 
 type StringGenerator struct {
@@ -16,9 +15,6 @@ func (n *StringGenerator) GenerateRandomName() string {
 }
 
 func (n *StringGenerator) GenerateUuid() string {
-	id, err := uuid.NewV4()
-	if err != nil {
-		log.Fatal(err)
-	}
+	id := uuid.NewV4()
 	return id.String()
 }

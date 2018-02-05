@@ -2,6 +2,7 @@ package children
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ var (
 	ErrEmptyChild     = errors.New("childId cannot be empty")
 	ErrSetResponsible = errors.New("failed to set responsibleId")
 	ErrSetAllergy     = errors.New("failed to set allergy")
+	ErrInvalidImage   = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
 )
 
 type Service interface {
@@ -56,17 +58,23 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		return store.Child{}, ErrNoParent
 	}
 
-	encoded, mimeType, err := c.validate64EncodedPhoto(request.Image)
-	if err != nil {
-		return store.Child{}, errors.Wrap(err, "failed to validate image")
-	}
+	var filename string
+	if request.ImageUri != "" {
+		encoded, mimeType, err := c.validate64EncodedPhoto(request.ImageUri)
+		if err != nil {
+			return store.Child{}, errors.Wrap(err, "failed to validate image")
+		}
 
-	filename, err := c.Storage.Store(context.Background(), encoded, mimeType)
-	if err != nil {
-		return store.Child{}, errors.Wrap(err, "failed to store image")
+		filename, err = c.Storage.Store(ctx, encoded, mimeType)
+		if err != nil {
+			return store.Child{}, errors.Wrap(err, "failed to store image")
+		}
 	}
 
 	tx := c.Store.Tx()
+	if tx.Error != nil {
+		return store.Child{}, errors.Wrap(tx.Error, "failed to add child")
+	}
 
 	child, err := c.Store.AddChild(tx, store.Child{
 		BirthDate: t,
@@ -80,7 +88,7 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		return store.Child{}, errors.Wrap(err, "failed to add child")
 	}
 
-	uri, err := c.Storage.Get(context.Background(), filename)
+	uri, err := c.Storage.Get(ctx, filename)
 	if err != nil {
 		tx.Rollback()
 		return store.Child{}, errors.Wrap(err, "failed to generate image uri")
@@ -103,10 +111,6 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 	tx.Commit()
 	return child, nil
 }
-
-var (
-	ErrInvalidImage = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
-)
 
 func (c *ChildService) validate64EncodedPhoto(photo string) (encoded, mimeType string, err error) {
 	if strings.HasPrefix(photo, "data:image/jpeg;base64,") {
@@ -137,7 +141,7 @@ func (c *ChildService) GetChild(ctx context.Context, request ChildTransport) (st
 func (c *ChildService) DeleteChild(ctx context.Context, request ChildTransport) error {
 	child, err := c.Store.GetChild(nil, request.Id)
 	if err != nil {
-		return errors.Wrap(err, "failed to get child")
+		return errors.Wrap(err, "failed to delete child")
 	}
 
 	if err := c.Store.DeleteChild(nil, request.Id); err != nil {
@@ -154,7 +158,7 @@ func (c *ChildService) DeleteChild(ctx context.Context, request ChildTransport) 
 func (c *ChildService) ListChild(ctx context.Context) ([]store.Child, error) {
 	children, err := c.Store.ListChild(nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to list adult")
+		return nil, errors.Wrap(err, "failed to list children")
 	}
 
 	for i := 0; i < len(children); i++ {
@@ -184,7 +188,14 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 		}
 	}
 
+	if err := c.setAndStoreDecodedImage(ctx, &request); err != nil {
+		return store.Child{}, err
+	}
+
 	tx := c.Store.Tx()
+	if tx.Error != nil {
+		return store.Child{}, errors.Wrap(tx.Error, "failed to update child")
+	}
 
 	if len(request.Allergies) > 1 {
 		if err := c.Store.RemoveAllergiesOfChild(tx, request.Id); err != nil {
@@ -201,7 +212,7 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 
 	child, err := c.Store.UpdateChild(tx, store.Child{
 		BirthDate: t,
-		ImageUri:  request.Image,
+		ImageUri:  request.ImageUri,
 		Gender:    request.Gender,
 		FirstName: request.FirstName,
 		LastName:  request.LastName,
@@ -213,8 +224,37 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 	}
 
 	tx.Commit()
-
+	c.setBucketUri(ctx, &child)
 	return child, nil
+}
+
+func (c *ChildService) setAndStoreDecodedImage(ctx context.Context, request *ChildTransport) error {
+	if strings.HasPrefix(request.ImageUri, "data:image/jpeg;base64,") {
+		mimeType := "image/jpeg"
+		encoded := strings.TrimPrefix(request.ImageUri, "data:image/jpeg;base64,")
+
+		var err error
+		request.ImageUri, err = c.Storage.Store(ctx, encoded, mimeType)
+		if err != nil {
+			return errors.Wrap(err, "failed to store image")
+		}
+	}
+	return nil
+}
+
+func (c *ChildService) setBucketUri(ctx context.Context, child *store.Child) {
+	if child.ImageUri == "" {
+		return
+	}
+	if !strings.Contains(child.ImageUri, "/") {
+		uri, err := c.Storage.Get(ctx, child.ImageUri)
+		if err != nil {
+			// todo logger
+			fmt.Println("failed to generate image uri")
+			child.ImageUri = ""
+		}
+		child.ImageUri = uri
+	}
 }
 
 func (c *ChildService) FindAllergiesOfChild(ctx context.Context, childId string) ([]store.Allergy, error) {

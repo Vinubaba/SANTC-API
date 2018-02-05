@@ -21,8 +21,12 @@ type AppConfig struct {
 	LocalStoragePath       string `split_words:"true"`
 
 	BucketImagesName            string `split_words:"true" default:"teddycare-images"`
-	BucketServiceAccount        string `split_words:"true" default:"C:\Users\arthur\gocode\src\arthurgustin.fr\teddycare\adm-bucket-sa.json"`
+	BucketServiceAccount        string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\DigitalFrameworksLLC\\teddycare\\adm-bucket-sa.json"`
 	BucketServiceAccountDetails ServiceAccountDetails
+
+	FirebaseServiceAccount string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\DigitalFrameworksLLC\\teddycare\\adm-firebase-sa.json"`
+
+	TestAuthMode bool `split_words:"true" default:"true"`
 }
 
 func InitAppConfiguration() (config *AppConfig, err error) {

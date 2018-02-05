@@ -6,38 +6,48 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/DigitalFrameworksLLC/teddycare/adult_responsible"
-	"github.com/DigitalFrameworksLLC/teddycare/authentication"
 	"github.com/DigitalFrameworksLLC/teddycare/children"
-	"github.com/DigitalFrameworksLLC/teddycare/office_manager"
 	"github.com/DigitalFrameworksLLC/teddycare/shared"
 	"github.com/DigitalFrameworksLLC/teddycare/storage"
-	"github.com/DigitalFrameworksLLC/teddycare/store"
+	. "github.com/DigitalFrameworksLLC/teddycare/store"
+	"github.com/DigitalFrameworksLLC/teddycare/users"
 
+	"firebase.google.com/go"
+	"firebase.google.com/go/auth"
+	"github.com/DigitalFrameworksLLC/teddycare/authentication"
+	teddyFirebase "github.com/DigitalFrameworksLLC/teddycare/firebase"
 	"github.com/facebookgo/inject"
 	"github.com/go-kit/kit/log"
+	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/pkg/errors"
+	"google.golang.org/api/option"
 )
 
 var (
-	ctx                     = context.Background()
-	config                  *shared.AppConfig
-	db                      *gorm.DB
-	stringGenerator         = &shared.StringGenerator{}
-	childService            = &children.ChildService{}
-	adultResponsibleService = &adult_responsible.AdultResponsibleService{}
-	officeManagerService    = office_manager.NewDefaultService()
-	authenticationService   = &authentication.AuthenticationService{}
-	dbStore                 = &store.Store{}
-	gcsStorage              = &storage.GoogleStorage{}
+	ctx                    = context.Background()
+	config                 *shared.AppConfig
+	db                     *gorm.DB
+	stringGenerator        = &shared.StringGenerator{}
+	childService           = &children.ChildService{}
+	userService            = &users.UserService{}
+	userHandlerFactory     = &users.HandlerFactory{}
+	childrenHandlerFactory = &children.HandlerFactory{}
+	teddyFirebaseClient    = &teddyFirebase.Client{}
+
+	dbStore    = &Store{}
+	gcsStorage = &storage.GoogleStorage{}
+
+	firebaseClient *auth.Client
+	authenticator  = &authentication.Authenticator{}
 )
 
 func init() {
 	checkErrAndExit(initAppConfiguration())
 	checkErrAndExit(initPostgresConnection())
+	checkErrAndExit(initFirebase())
 	checkErrAndExit(initApplicationGraph())
 }
 
@@ -62,17 +72,37 @@ func initPostgresConnection() (err error) {
 	return
 }
 
+func initFirebase() error {
+	opt := option.WithCredentialsFile(config.FirebaseServiceAccount)
+	config := &firebase.Config{ProjectID: "teddycare-193910"}
+
+	firebaseApp, err := firebase.NewApp(context.Background(), config, opt)
+	if err != nil {
+		return err
+	}
+
+	firebaseClient, err = firebaseApp.Auth(context.Background())
+	if err != nil {
+		return errors.Wrap(err, "error getting Auth client")
+	}
+
+	return nil
+}
+
 func initApplicationGraph() error {
 	if err := inject.Populate(
 		config,
 		childService,
-		adultResponsibleService,
-		officeManagerService,
-		authenticationService,
+		userService,
+		userHandlerFactory,
+		childrenHandlerFactory,
 		db,
 		stringGenerator,
 		dbStore,
 		gcsStorage,
+		teddyFirebaseClient,
+		firebaseClient,
+		authenticator,
 	); err != nil {
 		return errors.Wrap(err, "failed to populate")
 	}
@@ -103,16 +133,54 @@ func startHttpServer(ctx context.Context) {
 	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 	httpLogger := log.With(logger, "component", "http")
+	userOpts := []kithttp.ServerOption{
+		kithttp.ServerErrorLogger(httpLogger),
+		kithttp.ServerErrorEncoder(users.EncodeError),
+	}
+
+	childrenOpts := []kithttp.ServerOption{
+		kithttp.ServerErrorLogger(httpLogger),
+		kithttp.ServerErrorEncoder(children.EncodeError),
+	}
 
 	router := mux.NewRouter()
-	authentication.MakeAuthHandler(router, authenticationService, httpLogger)
 
 	apiRouterV1 := router.PathPrefix("/api/v1").Subrouter()
-	children.MakeHandler(apiRouterV1, childService, httpLogger)
-	adult_responsible.MakeHandler(apiRouterV1, adultResponsibleService, httpLogger)
-	office_manager.MakeHandler(apiRouterV1, officeManagerService, httpLogger)
 
-	checkErrAndExit(http.ListenAndServe(":8080", router))
+	apiRouterV1.Handle("/me", authenticator.Roles(userHandlerFactory.Me(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_TEACHER)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/create-account", authenticator.Roles(userHandlerFactory.AddPendingUser(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodPost)
+
+	apiRouterV1.Handle("/office-managers", authenticator.Roles(userHandlerFactory.ListOfficeManager(userOpts), ROLE_ADMIN)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/office-managers/{id}", authenticator.Roles(userHandlerFactory.GetOfficeManager(userOpts), ROLE_ADMIN)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/office-managers/{id}", authenticator.Roles(userHandlerFactory.DeleteOfficeManager(userOpts), ROLE_ADMIN)).Methods(http.MethodDelete)
+	apiRouterV1.Handle("/office-managers/{id}", authenticator.Roles(userHandlerFactory.UpdateOfficeManager(userOpts), ROLE_ADMIN)).Methods(http.MethodPatch)
+
+	apiRouterV1.Handle("/teachers", authenticator.Roles(userHandlerFactory.ListTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/teachers/{id}", authenticator.Roles(userHandlerFactory.GetTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/teachers/{id}", authenticator.Roles(userHandlerFactory.DeleteTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
+	apiRouterV1.Handle("/teachers/{id}", authenticator.Roles(userHandlerFactory.UpdateTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
+
+	apiRouterV1.Handle("/adults", authenticator.Roles(userHandlerFactory.ListAdult(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/adults/{id}", authenticator.Roles(userHandlerFactory.GetAdult(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/adults/{id}", authenticator.Roles(userHandlerFactory.DeleteAdult(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
+	apiRouterV1.Handle("/adults/{id}", authenticator.Roles(userHandlerFactory.UpdateAdult(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
+
+	apiRouterV1.Handle("/children", authenticator.Roles(childrenHandlerFactory.Add(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN)).Methods(http.MethodPost)
+	apiRouterV1.Handle("/children", authenticator.Roles(childrenHandlerFactory.List(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN, ROLE_TEACHER)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Get(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN, ROLE_TEACHER)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Update(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN)).Methods(http.MethodPatch)
+	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Delete(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodDelete)
+
+	if config.TestAuthMode {
+		testAuthRouter := mux.NewRouter()
+		testAuthRouter.HandleFunc("/test-auth-login", authentication.ServeTestAuth).Methods(http.MethodGet)
+		testAuthRouter.HandleFunc("/test-auth-on-success", authentication.ServeTestAuthOnSuccess)
+		go func() {
+			checkErrAndExit(http.ListenAndServe(":8082", testAuthRouter))
+		}()
+	}
+
+	checkErrAndExit(http.ListenAndServe(":8083", authenticator.Firebase(router)))
 }
 
 func checkErrAndExit(err error) {

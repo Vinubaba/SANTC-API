@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	auth "github.com/DigitalFrameworksLLC/teddycare/authentication"
 	"github.com/DigitalFrameworksLLC/teddycare/shared"
 	"github.com/DigitalFrameworksLLC/teddycare/store"
 
 	"github.com/go-kit/kit/endpoint"
-	kitlog "github.com/go-kit/kit/log"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -26,60 +24,59 @@ type ChildTransport struct {
 	LastName      string   `json:"lastName"`
 	BirthDate     string   `json:"birthDate"` // dd/mm/yyyy
 	Gender        string   `json:"gender"`
-	Image         string   `json:"image"`
+	ImageUri      string   `json:"imageUri"`
 	Allergies     []string `json:"allergies"`
 	ResponsibleId string   `json:"responsibleId,omitempty"`
 	Relationship  string   `json:"relationship,omitempty"`
 }
 
-// MakeHandler returns a handler for the booking service.
-func MakeHandler(r *mux.Router, svc Service, logger kitlog.Logger) http.Handler {
-	opts := []kithttp.ServerOption{
-		kithttp.ServerErrorLogger(logger),
-		kithttp.ServerErrorEncoder(encodeError),
-	}
+type HandlerFactory struct {
+	Service Service `inject:""`
+}
 
-	addChildHandler := kithttp.NewServer(
-		makeAddEndpoint(svc),
+func (h *HandlerFactory) Add(opts []kithttp.ServerOption) *kithttp.Server {
+	return kithttp.NewServer(
+		makeAddEndpoint(h.Service),
 		decodeChildTransport,
 		shared.EncodeResponse201,
 		opts...,
 	)
+}
 
-	deleteChildHandler := kithttp.NewServer(
-		makeDeleteEndpoint(svc),
+func (h *HandlerFactory) Get(opts []kithttp.ServerOption) *kithttp.Server {
+	return kithttp.NewServer(
+		makeGetEndpoint(h.Service),
+		decodeGetOrDeleteChildTransport,
+		shared.EncodeResponse200,
+		opts...,
+	)
+}
+
+func (h *HandlerFactory) Delete(opts []kithttp.ServerOption) *kithttp.Server {
+	return kithttp.NewServer(
+		makeDeleteEndpoint(h.Service),
 		decodeGetOrDeleteChildTransport,
 		shared.EncodeResponse204,
 		opts...,
 	)
+}
 
-	getChildHandler := kithttp.NewServer(
-		makeGetEndpoint(svc),
-		decodeGetOrDeleteChildTransport,
-		shared.EncodeResponse200,
-		opts...,
-	)
-
-	updateChildHandler := kithttp.NewServer(
-		makeUpdateEndpoint(svc),
+func (h *HandlerFactory) Update(opts []kithttp.ServerOption) *kithttp.Server {
+	return kithttp.NewServer(
+		makeUpdateEndpoint(h.Service),
 		decodeUpdateChildRequest,
 		shared.EncodeResponse200,
 		opts...,
 	)
+}
 
-	listChildHandler := kithttp.NewServer(
-		makeListEndpoint(svc),
+func (h *HandlerFactory) List(opts []kithttp.ServerOption) *kithttp.Server {
+	return kithttp.NewServer(
+		makeListEndpoint(h.Service),
 		ignorePayload,
 		shared.EncodeResponse200,
 		opts...,
 	)
-
-	r.Handle("/children", auth.Roles(addChildHandler, store.ROLE_OFFICE_MANAGER, store.ROLE_ADULT, store.ROLE_ADMIN)).Methods("POST")
-	r.Handle("/children", auth.Roles(listChildHandler, store.ROLE_OFFICE_MANAGER, store.ROLE_ADULT, store.ROLE_ADMIN)).Methods(http.MethodGet)
-	r.Handle("/children/{childId}", updateChildHandler).Methods(http.MethodPatch)
-	r.Handle("/children/{childId}", deleteChildHandler).Methods(http.MethodDelete)
-	r.Handle("/children/{childId}", getChildHandler).Methods(http.MethodGet)
-	return r
 }
 
 func makeAddEndpoint(svc Service) endpoint.Endpoint {
@@ -87,7 +84,7 @@ func makeAddEndpoint(svc Service) endpoint.Endpoint {
 		req := request.(ChildTransport)
 		child, err := svc.AddChild(ctx, req)
 		if err != nil {
-			return shared.NewError(err.Error()), nil
+			return nil, err
 		}
 
 		ret := ChildTransport{
@@ -96,7 +93,7 @@ func makeAddEndpoint(svc Service) endpoint.Endpoint {
 			FirstName:     child.FirstName,
 			BirthDate:     child.BirthDate.UTC().String(),
 			Gender:        child.Gender,
-			Image:         child.ImageUri,
+			ImageUri:      child.ImageUri,
 			ResponsibleId: req.ResponsibleId,
 			Allergies:     req.Allergies,
 		}
@@ -109,12 +106,12 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 		req := request.(ChildTransport)
 		child, err := svc.GetChild(ctx, req)
 		if err != nil {
-			return shared.NewError(err.Error()), nil
+			return nil, err
 		}
 
 		currentChild := ChildTransport{
 			Id:        child.ChildId,
-			Image:     child.ImageUri,
+			ImageUri:  child.ImageUri,
 			Gender:    child.Gender,
 			BirthDate: child.BirthDate.UTC().String(),
 			FirstName: child.FirstName,
@@ -122,7 +119,7 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 		}
 		allergies, err := svc.FindAllergiesOfChild(ctx, currentChild.Id)
 		if err != nil {
-			return shared.NewError(err.Error()), nil
+			return nil, err
 		}
 		for _, allergy := range allergies {
 			currentChild.Allergies = append(currentChild.Allergies, allergy.Allergy)
@@ -153,7 +150,7 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 		for _, child := range children {
 			currentChild := ChildTransport{
 				Id:        child.ChildId,
-				Image:     child.ImageUri,
+				ImageUri:  child.ImageUri,
 				Gender:    child.Gender,
 				BirthDate: child.BirthDate.UTC().String(),
 				FirstName: child.FirstName,
@@ -188,7 +185,7 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 			LastName:  child.LastName,
 			Gender:    child.Gender,
 			BirthDate: child.BirthDate.UTC().String(),
-			Image:     child.ImageUri,
+			ImageUri:  child.ImageUri,
 		}
 
 		allergies, err := svc.FindAllergiesOfChild(ctx, child.ChildId)
@@ -247,12 +244,12 @@ func ignorePayload(_ context.Context, r *http.Request) (interface{}, error) {
 }
 
 // encode errors from business-logic
-func encodeError(_ context.Context, err error, w http.ResponseWriter) {
+func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	switch errors.Cause(err) {
-	case ErrNoParent:
+	case ErrNoParent, ErrSetResponsible:
 		w.WriteHeader(http.StatusBadRequest)
-	case store.ErrUserNotFound:
+	case store.ErrUserNotFound, store.ErrChildNotFound:
 		w.WriteHeader(http.StatusNotFound)
 	default:
 		w.WriteHeader(http.StatusInternalServerError)

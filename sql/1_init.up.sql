@@ -1,7 +1,16 @@
 CREATE TABLE IF NOT EXISTS users (
   user_id varchar PRIMARY KEY UNIQUE NOT NULL,
   email varchar UNIQUE NOT NULL,
-  password varchar(256) NOT NULL
+  first_name varchar,
+  last_name varchar,
+  phone varchar,
+  address_1 varchar,
+  address_2 varchar,
+  city varchar,
+  state varchar,
+  zip varchar,
+  gender varchar,
+  image_uri varchar
 );
 
 CREATE TABLE IF NOT EXISTS children (
@@ -19,35 +28,25 @@ CREATE TABLE IF NOT EXISTS allergies (
   allergy varchar NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS adult_responsibles (
-  responsible_id varchar REFERENCES users (user_id) ON DELETE CASCADE UNIQUE,
-  email varchar REFERENCES users (email) ON UPDATE CASCADE UNIQUE,
-  first_name varchar NOT NULL,
-  last_name varchar NOT NULL,
-  phone varchar NOT NULL,
-  addres_1 varchar NOT NULL,
-  addres_2 varchar,
-  city varchar NOT NULL,
-  state varchar NOT NULL,
-  zip varchar NOT NULL,
-  gender varchar NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS responsible_of (
-  responsible_id varchar references adult_responsibles (responsible_id) ON DELETE CASCADE,
+  responsible_id varchar references users (user_id) ON DELETE CASCADE,
   child_id varchar REFERENCES children (child_id) ON DELETE CASCADE,
   relationship varchar  NOT NULL --mother, father, grandmother, grandfather, guardian
-);
-
-CREATE TABLE IF NOT EXISTS office_managers (
-  office_manager_id varchar REFERENCES users (user_id) ON DELETE CASCADE,
-  email varchar REFERENCES users (email) ON UPDATE CASCADE UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS roles (
   user_id varchar REFERENCES users (user_id) ON DELETE CASCADE,
   role varchar NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS pending_connexion_roles (
+  email varchar NOT NULL,
+  role varchar NOT NULL
+);
+
+INSERT INTO pending_connexion_roles ("email", "role") VALUES ('arthur.gustin@gmail.com', 'admin');
+INSERT INTO pending_connexion_roles ("email", "role") VALUES ('vinu.singh@gmail.com', 'officemanager');
+INSERT INTO pending_connexion_roles ("email", "role") VALUES ('johngallegodev@gmail.com', 'officemanager');
 
 --CREATE TABLE IF NOT EXISTS teachers (
 --  teacher_id varchar REFERENCES users (user_id) UNIQUE,

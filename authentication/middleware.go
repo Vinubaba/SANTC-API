@@ -2,95 +2,143 @@ package authentication
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
-	. "github.com/DigitalFrameworksLLC/teddycare/shared"
+	"github.com/DigitalFrameworksLLC/teddycare/store"
 
-	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/mitchellh/mapstructure"
-	"github.com/pkg/errors"
+	"firebase.google.com/go/auth"
+	. "github.com/DigitalFrameworksLLC/teddycare/shared"
+	"github.com/DigitalFrameworksLLC/teddycare/users"
 )
 
-// https://medium.com/@matryer/the-http-handler-wrapper-technique-in-golang-updated-bc7fbcffa702
+type Authenticator struct {
+	FirebaseClient interface {
+		VerifyIDToken(idToken string) (*auth.Token, error)
+		GetUser(ctx context.Context, uid string) (*auth.UserRecord, error)
+		SetCustomUserClaims(ctx context.Context, uid string, customClaims map[string]interface{}) error
+	} `inject:""`
+	UserService interface {
+		GetPendingConnexionRoles(ctx context.Context, email string) ([]store.PendingConnexionRole, error)
+		DeletePendingConnexionRoles(ctx context.Context, pendingRoles []store.PendingConnexionRole) error
+		AddUserByRoles(ctx context.Context, request users.UserTransport, roles ...string) (store.User, error)
+	} `inject:""`
+}
 
-/*func ValidateMiddleware(next http.Handler) http.Handler {
+func (f *Authenticator) Roles(next http.Handler, roles ...string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		authorizationHeader := req.Header.Get("authorization")
-
-		if authorizationHeader == "" {
-			HttpError(w, NewError("invalid authorization token"), http.StatusBadRequest)
+		claims := req.Context().Value("claims").(map[string]interface{})
+		if !f.hasRole(roles, claims) {
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		bearerToken := strings.Split(authorizationHeader, " ")
-		if len(bearerToken) == 2 {
-			token, err := jwt.Parse(bearerToken[1], func(token *jwt.Token) (interface{}, error) {
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, errors.New("error token method")
-				}
-				return []byte(secret), nil
-			})
-			if err != nil {
-				HttpError(w, NewError(err.Error()), http.StatusBadRequest)
-				return
-			}
-			if token.Valid {
-				req = req.WithContext(context.WithValue(context.Background(), "decoded", token.Claims))
-				next.ServeHTTP(w, req)
-			} else {
-				HttpError(w, NewError("invalid authorization token"), http.StatusBadRequest)
-			}
-		}
-	})
-}*/
-
-func Roles(next http.Handler, roles ...string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		authorizationHeader := req.Header.Get("authorization")
-
-		if authorizationHeader == "" {
-			HttpError(w, NewError("invalid authorization token"), http.StatusBadRequest)
-			return
-		}
-
-		bearerToken := strings.Split(authorizationHeader, " ")
-		if len(bearerToken) == 2 {
-			token, err := jwt.Parse(bearerToken[1], func(token *jwt.Token) (interface{}, error) {
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, errors.New("error token method")
-				}
-				return []byte(secret), nil
-			})
-			if err != nil {
-				HttpError(w, NewError(err.Error()), http.StatusBadRequest)
-				return
-			}
-			if !token.Valid {
-				HttpError(w, NewError("invalid authorization token"), http.StatusBadRequest)
-				return
-			}
-
-			var claim TeddyClaims
-			mapstructure.Decode(token.Claims.(jwt.MapClaims), &claim)
-
-			if !intersects(claim.Roles, roles) {
-				HttpError(w, NewError(fmt.Sprintf("you must be %v to use this service", roles)), http.StatusBadRequest)
-				return
-			}
-
-			req = req.WithContext(context.WithValue(context.Background(), "decoded", token.Claims))
-
-			next.ServeHTTP(w, req)
-		}
+		next.ServeHTTP(w, req)
 	})
 }
 
-func intersects(list1, list2 []string) bool {
-	for _, v1 := range list1 {
-		for _, v2 := range list2 {
-			if v1 == v2 {
+func (f *Authenticator) Firebase(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		authorizationHeader := req.Header.Get("authorization")
+
+		if authorizationHeader == "" {
+			HttpError(w, NewError("invalid authorization token"), http.StatusBadRequest)
+			return
+		}
+
+		bearerToken := strings.Split(authorizationHeader, " ")
+		if len(bearerToken) != 2 {
+			HttpError(w, NewError("invalid authorization token"), http.StatusBadRequest)
+			return
+		}
+		token, err := f.FirebaseClient.VerifyIDToken(bearerToken[1])
+		if err != nil {
+			HttpError(w, NewError(fmt.Sprintf("invalid authorization token: %s", err.Error())), http.StatusBadRequest)
+			return
+		}
+
+		// Lookup the user associated with the specified uid.
+		firebaseUser, err := f.FirebaseClient.GetUser(req.Context(), token.UID)
+		if err != nil {
+			HttpError(w, NewError(fmt.Sprintf("failed to retrieve user from firebase: %s", err.Error())), http.StatusBadRequest)
+			return
+		}
+
+		if !f.hasAtLeastOneRoleInCustomClaim(firebaseUser.CustomClaims) {
+			// checker email office manager pending
+			pendingRoles, err := f.UserService.GetPendingConnexionRoles(nil, firebaseUser.Email)
+			if err != nil {
+				HttpError(w, NewError(fmt.Sprintf("failed to get pending roles: %s", err.Error())), http.StatusInternalServerError)
+				return
+			}
+
+			roles := make([]string, 0)
+			for _, r := range pendingRoles {
+				roles = append(roles, r.Role)
+			}
+			if len(roles) == 0 {
+				roles = append(roles, store.ROLE_ADULT)
+			}
+			if _, err = f.UserService.AddUserByRoles(ctx, users.UserTransport{
+				Id:        firebaseUser.UID,
+				Email:     firebaseUser.Email,
+				FirstName: firebaseUser.DisplayName,
+				LastName:  "",
+				ImageUri:  firebaseUser.PhotoURL,
+				Phone:     firebaseUser.PhoneNumber,
+			}, roles...); err != nil {
+				HttpError(w, NewError(fmt.Sprintf("failed to add user: %s", err.Error())), http.StatusInternalServerError)
+				return
+			}
+
+			claims := map[string]interface{}{
+				"userId":                  firebaseUser.UID,
+				store.ROLE_TEACHER:        false,
+				store.ROLE_OFFICE_MANAGER: false,
+				store.ROLE_ADULT:          false,
+				store.ROLE_ADMIN:          false,
+			}
+			for _, role := range roles {
+				claims[role] = true
+			}
+			if err = f.FirebaseClient.SetCustomUserClaims(ctx, firebaseUser.UID, claims); err != nil {
+				HttpError(w, NewError(err.Error()), http.StatusInternalServerError)
+				return
+			}
+			firebaseUser.CustomClaims = claims
+			if err := f.UserService.DeletePendingConnexionRoles(ctx, pendingRoles); err != nil {
+				fmt.Println("fail to remove pending roles...")
+			}
+		}
+
+		req = req.WithContext(context.WithValue(context.Background(), "claims", firebaseUser.CustomClaims))
+
+		next.ServeHTTP(w, req)
+	})
+}
+
+func (f *Authenticator) hasAtLeastOneRoleInCustomClaim(claims map[string]interface{}) bool {
+	if isAdult, ok := claims[store.ROLE_ADULT]; ok && isAdult.(bool) {
+		return true
+	}
+	if isOfficeManager, ok := claims[store.ROLE_OFFICE_MANAGER]; ok && isOfficeManager.(bool) {
+		return true
+	}
+	if isAdmin, ok := claims[store.ROLE_ADMIN]; ok && isAdmin.(bool) {
+		return true
+	}
+	if isTeacher, ok := claims[store.ROLE_TEACHER]; ok && isTeacher.(bool) {
+		return true
+	}
+	return false
+}
+
+func (f *Authenticator) hasRole(roles []string, customClaim map[string]interface{}) bool {
+	for _, role := range roles {
+		if r, ok := customClaim[role]; ok {
+			if r.(bool) {
 				return true
 			}
 		}

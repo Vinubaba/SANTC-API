@@ -1,12 +1,16 @@
 package store
 
-import "github.com/jinzhu/gorm"
+import (
+	"firebase.google.com/go/auth"
+	"github.com/jinzhu/gorm"
+)
 
 type Store struct {
 	Db              *gorm.DB `inject:""`
 	StringGenerator interface {
 		GenerateUuid() string
 	} `inject:""`
+	FirebaseClient *auth.Client `inject:""`
 }
 
 func (s *Store) Tx() *gorm.DB {
