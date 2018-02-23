@@ -7,10 +7,10 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 
-	"arthurgustin.fr/teddycare/store"
 	"github.com/DigitalFrameworksLLC/teddycare/shared"
 
 	"fmt"
+	"github.com/DigitalFrameworksLLC/teddycare/store"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/pkg/errors"
 )
@@ -272,7 +272,7 @@ func makeGetEndpoint(svc Service, role string) endpoint.Endpoint {
 
 func makeMeEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		claims := ctx.Value("decoded").(map[string]interface{})
+		claims := ctx.Value("claims").(map[string]interface{})
 		meId, ok := claims["userId"]
 		if !ok {
 			return UserTransport{}, errors.New("no id in decoded claim")

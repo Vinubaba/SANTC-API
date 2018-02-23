@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: teddycare
+spec:
+  type: LoadBalancer
+  selector:
+    app: teddycare
+  ports:
+  - protocol: TCP
+    name: api
+    port: 80
+    targetPort: 8083
+  - protocol: TCP
+    name: test-auth
+    port: 81
+    targetPort: 8082

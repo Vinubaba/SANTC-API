@@ -13,10 +13,10 @@ const CONFIG_PREFIX = "TEDDYCARE"
 type AppConfig struct {
 	PgUsername             string `split_words:"true" default:"postgres"`
 	PgPassword             string `split_words:"true" default:"postgres"`
-	PgContactPoint         string `split_words:"true" default:"localhost"`
+	PgContactPoint         string `split_words:"true" default:"127.0.0.1"`
 	PgContactPort          string `split_words:"true" default:"5432"`
 	PgDbName               string `split_words:"true" default:"teddycare"`
-	SqlMigrationsSourceDir string `split_words:"true" default:"/go/src/airbus/datastore/workspace-manager/sql"`
+	SqlMigrationsSourceDir string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\DigitalFrameworksLLC\\teddycare\\sql"`
 	GcpProjectID           string `split_words:"true" default:"teddycare-193910"`
 	LocalStoragePath       string `split_words:"true"`
 
@@ -26,7 +26,8 @@ type AppConfig struct {
 
 	FirebaseServiceAccount string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\DigitalFrameworksLLC\\teddycare\\adm-firebase-sa.json"`
 
-	TestAuthMode bool `split_words:"true" default:"true"`
+	TestAuthMode     bool `split_words:"true" default:"true"`
+	StartupMigration bool `split_words:"true" default:"false"`
 }
 
 func InitAppConfiguration() (config *AppConfig, err error) {

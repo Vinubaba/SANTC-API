@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "teddycare-193910",
+  "private_key_id": "482887a0d6d25468233ac361153d091603f15cfb",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC4KgfJGnY5wWIc\nGR1IUBBAzqZ8mEU1JkyUEEjUVoVrszwDYQ0TZQ4aGOEkEWdNgT8DcwBX1pPoLu2I\ngsxJq7vE9zoG2uZkhRfn2YeYh3HKTwKzYeDgcE5CiOadqrTNWbfUb6R2iGoi16mB\nMQBQ/j6GoVlanAeV2+Nkn8b0hEzpAIEQjCYsm5dnV4DeTSvEQSzCiVFPeN4x8k+1\nOW9N9KJuNeV6adO9s5u4xPrrTZlFMkTeIWknVaZgIBG0Wk8Eo5TWq94r+/grpGvc\nKmx7G1zvp07a85VUi4SfOOTRfT9UjbMhOJM4TYrx9jaEW5+pS45nJA5R5Rm5GCOE\nKqLgTYXpAgMBAAECggEAFNdIz0TL2UhdqnFbI3pQBI1+QL5YoqWlZ+IZ49Gwwpnj\ncjxy5t16RZDINbU0fAxizaifgtE5Jr7cyaSHqtSg6K7Tpb/y77AyHt46npPBWFQt\nqZAriyqaaKQmePQ/Brge+g7yTSmt3SiLuZ+Keh/zgnfS7VKX9ykNqC7+rGAmdf2T\ndfvdX7vbSh+DbfBbcWrO63SH6QIhjsyXDfsDN3uUMY+iRKvES7YDFfBem4IT8DMO\nnnT7400QG9UjeGfsZYvpa6Ew31eyYUuhbLblLCECWFc+waeP22kjC+gGgFjew2zl\nHw8t0snFJ3kcdI9CYkTPqVuX9ioWZWh6C0SdqoQaAwKBgQD6wfzEukMqcrWDJVln\n40N8n3btWGg2sKBv4ryEcCHF4M/dCSQ4Aw+PwI4DRKTGFSNoZ6y+cO1c8Vb7C80I\nn3sIa/QMLVtPmOip3VqGNEPaStnazjDr7LYAqW7h77/b58lzv8tJqDB0yc1L1dg8\n2C9Gk1rHw6WegxJTEkCwlOUwswKBgQC8A6VFDXFCntQpIUoC80s8zfP8L73YICoz\nitO49ERmtE5O2RCxpgXtswaScxVvwAf/mebbRN0C5ktUkHHoyMzWF+Ofgu5m2hS8\nlNllUWpMJUYoehnsAiDIWvUyLOOc4vMRsrSfQQw6B5DnT3G7cJwVogDE2MUUZoHS\nCqYatcyE8wKBgQCym2nHVkRw/7N57ih4bs+q/IphFA9mpPghuYY9bwEfSLnF3rUF\nkGiNI8IDYelbjcLiorXQD++BvAUQW592/OFNZlc2NThMwcU2+It5+9A4tAfoaeU+\npiQc5JIuK+6kW7yJzZqmpD2fcf3gfji/XdyOkHagwyI8fW+X6/BX1jZJMQKBgGR4\nGj/tMAHmt/8Gn/M1qZXjhKbVqEAu5/5FCGDEfyzW2yW9TvNvgamEylVGFEV0O5H1\n3ux7PxNGlyioS4aWjwc1GtjpcZYaoYwoiode20u3e2cz4FhCxtvp5y8Z18PFbxid\nA3I6o1r7Ig7JYEBGq9HPkVOfdqkxIdxo/lw1nAXLAoGBANMd8zSziPtbljPL6z5W\nAWGBg41Re/Ad+59FWATkIOOf0LqlOUSEDdsjoFkBPUnxr/N5o61ztVyc1+WDEqEx\ngo7iRL1ztu8KhCMTBgPby7QZUBe3WFToGPKw1Ix9ltFYyuTz3RZkZYJi9faHdhhd\n5Ks4VT0RUboQx3ZzUh3/t1UO\n-----END PRIVATE KEY-----\n",
+  "client_email": "cloud-sql@teddycare-193910.iam.gserviceaccount.com",
+  "client_id": "117581662646866327983",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://accounts.google.com/o/oauth2/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/cloud-sql%40teddycare-193910.iam.gserviceaccount.com"
+}

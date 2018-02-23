@@ -16,6 +16,7 @@ import (
 	"firebase.google.com/go/auth"
 	"github.com/DigitalFrameworksLLC/teddycare/authentication"
 	teddyFirebase "github.com/DigitalFrameworksLLC/teddycare/firebase"
+	"github.com/DigitalFrameworksLLC/teddycare/store/migrations"
 	"github.com/facebookgo/inject"
 	"github.com/go-kit/kit/log"
 	kithttp "github.com/go-kit/kit/transport/http"
@@ -90,33 +91,36 @@ func initFirebase() error {
 }
 
 func initApplicationGraph() error {
-	if err := inject.Populate(
-		config,
-		childService,
-		userService,
-		userHandlerFactory,
-		childrenHandlerFactory,
-		db,
-		stringGenerator,
-		dbStore,
-		gcsStorage,
-		teddyFirebaseClient,
-		firebaseClient,
-		authenticator,
-	); err != nil {
+	g := inject.Graph{}
+	g.Provide(
+		&inject.Object{Value: config},
+		&inject.Object{Value: childService},
+		&inject.Object{Value: userService},
+		&inject.Object{Value: userHandlerFactory},
+		&inject.Object{Value: childrenHandlerFactory},
+		&inject.Object{Value: db},
+		&inject.Object{Value: stringGenerator},
+		&inject.Object{Value: dbStore},
+		&inject.Object{Value: gcsStorage},
+		&inject.Object{Value: teddyFirebaseClient, Name: "teddyFirebaseClient"},
+		&inject.Object{Value: firebaseClient},
+		&inject.Object{Value: authenticator},
+	)
+	if err := g.Populate(); err != nil {
 		return errors.Wrap(err, "failed to populate")
 	}
 	return nil
 }
 
 func main() {
-	ctx := context.Background()
-	applySqlSchemaMigrations(ctx)
+	if config.StartupMigration {
+		applySqlSchemaMigrations(ctx)
+	}
 	startHttpServer(ctx)
 }
 
 func applySqlSchemaMigrations(ctx context.Context) {
-	/*log.Info(ctx, "applying sql schema migrations", nil)
+	fmt.Println("applying sql schema migrations")
 	migrationResult := migrations.Up(migrations.ApplyOptions{
 		SourceURL: fmt.Sprintf("file://%s", config.SqlMigrationsSourceDir),
 		DatabaseURL: fmt.Sprintf("postgres://%v:%v/%v?sslmode=disable&user=%s&password=%s",
@@ -124,8 +128,8 @@ func applySqlSchemaMigrations(ctx context.Context) {
 	})
 	checkErrAndExit(migrationResult.Err)
 	if !migrationResult.Changes {
-		logger.Info(ctx, "no new migrations applied", nil)
-	}*/
+		fmt.Println("no new migrations applied")
+	}
 }
 
 func startHttpServer(ctx context.Context) {

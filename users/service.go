@@ -47,7 +47,7 @@ type UserService struct {
 	} `inject:""`
 	FirebaseClient interface {
 		DeleteUser(ctx context.Context, uid string) error
-	} `inject:""`
+	} `inject:"teddyFirebaseClient"`
 	Storage storage.Storage `inject:""`
 }
 
@@ -119,7 +119,7 @@ func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTranspo
 			return store.User{}, err
 		}
 
-		claims := ctx.Value("decoded").(map[string]interface{})
+		claims := ctx.Value("claims").(map[string]interface{})
 		requesterId := claims["userId"].(string)
 		if isAdmin, ok := claims[store.ROLE_ADMIN]; ok && isAdmin.(bool) {
 			// ok
