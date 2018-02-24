@@ -9,7 +9,6 @@ import (
 
 	"github.com/DigitalFrameworksLLC/teddycare/shared"
 
-	"fmt"
 	"github.com/DigitalFrameworksLLC/teddycare/store"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/pkg/errors"
@@ -61,7 +60,7 @@ func (h *HandlerFactory) AddPendingUser(opts []kithttp.ServerOption) *kithttp.Se
 
 func (h *HandlerFactory) ListAdult(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeListEndpoint(h.Service, store.ROLE_ADULT),
+		makeListEndpoint(h.Service, shared.ROLE_ADULT),
 		ignorePayload,
 		shared.EncodeResponse200,
 		opts...,
@@ -70,7 +69,7 @@ func (h *HandlerFactory) ListAdult(opts []kithttp.ServerOption) *kithttp.Server 
 
 func (h *HandlerFactory) GetAdult(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeGetEndpoint(h.Service, store.ROLE_ADULT),
+		makeGetEndpoint(h.Service, shared.ROLE_ADULT),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -79,7 +78,7 @@ func (h *HandlerFactory) GetAdult(opts []kithttp.ServerOption) *kithttp.Server {
 
 func (h *HandlerFactory) DeleteAdult(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeDeleteEndpoint(h.Service, store.ROLE_ADULT),
+		makeDeleteEndpoint(h.Service, shared.ROLE_ADULT),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse204,
 		opts...,
@@ -88,7 +87,7 @@ func (h *HandlerFactory) DeleteAdult(opts []kithttp.ServerOption) *kithttp.Serve
 
 func (h *HandlerFactory) UpdateAdult(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeUpdateEndpoint(h.Service, store.ROLE_ADULT),
+		makeUpdateEndpoint(h.Service, shared.ROLE_ADULT),
 		decodeUpdateUserRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -99,7 +98,7 @@ func (h *HandlerFactory) UpdateAdult(opts []kithttp.ServerOption) *kithttp.Serve
 
 func (h *HandlerFactory) ListOfficeManager(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeListEndpoint(h.Service, store.ROLE_OFFICE_MANAGER),
+		makeListEndpoint(h.Service, shared.ROLE_OFFICE_MANAGER),
 		ignorePayload,
 		shared.EncodeResponse200,
 		opts...,
@@ -108,7 +107,7 @@ func (h *HandlerFactory) ListOfficeManager(opts []kithttp.ServerOption) *kithttp
 
 func (h *HandlerFactory) GetOfficeManager(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeGetEndpoint(h.Service, store.ROLE_OFFICE_MANAGER),
+		makeGetEndpoint(h.Service, shared.ROLE_OFFICE_MANAGER),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -117,7 +116,7 @@ func (h *HandlerFactory) GetOfficeManager(opts []kithttp.ServerOption) *kithttp.
 
 func (h *HandlerFactory) DeleteOfficeManager(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeDeleteEndpoint(h.Service, store.ROLE_OFFICE_MANAGER),
+		makeDeleteEndpoint(h.Service, shared.ROLE_OFFICE_MANAGER),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse204,
 		opts...,
@@ -126,7 +125,7 @@ func (h *HandlerFactory) DeleteOfficeManager(opts []kithttp.ServerOption) *kitht
 
 func (h *HandlerFactory) UpdateOfficeManager(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeUpdateEndpoint(h.Service, store.ROLE_OFFICE_MANAGER),
+		makeUpdateEndpoint(h.Service, shared.ROLE_OFFICE_MANAGER),
 		decodeUpdateUserRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -137,7 +136,7 @@ func (h *HandlerFactory) UpdateOfficeManager(opts []kithttp.ServerOption) *kitht
 
 func (h *HandlerFactory) ListTeacher(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeListEndpoint(h.Service, store.ROLE_TEACHER),
+		makeListEndpoint(h.Service, shared.ROLE_TEACHER),
 		ignorePayload,
 		shared.EncodeResponse200,
 		opts...,
@@ -146,7 +145,7 @@ func (h *HandlerFactory) ListTeacher(opts []kithttp.ServerOption) *kithttp.Serve
 
 func (h *HandlerFactory) GetTeacher(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeGetEndpoint(h.Service, store.ROLE_TEACHER),
+		makeGetEndpoint(h.Service, shared.ROLE_TEACHER),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -155,7 +154,7 @@ func (h *HandlerFactory) GetTeacher(opts []kithttp.ServerOption) *kithttp.Server
 
 func (h *HandlerFactory) UpdateTeacher(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeUpdateEndpoint(h.Service, store.ROLE_TEACHER),
+		makeUpdateEndpoint(h.Service, shared.ROLE_TEACHER),
 		decodeUpdateUserRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -164,7 +163,7 @@ func (h *HandlerFactory) UpdateTeacher(opts []kithttp.ServerOption) *kithttp.Ser
 
 func (h *HandlerFactory) DeleteTeacher(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeDeleteEndpoint(h.Service, store.ROLE_TEACHER),
+		makeDeleteEndpoint(h.Service, shared.ROLE_TEACHER),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse204,
 		opts...,
@@ -380,8 +379,6 @@ func ignorePayload(_ context.Context, _ *http.Request) (interface{}, error) {
 // encode errors from business-logic
 func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-	fmt.Println(errors.Cause(err).Error())
 
 	switch errors.Cause(err).Error() {
 	case ErrInvalidPasswordFormat.Error(), ErrInvalidEmail.Error():

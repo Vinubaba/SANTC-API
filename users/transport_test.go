@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 
 	. "github.com/DigitalFrameworksLLC/teddycare/shared/mocks"
 	. "github.com/DigitalFrameworksLLC/teddycare/storage/mocks"
@@ -15,7 +14,7 @@ import (
 	"encoding/json"
 	"github.com/DigitalFrameworksLLC/teddycare/authentication"
 	. "github.com/DigitalFrameworksLLC/teddycare/firebase/mocks"
-	"github.com/go-kit/kit/log"
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -100,6 +99,8 @@ var _ = Describe("Transport", func() {
 	)
 
 	BeforeEach(func() {
+		logger := shared.NewLogger("teddycare")
+
 		var err error
 		connectString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 			"localhost",
@@ -112,7 +113,7 @@ var _ = Describe("Transport", func() {
 			panic(err)
 		}
 		concreteDb.LogMode(false)
-
+		concreteDb.SetLogger(logger)
 		mockStringGenerator = &MockStringGenerator{}
 		mockStringGenerator.On("GenerateUuid").Return("aaa").Once()
 
@@ -133,10 +134,12 @@ var _ = Describe("Transport", func() {
 			FirebaseClient: mockFirebaseClient,
 			Store:          concreteStore,
 			Storage:        mockStorage,
+			Logger:         logger,
 		}
 
 		authenticator = &authentication.Authenticator{
 			UserService: userService,
+			Logger:      logger,
 		}
 
 		httpMethodToUse = ""
@@ -144,12 +147,9 @@ var _ = Describe("Transport", func() {
 		httpBodyToUse = ""
 
 		router = mux.NewRouter()
-		var logger log.Logger
-		logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
-		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
-		httpLogger := log.With(logger, "component", "http")
+
 		opts := []kithttp.ServerOption{
-			kithttp.ServerErrorLogger(httpLogger),
+			kithttp.ServerErrorLogger(logger),
 			kithttp.ServerErrorEncoder(EncodeError),
 		}
 
@@ -157,20 +157,20 @@ var _ = Describe("Transport", func() {
 			Service: userService,
 		}
 
-		router.Handle("/office-managers", authenticator.Roles(handlerFactory.ListOfficeManager(opts), store.ROLE_ADMIN)).Methods(http.MethodGet)
-		router.Handle("/office-managers/{id}", authenticator.Roles(handlerFactory.GetOfficeManager(opts), store.ROLE_ADMIN)).Methods(http.MethodGet)
-		router.Handle("/office-managers/{id}", authenticator.Roles(handlerFactory.DeleteOfficeManager(opts), store.ROLE_ADMIN)).Methods(http.MethodDelete)
-		router.Handle("/office-managers/{id}", authenticator.Roles(handlerFactory.UpdateOfficeManager(opts), store.ROLE_ADMIN)).Methods(http.MethodPatch)
+		router.Handle("/office-managers", authenticator.Roles(handlerFactory.ListOfficeManager(opts), shared.ROLE_ADMIN)).Methods(http.MethodGet)
+		router.Handle("/office-managers/{id}", authenticator.Roles(handlerFactory.GetOfficeManager(opts), shared.ROLE_ADMIN)).Methods(http.MethodGet)
+		router.Handle("/office-managers/{id}", authenticator.Roles(handlerFactory.DeleteOfficeManager(opts), shared.ROLE_ADMIN)).Methods(http.MethodDelete)
+		router.Handle("/office-managers/{id}", authenticator.Roles(handlerFactory.UpdateOfficeManager(opts), shared.ROLE_ADMIN)).Methods(http.MethodPatch)
 
-		router.Handle("/teachers", authenticator.Roles(handlerFactory.ListTeacher(opts), store.ROLE_ADMIN, store.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
-		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.GetTeacher(opts), store.ROLE_ADMIN, store.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
-		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.DeleteTeacher(opts), store.ROLE_ADMIN, store.ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
-		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.UpdateTeacher(opts), store.ROLE_ADMIN, store.ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
+		router.Handle("/teachers", authenticator.Roles(handlerFactory.ListTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
+		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.GetTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
+		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.DeleteTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
+		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.UpdateTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
 
-		router.Handle("/adults", authenticator.Roles(handlerFactory.ListAdult(opts), store.ROLE_ADMIN, store.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
-		router.Handle("/adults/{id}", authenticator.Roles(handlerFactory.GetAdult(opts), store.ROLE_ADMIN, store.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
-		router.Handle("/adults/{id}", authenticator.Roles(handlerFactory.DeleteAdult(opts), store.ROLE_ADMIN, store.ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
-		router.Handle("/adults/{id}", authenticator.Roles(handlerFactory.UpdateAdult(opts), store.ROLE_ADMIN, store.ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
+		router.Handle("/adults", authenticator.Roles(handlerFactory.ListAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
+		router.Handle("/adults/{id}", authenticator.Roles(handlerFactory.GetAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
+		router.Handle("/adults/{id}", authenticator.Roles(handlerFactory.DeleteAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
+		router.Handle("/adults/{id}", authenticator.Roles(handlerFactory.UpdateAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
 
 		recorder = httptest.NewRecorder()
 
@@ -181,11 +181,11 @@ var _ = Describe("Transport", func() {
 		concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri") VALUES ('id3','john@gmail.com','John','John','M','+3365651','1 RUE TRUC','APP 4','Toulouse','FRANCE','31400','http://image.com')`)
 		concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri") VALUES ('id4','estree@gmail.com','Estree','Delacour','F','+3365651','1 RUE TRUC','APP 4','Toulouse','FRANCE','31400','http://image.com')`)
 		concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri") VALUES ('id5','anna@gmail.com','Anna','Melnychuk','F','+3365651','1 RUE TRUC','APP 4','Toulouse','FRANCE','31400','http://image.com')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id1', '` + store.ROLE_ADMIN + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id2', '` + store.ROLE_OFFICE_MANAGER + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id3', '` + store.ROLE_OFFICE_MANAGER + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id4', '` + store.ROLE_TEACHER + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id5', '` + store.ROLE_ADULT + `')`)
+		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id1', '` + shared.ROLE_ADMIN + `')`)
+		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id2', '` + shared.ROLE_OFFICE_MANAGER + `')`)
+		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id3', '` + shared.ROLE_OFFICE_MANAGER + `')`)
+		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id4', '` + shared.ROLE_TEACHER + `')`)
+		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id5', '` + shared.ROLE_ADULT + `')`)
 	})
 
 	AfterEach(func() {
@@ -194,11 +194,11 @@ var _ = Describe("Transport", func() {
 
 	BeforeEach(func() {
 		claims = map[string]interface{}{
-			"userId":                  "",
-			store.ROLE_TEACHER:        false,
-			store.ROLE_OFFICE_MANAGER: false,
-			store.ROLE_ADULT:          false,
-			store.ROLE_ADMIN:          false,
+			"userId":                   "",
+			shared.ROLE_TEACHER:        false,
+			shared.ROLE_OFFICE_MANAGER: false,
+			shared.ROLE_ADULT:          false,
+			shared.ROLE_ADMIN:          false,
 		}
 	})
 
@@ -218,32 +218,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedUsersWithIds("id5")
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedUsersWithIds("id5")
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"sql: database is closed"}`)
@@ -260,32 +260,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedSingleUser(`{"id":"id5","firstName":"Anna","lastName":"Melnychuk","gender":"F","email":"anna@gmail.com","phone":"+3365651","address_1":"1 RUE TRUC","address_2":"APP 4","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"http://image.com","roles":["adult"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleUser(`{"id":"id5","firstName":"Anna","lastName":"Melnychuk","gender":"F","email":"anna@gmail.com","phone":"+3365651","address_1":"1 RUE TRUC","address_2":"APP 4","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"http://image.com","roles":["adult"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to get user: sql: database is closed"}`)
@@ -294,7 +294,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/adults/foo"
 				})
 				assertJsonResponse(`{"error":"failed to get user: user not found"}`)
@@ -311,32 +311,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusNoContent)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusNoContent)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to delete user: sql: database is closed"}`)
@@ -345,7 +345,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/adults/foo"
 				})
 				assertJsonResponse(`{"error":"failed to delete user: user not found"}`)
@@ -364,32 +364,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedSingleUser(`{"id":"id5","firstName":"Anna","lastName":"Melnychuk","gender":"F","email":"anna@gmail.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleUser(`{"id":"id5","firstName":"Anna","lastName":"Melnychuk","gender":"F","email":"anna@gmail.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to update user: sql: database is closed"}`)
@@ -398,7 +398,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/adults/foo"
 				})
 				assertJsonResponse(`{"error":"failed to update user: user not found"}`)
@@ -419,32 +419,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedUsersWithIds("id2", "id3")
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"sql: database is closed"}`)
@@ -461,32 +461,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedSingleUser(`{"id":"id2","firstName":"Vinu","lastName":"Singh","gender":"M","email":"vinu@gmail.com","phone":"+3365651","address_1":"1 RUE TRUC","address_2":"APP 4","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"http://image.com","roles":["officemanager"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to get user: sql: database is closed"}`)
@@ -495,7 +495,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/office-managers/foo"
 				})
 				assertJsonResponse(`{"error":"failed to get user: user not found"}`)
@@ -512,32 +512,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusNoContent)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to delete user: sql: database is closed"}`)
@@ -546,7 +546,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/office-managers/foo"
 				})
 				assertJsonResponse(`{"error":"failed to delete user: user not found"}`)
@@ -565,32 +565,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedSingleUser(`{"id": "id2","firstName": "Vinu","lastName": "Singh","gender": "M","email": "vinu@gmail.com","phone": "+3365651","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "Toulouse","state": "FRANCE","zip": "31400","imageUri": "gs://foo/bar.jpg","roles": ["officemanager"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to update user: sql: database is closed"}`)
@@ -599,7 +599,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/adults/foo"
 				})
 				assertJsonResponse(`{"error":"failed to update user: user not found"}`)
@@ -620,32 +620,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedUsersWithIds("id4")
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedUsersWithIds("id4")
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"sql: database is closed"}`)
@@ -662,32 +662,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedSingleUser(`{"id":"id4","firstName":"Estree","lastName":"Delacour","gender":"F","email":"estree@gmail.com","phone":"+3365651","address_1":"1 RUE TRUC","address_2":"APP 4","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"http://image.com","roles":["teacher"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleUser(`{"id":"id4","firstName":"Estree","lastName":"Delacour","gender":"F","email":"estree@gmail.com","phone":"+3365651","address_1":"1 RUE TRUC","address_2":"APP 4","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"http://image.com","roles":["teacher"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to get user: sql: database is closed"}`)
@@ -696,7 +696,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/teachers/foo"
 				})
 				assertJsonResponse(`{"error":"failed to get user: user not found"}`)
@@ -713,32 +713,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusNoContent)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusNoContent)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to delete user: sql: database is closed"}`)
@@ -747,7 +747,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/adults/foo"
 				})
 				assertJsonResponse(`{"error":"failed to delete user: user not found"}`)
@@ -766,32 +766,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedSingleUser(`{"id":"id4","firstName":"Estree","lastName":"Delacour","gender":"F","email":"estree@gmail.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleUser(`{"id":"id4","firstName":"Estree","lastName":"Delacour","gender":"F","email":"estree@gmail.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to update user: sql: database is closed"}`)
@@ -800,7 +800,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/adults/foo"
 				})
 				assertJsonResponse(`{"error":"failed to update user: user not found"}`)

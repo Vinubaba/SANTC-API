@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 
 	"github.com/DigitalFrameworksLLC/teddycare/authentication"
@@ -17,7 +16,7 @@ import (
 	"github.com/DigitalFrameworksLLC/teddycare/store"
 	"github.com/DigitalFrameworksLLC/teddycare/users"
 
-	"github.com/go-kit/kit/log"
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -136,14 +135,17 @@ var _ = Describe("Transport", func() {
 			Store:          concreteStore,
 			Storage:        mockStorage,
 		}
+		logger := shared.NewLogger("teddycare")
 
 		authenticator = &authentication.Authenticator{
 			UserService: userService,
+			Logger:      logger,
 		}
 
 		childService := &ChildService{
 			Storage: mockStorage,
 			Store:   concreteStore,
+			Logger:  logger,
 		}
 
 		httpMethodToUse = ""
@@ -151,12 +153,8 @@ var _ = Describe("Transport", func() {
 		httpBodyToUse = ""
 
 		router = mux.NewRouter()
-		var logger log.Logger
-		logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
-		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
-		httpLogger := log.With(logger, "component", "http")
 		opts := []kithttp.ServerOption{
-			kithttp.ServerErrorLogger(httpLogger),
+			kithttp.ServerErrorLogger(logger),
 			kithttp.ServerErrorEncoder(EncodeError),
 		}
 
@@ -164,11 +162,11 @@ var _ = Describe("Transport", func() {
 			Service: childService,
 		}
 
-		router.Handle("/children", authenticator.Roles(handlerFactory.Add(opts), store.ROLE_OFFICE_MANAGER, store.ROLE_ADMIN)).Methods(http.MethodPost)
-		router.Handle("/children", authenticator.Roles(handlerFactory.List(opts), store.ROLE_OFFICE_MANAGER, store.ROLE_ADULT, store.ROLE_ADMIN, store.ROLE_TEACHER)).Methods(http.MethodGet)
-		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Get(opts), store.ROLE_OFFICE_MANAGER, store.ROLE_ADULT, store.ROLE_ADMIN, store.ROLE_TEACHER)).Methods(http.MethodGet)
-		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Update(opts), store.ROLE_OFFICE_MANAGER, store.ROLE_ADULT, store.ROLE_ADMIN)).Methods(http.MethodPatch)
-		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Delete(opts), store.ROLE_OFFICE_MANAGER, store.ROLE_ADMIN)).Methods(http.MethodDelete)
+		router.Handle("/children", authenticator.Roles(handlerFactory.Add(opts), shared.ROLE_OFFICE_MANAGER, shared.ROLE_ADMIN)).Methods(http.MethodPost)
+		router.Handle("/children", authenticator.Roles(handlerFactory.List(opts), shared.ROLE_OFFICE_MANAGER, shared.ROLE_ADULT, shared.ROLE_ADMIN, shared.ROLE_TEACHER)).Methods(http.MethodGet)
+		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Get(opts), shared.ROLE_OFFICE_MANAGER, shared.ROLE_ADULT, shared.ROLE_ADMIN, shared.ROLE_TEACHER)).Methods(http.MethodGet)
+		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Update(opts), shared.ROLE_OFFICE_MANAGER, shared.ROLE_ADULT, shared.ROLE_ADMIN)).Methods(http.MethodPatch)
+		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Delete(opts), shared.ROLE_OFFICE_MANAGER, shared.ROLE_ADMIN)).Methods(http.MethodDelete)
 
 		recorder = httptest.NewRecorder()
 
@@ -181,11 +179,11 @@ var _ = Describe("Transport", func() {
 		concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri") VALUES ('id3','john@gmail.com','John','John','M','+3365651','1 RUE TRUC','APP 4','Toulouse','FRANCE','31400','http://image.com')`)
 		concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri") VALUES ('id4','estree@gmail.com','Estree','Delacour','F','+3365651','1 RUE TRUC','APP 4','Toulouse','FRANCE','31400','http://image.com')`)
 		concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri") VALUES ('id5','anna@gmail.com','Anna','Melnychuk','F','+3365651','1 RUE TRUC','APP 4','Toulouse','FRANCE','31400','http://image.com')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id1', '` + store.ROLE_ADMIN + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id2', '` + store.ROLE_OFFICE_MANAGER + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id3', '` + store.ROLE_OFFICE_MANAGER + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id4', '` + store.ROLE_TEACHER + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id5', '` + store.ROLE_ADULT + `')`)
+		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id1', '` + shared.ROLE_ADMIN + `')`)
+		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id2', '` + shared.ROLE_OFFICE_MANAGER + `')`)
+		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id3', '` + shared.ROLE_OFFICE_MANAGER + `')`)
+		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id4', '` + shared.ROLE_TEACHER + `')`)
+		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id5', '` + shared.ROLE_ADULT + `')`)
 
 		concreteStore.Db.Exec(`INSERT INTO "children" ("child_id","first_name","last_name","birth_date","gender","image_uri") VALUES ('childid-1','Arthur','Gustin','1992-10-13T00:00:00Z','M','gs://foo/bar.jpg')`)
 		concreteStore.Db.Exec(`INSERT INTO "allergies" ("allergy_id","child_id","allergy") VALUES ('allergyid-1','childid-1','tomato')`)
@@ -198,11 +196,11 @@ var _ = Describe("Transport", func() {
 
 	BeforeEach(func() {
 		claims = map[string]interface{}{
-			"userId":                  "",
-			store.ROLE_TEACHER:        false,
-			store.ROLE_OFFICE_MANAGER: false,
-			store.ROLE_ADULT:          false,
-			store.ROLE_ADMIN:          false,
+			"userId":                   "",
+			shared.ROLE_TEACHER:        false,
+			shared.ROLE_OFFICE_MANAGER: false,
+			shared.ROLE_ADULT:          false,
+			shared.ROLE_ADMIN:          false,
 		}
 	})
 
@@ -222,32 +220,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedChildrenWithIds("childid-1")
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedChildrenWithIds("childid-1")
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedChildrenWithIds("childid-1")
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedChildrenWithIds("childid-1")
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to list children: sql: database is closed"}`)
@@ -264,32 +262,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedSingleChild(`{"id": "childid-1","firstName": "Arthur","lastName": "Gustin","birthDate": "1992-10-13 00:00:00 +0000 UTC","gender": "M","imageUri": "gs://foo/bar.jpg","allergies": ["tomato"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleChild(`{"id": "childid-1","firstName": "Arthur","lastName": "Gustin","birthDate": "1992-10-13 00:00:00 +0000 UTC","gender": "M","imageUri": "gs://foo/bar.jpg","allergies": ["tomato"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedSingleChild(`{"id": "childid-1","firstName": "Arthur","lastName": "Gustin","birthDate": "1992-10-13 00:00:00 +0000 UTC","gender": "M","imageUri": "gs://foo/bar.jpg","allergies": ["tomato"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedSingleChild(`{"id": "childid-1","firstName": "Arthur","lastName": "Gustin","birthDate": "1992-10-13 00:00:00 +0000 UTC","gender": "M","imageUri": "gs://foo/bar.jpg","allergies": ["tomato"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to get child: sql: database is closed"}`)
@@ -298,7 +296,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/children/foo"
 				})
 				assertJsonResponse(`{"error":"failed to get child: child not found"}`)
@@ -315,32 +313,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusNoContent)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusNoContent)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to delete child: sql: database is closed"}`)
@@ -349,7 +347,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/children/foo"
 				})
 				assertJsonResponse(`{"error":"failed to delete child: child not found"}`)
@@ -368,32 +366,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedSingleChild(`{"id": "childid-1","firstName": "Arthur","lastName": "Gustin","birthDate": "1992-10-14 00:00:00 +0000 UTC","gender": "M","imageUri": "gs://foo/bar.jpg","allergies": ["tomato"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleChild(`{"id": "childid-1","firstName": "Arthur","lastName": "Gustin","birthDate": "1992-10-14 00:00:00 +0000 UTC","gender": "M","imageUri": "gs://foo/bar.jpg","allergies": ["tomato"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedSingleChild(`{"id": "childid-1","firstName": "Arthur","lastName": "Gustin","birthDate": "1992-10-14 00:00:00 +0000 UTC","gender": "M","imageUri": "gs://foo/bar.jpg","allergies": ["tomato"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to update child: sql: database is closed"}`)
@@ -402,7 +400,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the user does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					httpEndpointToUse = "/children/foo"
 				})
 				assertJsonResponse(`{"error":"failed to update child: child not found"}`)
@@ -421,32 +419,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[store.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
 				assertReturnedSingleChild(`{"responsibleId": "id5", "id": "aaa","firstName": "Arthur","lastName": "Gustin","birthDate": "1992-10-14 00:00:00 +0000 UTC","gender": "M","imageUri": "gs://foo/bar.jpg","allergies": ["tomato"]}`)
 				assertHttpCode(http.StatusCreated)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[store.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleChild(`{"responsibleId": "id5", "id": "aaa","firstName": "Arthur","lastName": "Gustin","birthDate": "1992-10-14 00:00:00 +0000 UTC","gender": "M","imageUri": "gs://foo/bar.jpg","allergies": ["tomato"]}`)
 				assertHttpCode(http.StatusCreated)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[store.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[store.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_ADMIN] = true
+					claims[shared.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to add child: sql: database is closed"}`)
@@ -455,7 +453,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When responsibleId does not exists", func() {
 				BeforeEach(func() {
-					claims[store.ROLE_OFFICE_MANAGER] = true
+					claims[shared.ROLE_OFFICE_MANAGER] = true
 					httpBodyToUse = `{"relationShip": "father", "allergies": ["tomato"], "responsibleId": "foo", "firstName": "Arthur", "lastName": "Gustin", "gender": "M", "birthDate": "1992/10/14", "imageUri": "data:image/jpeg;base64,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"}`
 				})
 				assertJsonResponse(`{"error":"failed to set responsible. err: pq: insert or update on table \"responsible_of\" violates foreign key constraint \"responsible_of_responsible_id_fkey\": failed to set responsibleId"}`)

@@ -2,9 +2,9 @@ package users
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
 	"github.com/DigitalFrameworksLLC/teddycare/storage"
 	"github.com/DigitalFrameworksLLC/teddycare/store"
 
@@ -49,6 +49,7 @@ type UserService struct {
 		DeleteUser(ctx context.Context, uid string) error
 	} `inject:"teddyFirebaseClient"`
 	Storage storage.Storage `inject:""`
+	Logger  *shared.Logger  `inject:""`
 }
 
 func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
@@ -175,8 +176,7 @@ func (c *UserService) setBucketUri(ctx context.Context, user *store.User) {
 	if !strings.Contains(user.ImageUri, "/") {
 		uri, err := c.Storage.Get(ctx, user.ImageUri)
 		if err != nil {
-			// todo logger
-			fmt.Println("failed to generate image uri")
+			c.Logger.Warn(ctx, "failed to generate image uri", "err", err.Error())
 			user.ImageUri = ""
 		}
 		user.ImageUri = uri
@@ -243,9 +243,7 @@ func (c *UserService) DeleteUserByRoles(ctx context.Context, request UserTranspo
 	}
 
 	if err := c.Storage.Delete(ctx, user.ImageUri); err != nil {
-		fmt.Println("failed to delete user image")
-		// todo: logger here. Maybe the image uri is not in our buckets, so silently fail
-		//return errors.Wrap(err, "failed to delete user image")
+		c.Logger.Warn(ctx, "failed to delete user image", "imageUri", user.ImageUri, "err", err.Error())
 	}
 
 	return nil

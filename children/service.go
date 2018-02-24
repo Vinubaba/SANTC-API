@@ -2,13 +2,13 @@ package children
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/DigitalFrameworksLLC/teddycare/storage"
 	"github.com/DigitalFrameworksLLC/teddycare/store"
 
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
 	"github.com/araddon/dateparse"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -46,6 +46,7 @@ type ChildService struct {
 		RemoveAllergiesOfChild(tx *gorm.DB, childId string) error
 	} `inject:""`
 	Storage storage.Storage `inject:""`
+	Logger  *shared.Logger  `inject:""`
 }
 
 func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (store.Child, error) {
@@ -250,8 +251,7 @@ func (c *ChildService) setBucketUri(ctx context.Context, child *store.Child) {
 		uri, err := c.Storage.Get(ctx, child.ImageUri)
 		if err != nil {
 			// todo logger
-			fmt.Println("failed to generate image uri")
-			child.ImageUri = ""
+			c.Logger.Warn(ctx, "failed to generate image uri", "imageUri", child.ImageUri, "err", err.Error())
 		}
 		child.ImageUri = uri
 	}

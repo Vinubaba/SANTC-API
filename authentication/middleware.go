@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strings"
 
+	. "github.com/DigitalFrameworksLLC/teddycare/shared"
 	"github.com/DigitalFrameworksLLC/teddycare/store"
+	"github.com/DigitalFrameworksLLC/teddycare/users"
 
 	"firebase.google.com/go/auth"
-	. "github.com/DigitalFrameworksLLC/teddycare/shared"
-	"github.com/DigitalFrameworksLLC/teddycare/users"
 )
 
 type Authenticator struct {
@@ -24,6 +24,7 @@ type Authenticator struct {
 		DeletePendingConnexionRoles(ctx context.Context, pendingRoles []store.PendingConnexionRole) error
 		AddUserByRoles(ctx context.Context, request users.UserTransport, roles ...string) (store.User, error)
 	} `inject:""`
+	Logger *Logger `inject:""`
 }
 
 func (f *Authenticator) Roles(next http.Handler, roles ...string) http.Handler {
@@ -79,7 +80,7 @@ func (f *Authenticator) Firebase(next http.Handler) http.Handler {
 				roles = append(roles, r.Role)
 			}
 			if len(roles) == 0 {
-				roles = append(roles, store.ROLE_ADULT)
+				roles = append(roles, ROLE_ADULT)
 			}
 			if _, err = f.UserService.AddUserByRoles(ctx, users.UserTransport{
 				Id:        firebaseUser.UID,
@@ -94,11 +95,11 @@ func (f *Authenticator) Firebase(next http.Handler) http.Handler {
 			}
 
 			claims := map[string]interface{}{
-				"userId":                  firebaseUser.UID,
-				store.ROLE_TEACHER:        false,
-				store.ROLE_OFFICE_MANAGER: false,
-				store.ROLE_ADULT:          false,
-				store.ROLE_ADMIN:          false,
+				"userId":            firebaseUser.UID,
+				ROLE_TEACHER:        false,
+				ROLE_OFFICE_MANAGER: false,
+				ROLE_ADULT:          false,
+				ROLE_ADMIN:          false,
 			}
 			for _, role := range roles {
 				claims[role] = true
@@ -108,8 +109,9 @@ func (f *Authenticator) Firebase(next http.Handler) http.Handler {
 				return
 			}
 			firebaseUser.CustomClaims = claims
+			ctx = context.WithValue(ctx, "claims", claims)
 			if err := f.UserService.DeletePendingConnexionRoles(ctx, pendingRoles); err != nil {
-				fmt.Println("fail to remove pending roles...")
+				f.Logger.Warn(ctx, "fail to remove pending roles...", "err", err.Error())
 			}
 		}
 
@@ -120,16 +122,16 @@ func (f *Authenticator) Firebase(next http.Handler) http.Handler {
 }
 
 func (f *Authenticator) hasAtLeastOneRoleInCustomClaim(claims map[string]interface{}) bool {
-	if isAdult, ok := claims[store.ROLE_ADULT]; ok && isAdult.(bool) {
+	if isAdult, ok := claims[ROLE_ADULT]; ok && isAdult.(bool) {
 		return true
 	}
-	if isOfficeManager, ok := claims[store.ROLE_OFFICE_MANAGER]; ok && isOfficeManager.(bool) {
+	if isOfficeManager, ok := claims[ROLE_OFFICE_MANAGER]; ok && isOfficeManager.(bool) {
 		return true
 	}
-	if isAdmin, ok := claims[store.ROLE_ADMIN]; ok && isAdmin.(bool) {
+	if isAdmin, ok := claims[ROLE_ADMIN]; ok && isAdmin.(bool) {
 		return true
 	}
-	if isTeacher, ok := claims[store.ROLE_TEACHER]; ok && isTeacher.(bool) {
+	if isTeacher, ok := claims[ROLE_TEACHER]; ok && isTeacher.(bool) {
 		return true
 	}
 	return false

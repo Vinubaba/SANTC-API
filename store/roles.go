@@ -5,18 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/DigitalFrameworksLLC/teddycare/shared"
 	"github.com/jinzhu/gorm"
 )
 
-const (
-	ROLE_ADMIN          = "admin"
-	ROLE_TEACHER        = "teacher"
-	ROLE_ADULT          = "adult"
-	ROLE_OFFICE_MANAGER = "officemanager"
-)
-
 var (
-	roles = []string{ROLE_ADMIN, ROLE_TEACHER, ROLE_ADULT, ROLE_OFFICE_MANAGER}
+	roles = []string{shared.ROLE_ADMIN, shared.ROLE_TEACHER, shared.ROLE_ADULT, shared.ROLE_OFFICE_MANAGER}
 )
 
 type Roles []Role
@@ -96,7 +90,6 @@ func (s *Store) GetPendingConnexionRoles(tx *gorm.DB, email string) ([]PendingCo
 
 func (s *Store) CreatePendingConnexionRole(tx *gorm.DB, role PendingConnexionRole) error {
 	db := s.dbOrTx(tx)
-	fmt.Println("create pending connexion role...")
 	return db.Model(PendingConnexionRole{}).Create(&role).Error
 }
 

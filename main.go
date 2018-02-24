@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/DigitalFrameworksLLC/teddycare/children"
-	"github.com/DigitalFrameworksLLC/teddycare/shared"
+	. "github.com/DigitalFrameworksLLC/teddycare/shared"
 	"github.com/DigitalFrameworksLLC/teddycare/storage"
 	. "github.com/DigitalFrameworksLLC/teddycare/store"
 	"github.com/DigitalFrameworksLLC/teddycare/users"
@@ -18,7 +18,6 @@ import (
 	teddyFirebase "github.com/DigitalFrameworksLLC/teddycare/firebase"
 	"github.com/DigitalFrameworksLLC/teddycare/store/migrations"
 	"github.com/facebookgo/inject"
-	"github.com/go-kit/kit/log"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -29,9 +28,10 @@ import (
 
 var (
 	ctx                    = context.Background()
-	config                 *shared.AppConfig
+	logger                 = NewLogger("teddycare")
+	config                 *AppConfig
 	db                     *gorm.DB
-	stringGenerator        = &shared.StringGenerator{}
+	stringGenerator        = &StringGenerator{}
 	childService           = &children.ChildService{}
 	userService            = &users.UserService{}
 	userHandlerFactory     = &users.HandlerFactory{}
@@ -53,7 +53,7 @@ func init() {
 }
 
 func initAppConfiguration() (err error) {
-	config, err = shared.InitAppConfiguration()
+	config, err = InitAppConfiguration()
 	return
 }
 
@@ -69,7 +69,8 @@ func initPostgresConnection() (err error) {
 		return
 	}
 
-	db.LogMode(true)
+	db.LogMode(false)
+	db.SetLogger(logger)
 	return
 }
 
@@ -120,7 +121,7 @@ func main() {
 }
 
 func applySqlSchemaMigrations(ctx context.Context) {
-	fmt.Println("applying sql schema migrations")
+	logger.Info(ctx, "applying sql schema migrations")
 	migrationResult := migrations.Up(migrations.ApplyOptions{
 		SourceURL: fmt.Sprintf("file://%s", config.SqlMigrationsSourceDir),
 		DatabaseURL: fmt.Sprintf("postgres://%v:%v/%v?sslmode=disable&user=%s&password=%s",
@@ -128,22 +129,18 @@ func applySqlSchemaMigrations(ctx context.Context) {
 	})
 	checkErrAndExit(migrationResult.Err)
 	if !migrationResult.Changes {
-		fmt.Println("no new migrations applied")
+		logger.Info(ctx, "no new migrations applied")
 	}
 }
 
 func startHttpServer(ctx context.Context) {
-	var logger log.Logger
-	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
-	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
-	httpLogger := log.With(logger, "component", "http")
 	userOpts := []kithttp.ServerOption{
-		kithttp.ServerErrorLogger(httpLogger),
+		kithttp.ServerErrorLogger(logger),
 		kithttp.ServerErrorEncoder(users.EncodeError),
 	}
 
 	childrenOpts := []kithttp.ServerOption{
-		kithttp.ServerErrorLogger(httpLogger),
+		kithttp.ServerErrorLogger(logger),
 		kithttp.ServerErrorEncoder(children.EncodeError),
 	}
 
@@ -184,7 +181,7 @@ func startHttpServer(ctx context.Context) {
 		}()
 	}
 
-	checkErrAndExit(http.ListenAndServe(":8083", authenticator.Firebase(router)))
+	checkErrAndExit(http.ListenAndServe(":8083", authenticator.Firebase(logger.RequestLoggerMiddleware(router))))
 }
 
 func checkErrAndExit(err error) {
