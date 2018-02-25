@@ -30,6 +30,11 @@ CREATE TABLE IF NOT EXISTS allergies (
   allergy varchar NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS special_instructions (
+  child_id varchar REFERENCES children (child_id) ON DELETE CASCADE,
+  instruction varchar NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS responsible_of (
   responsible_id varchar references users (user_id) ON DELETE CASCADE,
   child_id varchar REFERENCES children (child_id) ON DELETE CASCADE,

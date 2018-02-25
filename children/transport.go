@@ -19,15 +19,16 @@ var (
 )
 
 type ChildTransport struct {
-	Id            string   `json:"id"`
-	FirstName     string   `json:"firstName"`
-	LastName      string   `json:"lastName"`
-	BirthDate     string   `json:"birthDate"` // dd/mm/yyyy
-	Gender        string   `json:"gender"`
-	ImageUri      string   `json:"imageUri"`
-	Allergies     []string `json:"allergies"`
-	ResponsibleId string   `json:"responsibleId,omitempty"`
-	Relationship  string   `json:"relationship,omitempty"`
+	Id                  string   `json:"id"`
+	FirstName           string   `json:"firstName"`
+	LastName            string   `json:"lastName"`
+	BirthDate           string   `json:"birthDate"` // dd/mm/yyyy
+	Gender              string   `json:"gender"`
+	ImageUri            string   `json:"imageUri"`
+	Allergies           []string `json:"allergies"`
+	ResponsibleId       string   `json:"responsibleId,omitempty"`
+	Relationship        string   `json:"relationship,omitempty"`
+	SpecialInstructions []string `json:"specialInstructions"`
 }
 
 type HandlerFactory struct {
@@ -88,14 +89,15 @@ func makeAddEndpoint(svc Service) endpoint.Endpoint {
 		}
 
 		ret := ChildTransport{
-			Id:            child.ChildId,
-			LastName:      child.LastName,
-			FirstName:     child.FirstName,
-			BirthDate:     child.BirthDate.UTC().String(),
-			Gender:        child.Gender,
-			ImageUri:      child.ImageUri,
-			ResponsibleId: req.ResponsibleId,
-			Allergies:     req.Allergies,
+			Id:                  child.ChildId.String,
+			LastName:            child.LastName.String,
+			FirstName:           child.FirstName.String,
+			BirthDate:           child.BirthDate.UTC().String(),
+			Gender:              child.Gender.String,
+			ImageUri:            child.ImageUri.String,
+			ResponsibleId:       req.ResponsibleId,
+			Allergies:           child.Allergies.ToList(),
+			SpecialInstructions: child.SpecialInstructions.ToList(),
 		}
 		return ret, nil
 	}
@@ -109,23 +111,16 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 			return nil, err
 		}
 
-		currentChild := ChildTransport{
-			Id:        child.ChildId,
-			ImageUri:  child.ImageUri,
-			Gender:    child.Gender,
-			BirthDate: child.BirthDate.UTC().String(),
-			FirstName: child.FirstName,
-			LastName:  child.LastName,
-		}
-		allergies, err := svc.FindAllergiesOfChild(ctx, currentChild.Id)
-		if err != nil {
-			return nil, err
-		}
-		for _, allergy := range allergies {
-			currentChild.Allergies = append(currentChild.Allergies, allergy.Allergy)
-		}
-
-		return currentChild, nil
+		return ChildTransport{
+			Id:                  child.ChildId.String,
+			ImageUri:            child.ImageUri.String,
+			Gender:              child.Gender.String,
+			BirthDate:           child.BirthDate.UTC().String(),
+			FirstName:           child.FirstName.String,
+			LastName:            child.LastName.String,
+			SpecialInstructions: child.SpecialInstructions.ToList(),
+			Allergies:           child.Allergies.ToList(),
+		}, nil
 	}
 }
 
@@ -149,19 +144,14 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 
 		for _, child := range children {
 			currentChild := ChildTransport{
-				Id:        child.ChildId,
-				ImageUri:  child.ImageUri,
-				Gender:    child.Gender,
-				BirthDate: child.BirthDate.UTC().String(),
-				FirstName: child.FirstName,
-				LastName:  child.LastName,
-			}
-			allergies, err := svc.FindAllergiesOfChild(ctx, child.ChildId)
-			if err != nil {
-				return nil, err
-			}
-			for _, allergy := range allergies {
-				currentChild.Allergies = append(currentChild.Allergies, allergy.Allergy)
+				Id:                  child.ChildId.String,
+				ImageUri:            child.ImageUri.String,
+				Gender:              child.Gender.String,
+				BirthDate:           child.BirthDate.UTC().String(),
+				FirstName:           child.FirstName.String,
+				LastName:            child.LastName.String,
+				SpecialInstructions: child.SpecialInstructions.ToList(),
+				Allergies:           child.Allergies.ToList(),
 			}
 			childrenRet = append(childrenRet, currentChild)
 		}
@@ -179,24 +169,16 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 			return nil, err
 		}
 
-		ret := ChildTransport{
-			Id:        child.ChildId,
-			FirstName: child.FirstName,
-			LastName:  child.LastName,
-			Gender:    child.Gender,
-			BirthDate: child.BirthDate.UTC().String(),
-			ImageUri:  child.ImageUri,
-		}
-
-		allergies, err := svc.FindAllergiesOfChild(ctx, child.ChildId)
-		if err != nil {
-			return nil, err
-		}
-		for _, allergy := range allergies {
-			ret.Allergies = append(ret.Allergies, allergy.Allergy)
-		}
-
-		return ret, nil
+		return ChildTransport{
+			Id:                  child.ChildId.String,
+			FirstName:           child.FirstName.String,
+			LastName:            child.LastName.String,
+			Gender:              child.Gender.String,
+			BirthDate:           child.BirthDate.UTC().String(),
+			ImageUri:            child.ImageUri.String,
+			SpecialInstructions: child.SpecialInstructions.ToList(),
+			Allergies:           child.Allergies.ToList(),
+		}, nil
 	}
 }
 

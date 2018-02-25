@@ -1,6 +1,7 @@
 package store
 
 import (
+	"database/sql"
 	"errors"
 	"time"
 
@@ -12,18 +13,20 @@ var (
 )
 
 type Child struct {
-	ChildId   string
-	FirstName string
-	LastName  string
-	BirthDate time.Time
-	Gender    string
-	ImageUri  string
+	ChildId             sql.NullString
+	FirstName           sql.NullString
+	LastName            sql.NullString
+	BirthDate           time.Time
+	Gender              sql.NullString
+	ImageUri            sql.NullString
+	SpecialInstructions SpecialInstructions `sql:"-"`
+	Allergies           Allergies           `sql:"-"`
 }
 
 func (s *Store) AddChild(tx *gorm.DB, child Child) (Child, error) {
 	db := s.dbOrTx(tx)
 
-	child.ChildId = s.StringGenerator.GenerateUuid()
+	child.ChildId = DbNullString(s.StringGenerator.GenerateUuid())
 
 	if err := db.Create(&child).Error; err != nil {
 		return Child{}, err
@@ -47,33 +50,87 @@ func (s *Store) DeleteChild(tx *gorm.DB, childId string) (err error) {
 }
 
 func (s *Store) childExists(tx *gorm.DB, childId string) bool {
-	c := Child{ChildId: childId}
+	c := Child{ChildId: sql.NullString{String: s.StringGenerator.GenerateUuid(), Valid: true}}
 	return !tx.Model(Child{}).Where("child_id = ?", childId).First(&c).RecordNotFound()
 }
 
 func (s *Store) GetChild(tx *gorm.DB, childId string) (Child, error) {
 	db := s.dbOrTx(tx)
 
-	child := Child{}
-	res := db.Where("child_id = ?", childId).First(&child)
-	if res.RecordNotFound() {
-		return Child{}, ErrChildNotFound
+	rows, err := db.Table("children").
+		Raw("SELECT children.child_id,"+
+			"children.first_name,"+
+			"children.last_name,"+
+			"children.gender,"+
+			"children.birth_date,"+
+			"children.image_uri,"+
+			"(SELECT string_agg(special_instructions.instruction, ',') FROM special_instructions WHERE special_instructions.child_id = children.child_id),"+
+			"(SELECT string_agg(allergies.allergy, ',')  FROM allergies WHERE allergies.child_id = children.child_id) FROM \"children\" "+
+			"WHERE children.child_id = ?", childId).
+		Rows()
+	if err != nil {
+		return Child{}, err
 	}
-	if err := res.Error; err != nil {
+	children, err := s.scanChildRows(rows)
+	if err != nil {
 		return Child{}, err
 	}
 
-	return child, nil
+	if len(children) == 0 {
+		return Child{}, ErrChildNotFound
+	}
+	return children[0], nil
+}
+
+func (s *Store) scanChildRows(rows *sql.Rows) ([]Child, error) {
+	children := []Child{}
+	for rows.Next() {
+		currentChild := Child{}
+		if err := rows.Scan(&currentChild.ChildId,
+			&currentChild.FirstName,
+			&currentChild.LastName,
+			&currentChild.Gender,
+			&currentChild.BirthDate,
+			&currentChild.ImageUri,
+			&currentChild.SpecialInstructions,
+			&currentChild.Allergies); err != nil {
+			return []Child{}, err
+		}
+		for i := range currentChild.SpecialInstructions {
+			currentChild.SpecialInstructions[i].ChildId = currentChild.ChildId
+		}
+		children = append(children, currentChild)
+	}
+
+	return children, nil
 }
 
 func (s *Store) ListChild(tx *gorm.DB) ([]Child, error) {
 	db := s.dbOrTx(tx)
 
-	children := []Child{}
-	if err := db.Find(&children).Error; err != nil {
-		return nil, err
+	rows, err := db.Table("children").
+		Raw("SELECT children.child_id," +
+			"children.first_name," +
+			"children.last_name," +
+			"children.gender," +
+			"children.birth_date," +
+			"children.image_uri," +
+			"(SELECT string_agg(special_instructions.instruction, ',') FROM special_instructions WHERE special_instructions.child_id = children.child_id)," +
+			"(SELECT string_agg(allergies.allergy, ',')  FROM allergies WHERE allergies.child_id = children.child_id)" +
+			" FROM children").
+		Rows()
+
+	if err != nil {
+		return []Child{}, err
+	}
+	children, err := s.scanChildRows(rows)
+	if err != nil {
+		return []Child{}, err
 	}
 
+	if len(children) == 0 {
+		return []Child{}, ErrChildNotFound
+	}
 	return children, nil
 }
 
@@ -88,5 +145,5 @@ func (s *Store) UpdateChild(tx *gorm.DB, child Child) (Child, error) {
 		return Child{}, err
 	}
 
-	return child, nil
+	return s.GetChild(db, child.ChildId.String)
 }

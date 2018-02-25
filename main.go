@@ -7,11 +7,11 @@ import (
 	"os"
 
 	"github.com/Vinubaba/SANTC-API/children"
+	teddyFirebase "github.com/Vinubaba/SANTC-API/firebase"
 	. "github.com/Vinubaba/SANTC-API/shared"
 	"github.com/Vinubaba/SANTC-API/storage"
 	. "github.com/Vinubaba/SANTC-API/store"
 	"github.com/Vinubaba/SANTC-API/users"
-	teddyFirebase "github.com/Vinubaba/SANTC-API/firebase"
 
 	"firebase.google.com/go"
 	"firebase.google.com/go/auth"
@@ -23,8 +23,8 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/pkg/errors"
-	"google.golang.org/api/option"
 	"github.com/rs/cors"
+	"google.golang.org/api/option"
 )
 
 var (
@@ -70,7 +70,7 @@ func initPostgresConnection() (err error) {
 		return
 	}
 
-	db.LogMode(false)
+	db.LogMode(true)
 	db.SetLogger(logger)
 	return
 }
@@ -184,9 +184,9 @@ func startHttpServer(ctx context.Context) {
 	}
 
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"https://teddy-care-project.firebaseapp.com", "teddy-care-project.firebaseapp.com", "http://localhost:4200"},
+		AllowedOrigins:   []string{"https://teddy-care-project.firebaseapp.com", "teddy-care-project.firebaseapp.com", "http://localhost:4200"},
 		AllowCredentials: true,
-		Debug: true,
+		Debug:            true,
 	})
 	checkErrAndExit(http.ListenAndServe(":8083",
 		logger.RequestLoggerMiddleware(

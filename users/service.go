@@ -2,7 +2,6 @@ package users
 
 import (
 	"context"
-	"database/sql"
 	"strings"
 
 	"github.com/Vinubaba/SANTC-API/shared"
@@ -45,19 +44,6 @@ type UserService struct {
 	Logger  *shared.Logger  `inject:""`
 }
 
-func dbString(value string) sql.NullString {
-	if value != "" {
-		return sql.NullString{
-			String: value,
-			Valid:  true,
-		}
-	}
-	return sql.NullString{
-		String: "",
-		Valid:  false,
-	}
-}
-
 func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
 	tx := c.Store.Tx()
 	if tx.Error != nil {
@@ -69,18 +55,18 @@ func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport,
 	}
 
 	createdUser, err := c.Store.AddUser(tx, store.User{
-		Email:     dbString(request.Email),
-		FirstName: dbString(request.FirstName),
-		LastName:  dbString(request.LastName),
-		Gender:    dbString(request.Gender),
-		Zip:       dbString(request.Zip),
-		State:     dbString(request.State),
-		Phone:     dbString(request.Phone),
-		City:      dbString(request.City),
-		Address_1: dbString(request.Address_1),
-		Address_2: dbString(request.Address_2),
-		UserId:    dbString(request.Id),
-		ImageUri:  dbString(request.ImageUri),
+		Email:     store.DbNullString(request.Email),
+		FirstName: store.DbNullString(request.FirstName),
+		LastName:  store.DbNullString(request.LastName),
+		Gender:    store.DbNullString(request.Gender),
+		Zip:       store.DbNullString(request.Zip),
+		State:     store.DbNullString(request.State),
+		Phone:     store.DbNullString(request.Phone),
+		City:      store.DbNullString(request.City),
+		Address_1: store.DbNullString(request.Address_1),
+		Address_2: store.DbNullString(request.Address_2),
+		UserId:    store.DbNullString(request.Id),
+		ImageUri:  store.DbNullString(request.ImageUri),
 	})
 	if err != nil {
 		tx.Rollback()
@@ -162,18 +148,18 @@ func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTranspo
 	}
 
 	user, err = c.Store.UpdateUser(nil, store.User{
-		UserId:    dbString(request.Id),
-		Email:     dbString(request.Email),
-		Address_1: dbString(request.Address_1),
-		Address_2: dbString(request.Address_2),
-		City:      dbString(request.City),
-		State:     dbString(request.State),
-		Zip:       dbString(request.Zip),
-		Phone:     dbString(request.Phone),
-		Gender:    dbString(request.Gender),
-		LastName:  dbString(request.LastName),
-		FirstName: dbString(request.FirstName),
-		ImageUri:  dbString(request.ImageUri),
+		UserId:    store.DbNullString(request.Id),
+		Email:     store.DbNullString(request.Email),
+		Address_1: store.DbNullString(request.Address_1),
+		Address_2: store.DbNullString(request.Address_2),
+		City:      store.DbNullString(request.City),
+		State:     store.DbNullString(request.State),
+		Zip:       store.DbNullString(request.Zip),
+		Phone:     store.DbNullString(request.Phone),
+		Gender:    store.DbNullString(request.Gender),
+		LastName:  store.DbNullString(request.LastName),
+		FirstName: store.DbNullString(request.FirstName),
+		ImageUri:  store.DbNullString(request.ImageUri),
 	})
 	if err != nil {
 		return store.User{}, err

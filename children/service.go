@@ -44,6 +44,9 @@ type ChildService struct {
 		AddAllergy(tx *gorm.DB, allergy store.Allergy) (store.Allergy, error)
 		FindAllergiesOfChild(tx *gorm.DB, childId string) ([]store.Allergy, error)
 		RemoveAllergiesOfChild(tx *gorm.DB, childId string) error
+
+		AddSpecialInstruction(tx *gorm.DB, specialInstruction store.SpecialInstruction) error
+		RemoveChildSpecialInstructions(tx *gorm.DB, childId string) error
 	} `inject:""`
 	Storage storage.Storage `inject:""`
 	Logger  *shared.Logger  `inject:""`
@@ -79,14 +82,25 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 
 	child, err := c.Store.AddChild(tx, store.Child{
 		BirthDate: t,
-		FirstName: request.FirstName,
-		LastName:  request.LastName,
-		Gender:    request.Gender,
-		ImageUri:  filename,
+		FirstName: store.DbNullString(request.FirstName),
+		LastName:  store.DbNullString(request.LastName),
+		Gender:    store.DbNullString(request.Gender),
+		ImageUri:  store.DbNullString(filename),
 	})
 	if err != nil {
 		tx.Rollback()
 		return store.Child{}, errors.Wrap(err, "failed to add child")
+	}
+
+	for _, specialInstruction := range request.SpecialInstructions {
+		instructionToCreate := store.SpecialInstruction{
+			Instruction: store.DbNullString(specialInstruction),
+			ChildId:     child.ChildId,
+		}
+		if err := c.Store.AddSpecialInstruction(tx, instructionToCreate); err != nil {
+			return store.Child{}, errors.Wrap(err, "failed to add child")
+		}
+		child.SpecialInstructions = append(child.SpecialInstructions, instructionToCreate)
 	}
 
 	uri, err := c.Storage.Get(ctx, filename)
@@ -95,18 +109,20 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		return store.Child{}, errors.Wrap(err, "failed to generate image uri")
 	}
 	// When adding a child, the json response will contains a temporary uri, so the frontend can do whatever it wants with it
-	child.ImageUri = uri
+	child.ImageUri = store.DbNullString(uri)
 
-	if err = c.Store.SetResponsible(tx, store.ResponsibleOf{Relationship: request.Relationship, ChildId: child.ChildId, ResponsibleId: request.ResponsibleId}); err != nil {
+	if err = c.Store.SetResponsible(tx, store.ResponsibleOf{Relationship: request.Relationship, ChildId: child.ChildId.String, ResponsibleId: request.ResponsibleId}); err != nil {
 		tx.Rollback()
 		return store.Child{}, errors.Wrap(ErrSetResponsible, "failed to set responsible. err: "+err.Error())
 	}
 
 	for _, allergy := range request.Allergies {
-		if _, err := c.Store.AddAllergy(tx, store.Allergy{ChildId: child.ChildId, Allergy: allergy}); err != nil {
+		allergyToCreate := store.Allergy{ChildId: child.ChildId.String, Allergy: allergy}
+		if _, err := c.Store.AddAllergy(tx, allergyToCreate); err != nil {
 			tx.Rollback()
 			return store.Child{}, errors.Wrap(ErrSetAllergy, "failed to set allergy. err: "+err.Error())
 		}
+		child.Allergies = append(child.Allergies, allergyToCreate)
 	}
 
 	tx.Commit()
@@ -129,12 +145,12 @@ func (c *ChildService) GetChild(ctx context.Context, request ChildTransport) (st
 		return child, errors.Wrap(err, "failed to get child")
 	}
 
-	uri, err := c.Storage.Get(ctx, child.ImageUri)
+	uri, err := c.Storage.Get(ctx, child.ImageUri.String)
 	if err != nil {
 		return store.Child{}, errors.Wrap(err, "failed to generate image uri")
 	}
 	// When adding a child, the json response will contains a temporary uri, so the frontend can do whatever it wants with it
-	child.ImageUri = uri
+	child.ImageUri = store.DbNullString(uri)
 
 	return child, nil
 }
@@ -149,7 +165,7 @@ func (c *ChildService) DeleteChild(ctx context.Context, request ChildTransport) 
 		return errors.Wrap(err, "failed to delete child")
 	}
 
-	if err := c.Storage.Delete(ctx, child.ImageUri); err != nil {
+	if err := c.Storage.Delete(ctx, child.ImageUri.String); err != nil {
 		return errors.Wrap(err, "failed to delete child image")
 	}
 
@@ -163,12 +179,12 @@ func (c *ChildService) ListChild(ctx context.Context) ([]store.Child, error) {
 	}
 
 	for i := 0; i < len(children); i++ {
-		uri, err := c.Storage.Get(ctx, children[i].ImageUri)
+		uri, err := c.Storage.Get(ctx, children[i].ImageUri.String)
 		if err != nil {
 			return []store.Child{}, errors.Wrap(err, "failed to generate image uri")
 		}
 		// When adding a child, the json response will contains a temporary uri, so the frontend can do whatever it wants with it
-		children[i].ImageUri = uri
+		children[i].ImageUri = store.DbNullString(uri)
 	}
 
 	return children, nil
@@ -180,6 +196,10 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 
 	if request.Id == "" {
 		return store.Child{}, ErrEmptyChild
+	}
+
+	if _, err := c.Store.GetChild(nil, request.Id); err != nil {
+		return store.Child{}, errors.Wrap(err, "failed to update child")
 	}
 
 	if request.BirthDate != "" {
@@ -198,6 +218,7 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 		return store.Child{}, errors.Wrap(tx.Error, "failed to update child")
 	}
 
+	// allergies
 	if len(request.Allergies) > 1 {
 		if err := c.Store.RemoveAllergiesOfChild(tx, request.Id); err != nil {
 			tx.Rollback()
@@ -211,13 +232,30 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 		}
 	}
 
+	// special instructions
+	if len(request.SpecialInstructions) > 0 {
+		if err := c.Store.RemoveChildSpecialInstructions(tx, request.Id); err != nil {
+			tx.Rollback()
+			return store.Child{}, errors.Wrap(err, "failed to update child")
+		}
+		for _, specialInstruction := range request.SpecialInstructions {
+			instructionToCreate := store.SpecialInstruction{
+				Instruction: store.DbNullString(specialInstruction),
+				ChildId:     store.DbNullString(request.Id),
+			}
+			if err := c.Store.AddSpecialInstruction(tx, instructionToCreate); err != nil {
+				return store.Child{}, errors.Wrap(err, "failed to update child")
+			}
+		}
+	}
+
 	child, err := c.Store.UpdateChild(tx, store.Child{
 		BirthDate: t,
-		ImageUri:  request.ImageUri,
-		Gender:    request.Gender,
-		FirstName: request.FirstName,
-		LastName:  request.LastName,
-		ChildId:   request.Id,
+		ImageUri:  store.DbNullString(request.ImageUri),
+		Gender:    store.DbNullString(request.Gender),
+		FirstName: store.DbNullString(request.FirstName),
+		LastName:  store.DbNullString(request.LastName),
+		ChildId:   store.DbNullString(request.Id),
 	})
 	if err != nil {
 		tx.Rollback()
@@ -244,16 +282,16 @@ func (c *ChildService) setAndStoreDecodedImage(ctx context.Context, request *Chi
 }
 
 func (c *ChildService) setBucketUri(ctx context.Context, child *store.Child) {
-	if child.ImageUri == "" {
+	if child.ImageUri.String == "" {
 		return
 	}
-	if !strings.Contains(child.ImageUri, "/") {
-		uri, err := c.Storage.Get(ctx, child.ImageUri)
+	if !strings.Contains(child.ImageUri.String, "/") {
+		uri, err := c.Storage.Get(ctx, child.ImageUri.String)
 		if err != nil {
 			// todo logger
 			c.Logger.Warn(ctx, "failed to generate image uri", "imageUri", child.ImageUri, "err", err.Error())
 		}
-		child.ImageUri = uri
+		child.ImageUri = store.DbNullString(uri)
 	}
 }
 

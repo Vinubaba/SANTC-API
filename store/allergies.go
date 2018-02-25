@@ -1,8 +1,36 @@
 package store
 
 import (
+	"errors"
 	"github.com/jinzhu/gorm"
+	"strings"
 )
+
+type Allergies []Allergy
+
+func (s *Allergies) Scan(src interface{}) error {
+	if src == nil {
+		return nil
+	}
+	switch v := src.(type) {
+	case string:
+		instructions := strings.Split(v, ",")
+		for _, instruction := range instructions {
+			*s = append(*s, Allergy{Allergy: instruction})
+		}
+	default:
+		return errors.New("need string with roles separated by virgula")
+	}
+	return nil
+}
+
+func (s Allergies) ToList() []string {
+	allergies := make([]string, 0)
+	for _, allergy := range s {
+		allergies = append(allergies, allergy.Allergy)
+	}
+	return allergies
+}
 
 type Allergy struct {
 	AllergyId string
