@@ -37,19 +37,19 @@ type Logger struct {
 }
 
 func (l *Logger) Debug(ctx context.Context, message string, keyvals ...interface{}) {
-	l.logWithLvl(ctx, LvlDebug, message, keyvals)
+	l.logWithLvl(ctx, LvlDebug, message, keyvals...)
 }
 
 func (l *Logger) Info(ctx context.Context, message string, keyvals ...interface{}) {
-	l.logWithLvl(ctx, LvlInfo, message, keyvals)
+	l.logWithLvl(ctx, LvlInfo, message, keyvals...)
 }
 
 func (l *Logger) Warn(ctx context.Context, message string, keyvals ...interface{}) {
-	l.logWithLvl(ctx, LvlWarn, message, keyvals)
+	l.logWithLvl(ctx, LvlWarn, message, keyvals...)
 }
 
 func (l *Logger) Err(ctx context.Context, message string, keyvals ...interface{}) {
-	l.logWithLvl(ctx, LvlErr, message, keyvals)
+	l.logWithLvl(ctx, LvlErr, message, keyvals...)
 }
 
 // re-implement gorm logger
@@ -106,15 +106,15 @@ func (l *Logger) Print(v ...interface{}) {
 		} else {
 			keyvals = append(keyvals, v[2:]...)
 		}
-		l.logWithLvl(context.Background(), LvlInfo, "new database query", keyvals)
+		l.logWithLvl(context.Background(), LvlInfo, "new database query", keyvals...)
 	}
 }
 
-func (l *Logger) logWithLvl(ctx context.Context, lvl string, message string, keyvals []interface{}) {
+func (l *Logger) logWithLvl(ctx context.Context, lvl string, message string, keyvals ...interface{}) {
 	claims := ctx.Value("claims")
-	roles := make([]string, 0)
 
 	if claims != nil {
+		roles := make([]string, 0)
 		for k, v := range claims.(map[string]interface{}) {
 			switch k {
 			case ROLE_ADMIN:
@@ -138,6 +138,7 @@ func (l *Logger) logWithLvl(ctx context.Context, lvl string, message string, key
 		keyvals = append(keyvals, "role", strings.Join(roles, "/"))
 	}
 	keyvals = append(keyvals, "level", lvl, "msg", message)
+
 	l.Log(keyvals...)
 }
 

@@ -1,5 +1,7 @@
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 CREATE TABLE IF NOT EXISTS users (
-  user_id varchar PRIMARY KEY UNIQUE NOT NULL,
+  user_id varchar PRIMARY KEY UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
   email varchar UNIQUE NOT NULL,
   first_name varchar,
   last_name varchar,
@@ -39,14 +41,13 @@ CREATE TABLE IF NOT EXISTS roles (
   role varchar NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS pending_connexion_roles (
-  email varchar NOT NULL,
-  role varchar NOT NULL
-);
+INSERT INTO users ("email", "first_name", "last_name", "gender") VALUES ('arthur.gustin@gmail.com', 'arthur', 'gustin', 'm');
+INSERT INTO users ("email", "first_name", "last_name", "gender") VALUES ('vinu.singh@gmail.com', 'vinu', 'singh', 'm');
+INSERT INTO users ("email", "first_name", "last_name", "gender") VALUES ('johngallegodev@gmail.com', 'john', 'gallego', 'm');
 
-INSERT INTO pending_connexion_roles ("email", "role") VALUES ('arthur.gustin@gmail.com', 'admin');
-INSERT INTO pending_connexion_roles ("email", "role") VALUES ('vinu.singh@gmail.com', 'officemanager');
-INSERT INTO pending_connexion_roles ("email", "role") VALUES ('johngallegodev@gmail.com', 'officemanager');
+INSERT INTO roles ("user_id", "role") (SELECT user_id, 'admin' FROM users WHERE email = 'arthur.gustin@gmail.com');
+INSERT INTO roles ("user_id", "role") (SELECT user_id, 'officemanager' FROM users WHERE email = 'vinu.singh@gmail.com');
+INSERT INTO roles ("user_id", "role") (SELECT user_id, 'officemanager' FROM users WHERE email = 'johngallegodev@gmail.com');
 
 --CREATE TABLE IF NOT EXISTS teachers (
 --  teacher_id varchar REFERENCES users (user_id) UNIQUE,

@@ -128,7 +128,7 @@ var _ = Describe("Transport", func() {
 		}
 
 		mockFirebaseClient = &MockClient{}
-		mockFirebaseClient.On("DeleteUser", mock.Anything, mock.Anything).Return(nil)
+		mockFirebaseClient.On("DeleteUserByEmail", mock.Anything, mock.Anything).Return(nil)
 
 		userService := &UserService{
 			FirebaseClient: mockFirebaseClient,
@@ -167,6 +167,7 @@ var _ = Describe("Transport", func() {
 		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.DeleteTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
 		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.UpdateTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
 
+		router.Handle("/adults", authenticator.Roles(handlerFactory.CreateAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodPost)
 		router.Handle("/adults", authenticator.Roles(handlerFactory.ListAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
 		router.Handle("/adults/{id}", authenticator.Roles(handlerFactory.GetAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
 		router.Handle("/adults/{id}", authenticator.Roles(handlerFactory.DeleteAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
@@ -403,6 +404,62 @@ var _ = Describe("Transport", func() {
 				})
 				assertJsonResponse(`{"error":"failed to update user: user not found"}`)
 				assertHttpCode(http.StatusNotFound)
+			})
+
+		})
+
+		Describe("CREATE", func() {
+
+			BeforeEach(func() {
+				mockStorage.On("Store", mock.Anything, mock.Anything, mock.Anything).Return(mockImageUriName, nil)
+				httpMethodToUse = http.MethodPost
+				httpEndpointToUse = "/adults"
+				httpBodyToUse = `
+					{
+						"firstName": "Arthur",
+						"lastName": "Gustin",
+						"gender": "M",
+						"email": "saint.sulp.la.pointe@gmail.com",
+						"phone": "0633326825",
+						"address_1": "8 RUE PIERRE DELDI",
+						"address_2": "VILLA 13",
+						"city": "TOULOUSE",
+						"state": "France",
+						"zip": "31100",
+					}`
+			})
+
+			Context("When user is an admin", func() {
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"]}`)
+				assertHttpCode(http.StatusCreated)
+			})
+
+			Context("When user is an office manager", func() {
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
+				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"]}`)
+				assertHttpCode(http.StatusCreated)
+			})
+
+			Context("When user is a teacher", func() {
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusUnauthorized)
+			})
+
+			Context("When user is an adult", func() {
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusUnauthorized)
+			})
+
+			Context("When database is closed", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_ADMIN] = true
+					concreteDb.Close()
+				})
+				assertJsonResponse(`{"error":"failed to create user: sql: database is closed"}`)
+				assertHttpCode(http.StatusInternalServerError)
 			})
 
 		})

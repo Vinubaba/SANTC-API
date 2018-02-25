@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 
 	"github.com/DigitalFrameworksLLC/teddycare/shared"
@@ -23,10 +24,6 @@ type Service interface {
 	UpdateUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error)
 	DeleteUserByRoles(ctx context.Context, request UserTransport, roles ...string) error
 	ListUsersByRole(ctx context.Context, roleConstraint string) ([]store.User, error)
-
-	GetUserRoles(ctx context.Context, request UserTransport) ([]store.Role, error)
-
-	AddPendingUser(ctx context.Context, request UserTransport) error
 }
 
 type UserService struct {
@@ -36,60 +33,77 @@ type UserService struct {
 		UpdateUser(tx *gorm.DB, user store.User) (store.User, error)
 		DeleteUser(tx *gorm.DB, userId string) (err error)
 		GetUser(tx *gorm.DB, userId string) (store.User, error)
+		GetUserByEmail(tx *gorm.DB, email string) (store.User, error)
 
 		AddRole(tx *gorm.DB, role store.Role) (store.Role, error)
-		GetUserRoles(tx *gorm.DB, userId string) ([]store.Role, error)
-
-		GetPendingConnexionRoles(tx *gorm.DB, email string) ([]store.PendingConnexionRole, error)
-		DeletePendingConnexionRole(tx *gorm.DB, role store.PendingConnexionRole) error
-		CreatePendingConnexionRole(tx *gorm.DB, role store.PendingConnexionRole) error
 		Tx() *gorm.DB
 	} `inject:""`
 	FirebaseClient interface {
-		DeleteUser(ctx context.Context, uid string) error
+		DeleteUserByEmail(ctx context.Context, email string) error
 	} `inject:"teddyFirebaseClient"`
 	Storage storage.Storage `inject:""`
 	Logger  *shared.Logger  `inject:""`
 }
 
+func dbString(value string) sql.NullString {
+	if value != "" {
+		return sql.NullString{
+			String: value,
+			Valid:  true,
+		}
+	}
+	return sql.NullString{
+		String: "",
+		Valid:  false,
+	}
+}
+
 func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
 	tx := c.Store.Tx()
+	if tx.Error != nil {
+		return store.User{}, errors.Wrap(tx.Error, "failed to create user")
+	}
 
 	if err := c.setAndStoreDecodedImage(ctx, &request); err != nil {
 		return store.User{}, err
 	}
 
 	createdUser, err := c.Store.AddUser(tx, store.User{
-		Email:     request.Email,
-		FirstName: request.FirstName,
-		LastName:  request.LastName,
-		Gender:    request.Gender,
-		Zip:       request.Zip,
-		State:     request.State,
-		Phone:     request.Phone,
-		City:      request.City,
-		Address_1: request.Address_1,
-		Address_2: request.Address_2,
-		UserId:    request.Id,
-		ImageUri:  request.ImageUri,
+		Email:     dbString(request.Email),
+		FirstName: dbString(request.FirstName),
+		LastName:  dbString(request.LastName),
+		Gender:    dbString(request.Gender),
+		Zip:       dbString(request.Zip),
+		State:     dbString(request.State),
+		Phone:     dbString(request.Phone),
+		City:      dbString(request.City),
+		Address_1: dbString(request.Address_1),
+		Address_2: dbString(request.Address_2),
+		UserId:    dbString(request.Id),
+		ImageUri:  dbString(request.ImageUri),
 	})
 	if err != nil {
 		tx.Rollback()
-		return store.User{}, errors.New("failed to create user")
+		return store.User{}, errors.Wrap(err, "failed to create user")
 	}
 
 	for _, role := range roles {
 		_, err := c.Store.AddRole(tx, store.Role{
 			Role:   role,
-			UserId: createdUser.UserId,
+			UserId: createdUser.UserId.String,
 		})
 		if err != nil {
 			tx.Rollback()
-			return store.User{}, errors.New("failed to set user role")
+			return store.User{}, errors.Wrap(err, "failed to set user role")
 		}
+		createdUser.Roles = append(createdUser.Roles, store.Role{
+			UserId: createdUser.UserId.String,
+			Role:   role,
+		})
 	}
 
 	tx.Commit()
+	c.setBucketUri(ctx, &createdUser)
 	return createdUser, nil
 }
 
@@ -148,18 +162,18 @@ func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTranspo
 	}
 
 	user, err = c.Store.UpdateUser(nil, store.User{
-		UserId:    request.Id,
-		Email:     request.Email,
-		Address_1: request.Address_1,
-		Address_2: request.Address_2,
-		City:      request.City,
-		State:     request.State,
-		Zip:       request.Zip,
-		Phone:     request.Phone,
-		Gender:    request.Gender,
-		LastName:  request.LastName,
-		FirstName: request.FirstName,
-		ImageUri:  request.ImageUri,
+		UserId:    dbString(request.Id),
+		Email:     dbString(request.Email),
+		Address_1: dbString(request.Address_1),
+		Address_2: dbString(request.Address_2),
+		City:      dbString(request.City),
+		State:     dbString(request.State),
+		Zip:       dbString(request.Zip),
+		Phone:     dbString(request.Phone),
+		Gender:    dbString(request.Gender),
+		LastName:  dbString(request.LastName),
+		FirstName: dbString(request.FirstName),
+		ImageUri:  dbString(request.ImageUri),
 	})
 	if err != nil {
 		return store.User{}, err
@@ -170,26 +184,17 @@ func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTranspo
 }
 
 func (c *UserService) setBucketUri(ctx context.Context, user *store.User) {
-	if user.ImageUri == "" {
+	if user.ImageUri.String == "" {
 		return
 	}
-	if !strings.Contains(user.ImageUri, "/") {
-		uri, err := c.Storage.Get(ctx, user.ImageUri)
+	if !strings.Contains(user.ImageUri.String, "/") {
+		uri, err := c.Storage.Get(ctx, user.ImageUri.String)
 		if err != nil {
 			c.Logger.Warn(ctx, "failed to generate image uri", "err", err.Error())
-			user.ImageUri = ""
+			user.ImageUri.Scan("")
 		}
-		user.ImageUri = uri
+		user.ImageUri.Scan(uri)
 	}
-}
-
-func (c *UserService) getRoles(ctx context.Context, user store.User) ([]string, error) {
-	roles := make([]string, 0)
-	userRoles, err := c.Store.GetUserRoles(nil, user.UserId)
-	for _, role := range userRoles {
-		roles = append(roles, role.Role)
-	}
-	return roles, err
 }
 
 func (c *UserService) GetUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
@@ -209,17 +214,15 @@ func (c *UserService) GetUserByRoles(ctx context.Context, request UserTransport,
 	return user, nil
 }
 
-func (c *UserService) hasRole(roles []store.Role, role string) bool {
-	for _, r := range roles {
-		if r.Role == role {
-			return true
-		}
+func (c *UserService) GetUserByEmail(ctx context.Context, request UserTransport) (store.User, error) {
+	user, err := c.Store.GetUserByEmail(nil, request.Email)
+	if err != nil {
+		return store.User{}, errors.Wrap(err, "failed to get user")
 	}
-	return false
-}
 
-func (c *UserService) GetUserRoles(ctx context.Context, request UserTransport) ([]store.Role, error) {
-	return c.Store.GetUserRoles(nil, request.Id)
+	c.setBucketUri(ctx, &user)
+
+	return user, nil
 }
 
 func (c *UserService) DeleteUserByRoles(ctx context.Context, request UserTransport, roles ...string) error {
@@ -234,16 +237,16 @@ func (c *UserService) DeleteUserByRoles(ctx context.Context, request UserTranspo
 		}
 	}
 
-	if err := c.FirebaseClient.DeleteUser(ctx, request.Id); err != nil {
-		return errors.Wrap(err, "failed to delete user from firebase")
+	if err := c.FirebaseClient.DeleteUserByEmail(ctx, user.Email.String); err != nil {
+		c.Logger.Warn(ctx, "failed to delete user from firebase")
 	}
 
 	if err := c.Store.DeleteUser(nil, request.Id); err != nil {
 		return errors.Wrap(err, "failed to delete user")
 	}
 
-	if err := c.Storage.Delete(ctx, user.ImageUri); err != nil {
-		c.Logger.Warn(ctx, "failed to delete user image", "imageUri", user.ImageUri, "err", err.Error())
+	if err := c.Storage.Delete(ctx, user.ImageUri.String); err != nil {
+		c.Logger.Warn(ctx, "failed to delete user image", "imageUri", user.ImageUri.String, "err", err.Error())
 	}
 
 	return nil
@@ -259,34 +262,6 @@ func (c *UserService) ListUsersByRole(ctx context.Context, roleConstraint string
 		c.setBucketUri(ctx, &users[i])
 	}
 	return users, nil
-}
-
-func (c *UserService) AddPendingUser(ctx context.Context, request UserTransport) error {
-	if len(request.Roles) == 0 {
-		return errors.New("invalid request: roles are empty")
-	}
-	for _, role := range request.Roles {
-		if err := c.Store.CreatePendingConnexionRole(nil, store.PendingConnexionRole{
-			Email: request.Email,
-			Role:  role,
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (c *UserService) GetPendingConnexionRoles(ctx context.Context, email string) ([]store.PendingConnexionRole, error) {
-	return c.Store.GetPendingConnexionRoles(nil, email)
-}
-
-func (c *UserService) DeletePendingConnexionRoles(ctx context.Context, pendingRoles []store.PendingConnexionRole) error {
-	for _, role := range pendingRoles {
-		if err := c.Store.DeletePendingConnexionRole(nil, role); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // ServiceMiddleware is a chainable behavior modifier for adultResponsibleService.

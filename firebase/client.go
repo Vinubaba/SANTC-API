@@ -3,14 +3,20 @@ package firebase
 import (
 	"context"
 	"firebase.google.com/go/auth"
+	"github.com/pkg/errors"
 )
 
 type Client struct {
 	FirebaseClient *auth.Client `inject:""`
 }
 
-func (c *Client) DeleteUser(ctx context.Context, uid string) error {
-	return c.FirebaseClient.DeleteUser(ctx, uid)
+func (c *Client) DeleteUserByEmail(ctx context.Context, email string) error {
+	user, err := c.FirebaseClient.GetUserByEmail(ctx, email)
+	if err != nil {
+		return errors.Wrap(err, "user not found in firebase")
+	}
+
+	return c.FirebaseClient.DeleteUser(ctx, user.UID)
 }
 
 func (c *Client) VerifyIDToken(idToken string) (*auth.Token, error) {

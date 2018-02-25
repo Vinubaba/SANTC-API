@@ -20,9 +20,7 @@ type Authenticator struct {
 		SetCustomUserClaims(ctx context.Context, uid string, customClaims map[string]interface{}) error
 	} `inject:""`
 	UserService interface {
-		GetPendingConnexionRoles(ctx context.Context, email string) ([]store.PendingConnexionRole, error)
-		DeletePendingConnexionRoles(ctx context.Context, pendingRoles []store.PendingConnexionRole) error
-		AddUserByRoles(ctx context.Context, request users.UserTransport, roles ...string) (store.User, error)
+		GetUserByEmail(ctx context.Context, request users.UserTransport) (store.User, error)
 	} `inject:""`
 	Logger *Logger `inject:""`
 }
@@ -61,47 +59,28 @@ func (f *Authenticator) Firebase(next http.Handler) http.Handler {
 		}
 
 		// Lookup the user associated with the specified uid.
-		firebaseUser, err := f.FirebaseClient.GetUser(req.Context(), token.UID)
+		firebaseUser, err := f.FirebaseClient.GetUser(ctx, token.UID)
 		if err != nil {
 			HttpError(w, NewError(fmt.Sprintf("failed to retrieve user from firebase: %s", err.Error())), http.StatusBadRequest)
 			return
 		}
 
 		if !f.hasAtLeastOneRoleInCustomClaim(firebaseUser.CustomClaims) {
-			// checker email office manager pending
-			pendingRoles, err := f.UserService.GetPendingConnexionRoles(nil, firebaseUser.Email)
+			// lookup database user with email
+			user, err := f.UserService.GetUserByEmail(ctx, users.UserTransport{Email: firebaseUser.Email})
 			if err != nil {
-				HttpError(w, NewError(fmt.Sprintf("failed to get pending roles: %s", err.Error())), http.StatusInternalServerError)
-				return
-			}
-
-			roles := make([]string, 0)
-			for _, r := range pendingRoles {
-				roles = append(roles, r.Role)
-			}
-			if len(roles) == 0 {
-				roles = append(roles, ROLE_ADULT)
-			}
-			if _, err = f.UserService.AddUserByRoles(ctx, users.UserTransport{
-				Id:        firebaseUser.UID,
-				Email:     firebaseUser.Email,
-				FirstName: firebaseUser.DisplayName,
-				LastName:  "",
-				ImageUri:  firebaseUser.PhotoURL,
-				Phone:     firebaseUser.PhoneNumber,
-			}, roles...); err != nil {
-				HttpError(w, NewError(fmt.Sprintf("failed to add user: %s", err.Error())), http.StatusInternalServerError)
+				HttpError(w, NewError(fmt.Sprintf("user not registered: %s", err.Error())), http.StatusForbidden)
 				return
 			}
 
 			claims := map[string]interface{}{
-				"userId":            firebaseUser.UID,
+				"userId":            user.UserId.String,
 				ROLE_TEACHER:        false,
 				ROLE_OFFICE_MANAGER: false,
 				ROLE_ADULT:          false,
 				ROLE_ADMIN:          false,
 			}
-			for _, role := range roles {
+			for _, role := range user.Roles.ToList() {
 				claims[role] = true
 			}
 			if err = f.FirebaseClient.SetCustomUserClaims(ctx, firebaseUser.UID, claims); err != nil {
@@ -110,9 +89,6 @@ func (f *Authenticator) Firebase(next http.Handler) http.Handler {
 			}
 			firebaseUser.CustomClaims = claims
 			ctx = context.WithValue(ctx, "claims", claims)
-			if err := f.UserService.DeletePendingConnexionRoles(ctx, pendingRoles); err != nil {
-				f.Logger.Warn(ctx, "fail to remove pending roles...", "err", err.Error())
-			}
 		}
 
 		req = req.WithContext(context.WithValue(context.Background(), "claims", firebaseUser.CustomClaims))

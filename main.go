@@ -106,6 +106,7 @@ func initApplicationGraph() error {
 		&inject.Object{Value: teddyFirebaseClient, Name: "teddyFirebaseClient"},
 		&inject.Object{Value: firebaseClient},
 		&inject.Object{Value: authenticator},
+		&inject.Object{Value: logger},
 	)
 	if err := g.Populate(); err != nil {
 		return errors.Wrap(err, "failed to populate")
@@ -149,7 +150,6 @@ func startHttpServer(ctx context.Context) {
 	apiRouterV1 := router.PathPrefix("/api/v1").Subrouter()
 
 	apiRouterV1.Handle("/me", authenticator.Roles(userHandlerFactory.Me(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_TEACHER)).Methods(http.MethodGet)
-	apiRouterV1.Handle("/create-account", authenticator.Roles(userHandlerFactory.AddPendingUser(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodPost)
 
 	apiRouterV1.Handle("/office-managers", authenticator.Roles(userHandlerFactory.ListOfficeManager(userOpts), ROLE_ADMIN)).Methods(http.MethodGet)
 	apiRouterV1.Handle("/office-managers/{id}", authenticator.Roles(userHandlerFactory.GetOfficeManager(userOpts), ROLE_ADMIN)).Methods(http.MethodGet)
@@ -161,6 +161,7 @@ func startHttpServer(ctx context.Context) {
 	apiRouterV1.Handle("/teachers/{id}", authenticator.Roles(userHandlerFactory.DeleteTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
 	apiRouterV1.Handle("/teachers/{id}", authenticator.Roles(userHandlerFactory.UpdateTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
 
+	apiRouterV1.Handle("/adults", authenticator.Roles(userHandlerFactory.CreateAdult(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodPost)
 	apiRouterV1.Handle("/adults", authenticator.Roles(userHandlerFactory.ListAdult(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
 	apiRouterV1.Handle("/adults/{id}", authenticator.Roles(userHandlerFactory.GetAdult(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
 	apiRouterV1.Handle("/adults/{id}", authenticator.Roles(userHandlerFactory.DeleteAdult(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
@@ -181,7 +182,7 @@ func startHttpServer(ctx context.Context) {
 		}()
 	}
 
-	checkErrAndExit(http.ListenAndServe(":8083", authenticator.Firebase(logger.RequestLoggerMiddleware(router))))
+	checkErrAndExit(http.ListenAndServe(":8083", logger.RequestLoggerMiddleware(authenticator.Firebase(router))))
 }
 
 func checkErrAndExit(err error) {

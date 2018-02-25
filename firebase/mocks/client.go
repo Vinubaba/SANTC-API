@@ -11,7 +11,7 @@ type MockClient struct {
 	mock.Mock
 }
 
-func (m *MockClient) DeleteUser(ctx context.Context, uid string) error {
+func (m *MockClient) DeleteUserByEmail(ctx context.Context, email string) error {
 	args := m.Called()
 	return args.Error(0)
 }

@@ -9,8 +9,7 @@ var ServerError = NewError("An error occurred, please try again later")
 
 func NewError(description string) apiError {
 	return apiError{
-		Error:       true,
-		Description: description,
+		Error: description,
 	}
 }
 
@@ -32,8 +31,7 @@ func WriteJSON(w http.ResponseWriter, data interface{}, code int) {
 }
 
 type apiError struct {
-	Error       bool   `json:"error"`
-	Description string `json:"error_description"`
+	Error string `json:"error"`
 }
 
 var NotImplemented = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

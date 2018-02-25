@@ -38,6 +38,8 @@ type HandlerFactory struct {
 	Service Service `inject:""`
 }
 
+// ME
+
 func (h *HandlerFactory) Me(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
 		makeMeEndpoint(h.Service),
@@ -47,16 +49,16 @@ func (h *HandlerFactory) Me(opts []kithttp.ServerOption) *kithttp.Server {
 	)
 }
 
-func (h *HandlerFactory) AddPendingUser(opts []kithttp.ServerOption) *kithttp.Server {
+// ADULT
+
+func (h *HandlerFactory) CreateAdult(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeAddPendingUserEndpoint(h.Service),
+		makeAddEndpoint(h.Service, shared.ROLE_ADULT),
 		decodeUserRequest,
 		shared.EncodeResponse201,
 		opts...,
 	)
 }
-
-// ADULT
 
 func (h *HandlerFactory) ListAdult(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
@@ -180,26 +182,20 @@ func makeAddEndpoint(svc Service, role string) endpoint.Endpoint {
 		}
 
 		return UserTransport{
-			Id:        createdUser.UserId,
-			FirstName: createdUser.FirstName,
-			LastName:  createdUser.LastName,
-			Email:     createdUser.Email,
-			Gender:    createdUser.Gender,
-			Address_1: createdUser.Address_1,
-			Address_2: createdUser.Address_2,
-			City:      createdUser.City,
-			Phone:     createdUser.Phone,
-			State:     createdUser.State,
-			Zip:       createdUser.Zip,
-			ImageUri:  createdUser.ImageUri,
+			Id:        createdUser.UserId.String,
+			FirstName: createdUser.FirstName.String,
+			LastName:  createdUser.LastName.String,
+			Email:     createdUser.Email.String,
+			Gender:    createdUser.Gender.String,
+			Address_1: createdUser.Address_1.String,
+			Address_2: createdUser.Address_2.String,
+			City:      createdUser.City.String,
+			Phone:     createdUser.Phone.String,
+			State:     createdUser.State.String,
+			Zip:       createdUser.Zip.String,
+			ImageUri:  createdUser.ImageUri.String,
+			Roles:     createdUser.Roles.ToList(),
 		}, nil
-	}
-}
-
-func makeAddPendingUserEndpoint(svc Service) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(UserTransport)
-		return nil, svc.AddPendingUser(ctx, req)
 	}
 }
 
@@ -213,18 +209,18 @@ func makeUpdateEndpoint(svc Service, role string) endpoint.Endpoint {
 		}
 
 		return UserTransport{
-			Id:        user.UserId,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Email:     user.Email,
-			Gender:    user.Gender,
-			Address_1: user.Address_1,
-			Address_2: user.Address_2,
-			City:      user.City,
-			Phone:     user.Phone,
-			State:     user.State,
-			Zip:       user.Zip,
-			ImageUri:  user.ImageUri,
+			Id:        user.UserId.String,
+			FirstName: user.FirstName.String,
+			LastName:  user.LastName.String,
+			Email:     user.Email.String,
+			Gender:    user.Gender.String,
+			Address_1: user.Address_1.String,
+			Address_2: user.Address_2.String,
+			City:      user.City.String,
+			Phone:     user.Phone.String,
+			State:     user.State.String,
+			Zip:       user.Zip.String,
+			ImageUri:  user.ImageUri.String,
 			Roles:     user.Roles.ToList(),
 		}, nil
 	}
@@ -252,18 +248,18 @@ func makeGetEndpoint(svc Service, role string) endpoint.Endpoint {
 		}
 
 		return UserTransport{
-			Id:        user.UserId,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Email:     user.Email,
-			Gender:    user.Gender,
-			Address_1: user.Address_1,
-			Address_2: user.Address_2,
-			City:      user.City,
-			Phone:     user.Phone,
-			State:     user.State,
-			Zip:       user.Zip,
-			ImageUri:  user.ImageUri,
+			Id:        user.UserId.String,
+			FirstName: user.FirstName.String,
+			LastName:  user.LastName.String,
+			Email:     user.Email.String,
+			Gender:    user.Gender.String,
+			Address_1: user.Address_1.String,
+			Address_2: user.Address_2.String,
+			City:      user.City.String,
+			Phone:     user.Phone.String,
+			State:     user.State.String,
+			Zip:       user.Zip.String,
+			ImageUri:  user.ImageUri.String,
 			Roles:     user.Roles.ToList(),
 		}, nil
 	}
@@ -284,28 +280,20 @@ func makeMeEndpoint(svc Service) endpoint.Endpoint {
 			return nil, err
 		}
 
-		userRoles, err := svc.GetUserRoles(ctx, UserTransport{
-			Id: user.UserId,
-		})
-		roles := make([]string, 0)
-		for _, role := range userRoles {
-			roles = append(roles, role.Role)
-		}
-
 		return UserTransport{
-			Id:        user.UserId,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Email:     user.Email,
-			Gender:    user.Gender,
-			Address_1: user.Address_1,
-			Address_2: user.Address_2,
-			City:      user.City,
-			Phone:     user.Phone,
-			State:     user.State,
-			Zip:       user.Zip,
-			ImageUri:  user.ImageUri,
-			Roles:     roles,
+			Id:        user.UserId.String,
+			FirstName: user.FirstName.String,
+			LastName:  user.LastName.String,
+			Email:     user.Email.String,
+			Gender:    user.Gender.String,
+			Address_1: user.Address_1.String,
+			Address_2: user.Address_2.String,
+			City:      user.City.String,
+			Phone:     user.Phone.String,
+			State:     user.State.String,
+			Zip:       user.Zip.String,
+			ImageUri:  user.ImageUri.String,
+			Roles:     user.Roles.ToList(),
 		}, nil
 	}
 }
@@ -320,18 +308,18 @@ func makeListEndpoint(svc Service, roleConstraint string) endpoint.Endpoint {
 		allUsers := []UserTransport{}
 		for _, user := range users {
 			allUsers = append(allUsers, UserTransport{
-				Id:        user.UserId,
-				Gender:    user.Gender,
-				LastName:  user.LastName,
-				FirstName: user.FirstName,
-				Email:     user.Email,
-				ImageUri:  user.ImageUri,
-				Phone:     user.Phone,
-				Zip:       user.Zip,
-				State:     user.State,
-				City:      user.City,
-				Address_1: user.Address_1,
-				Address_2: user.Address_2,
+				Id:        user.UserId.String,
+				Gender:    user.Gender.String,
+				LastName:  user.LastName.String,
+				FirstName: user.FirstName.String,
+				Email:     user.Email.String,
+				ImageUri:  user.ImageUri.String,
+				Phone:     user.Phone.String,
+				Zip:       user.Zip.String,
+				State:     user.State.String,
+				City:      user.City.String,
+				Address_1: user.Address_1.String,
+				Address_2: user.Address_2.String,
 				Roles:     user.Roles.ToList(),
 			})
 		}
