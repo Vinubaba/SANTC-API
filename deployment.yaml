@@ -35,7 +35,7 @@ spec:
             mountPath: /secrets/cloudsql
             readOnly: true
       - name: teddycare
-        image: gcr.io/teddycare-193910/teddycare:1342
+        image: gcr.io/teddycare-193910/teddycare:2255
         volumeMounts:
           - name: bucket-service-account
             mountPath: /opt/teddycare/bucket-service-account

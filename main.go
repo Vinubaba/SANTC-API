@@ -24,6 +24,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/pkg/errors"
 	"google.golang.org/api/option"
+	"github.com/rs/cors"
 )
 
 var (
@@ -182,7 +183,18 @@ func startHttpServer(ctx context.Context) {
 		}()
 	}
 
-	checkErrAndExit(http.ListenAndServe(":8083", logger.RequestLoggerMiddleware(authenticator.Firebase(router))))
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"https://teddy-care-project.firebaseapp.com", "teddy-care-project.firebaseapp.com", "http://localhost:4200"},
+		AllowCredentials: true,
+		Debug: true,
+	})
+	checkErrAndExit(http.ListenAndServe(":8083",
+		logger.RequestLoggerMiddleware(
+			c.Handler(
+				authenticator.Firebase(router),
+			),
+		),
+	))
 }
 
 func checkErrAndExit(err error) {
