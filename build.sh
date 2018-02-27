@@ -1,1 +1,0 @@
-gcloud container builds submit . --tag gcr.io/teddycare-193910/teddycare
