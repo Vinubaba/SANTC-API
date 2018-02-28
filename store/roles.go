@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DigitalFrameworksLLC/teddycare/shared"
+	"github.com/Vinubaba/SANTC-API/shared"
 	"github.com/jinzhu/gorm"
 )
 

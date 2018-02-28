@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	. "github.com/DigitalFrameworksLLC/teddycare/shared"
-	"github.com/DigitalFrameworksLLC/teddycare/store"
-	"github.com/DigitalFrameworksLLC/teddycare/users"
+	. "github.com/Vinubaba/SANTC-API/shared"
+	"github.com/Vinubaba/SANTC-API/store"
+	"github.com/Vinubaba/SANTC-API/users"
 
 	"firebase.google.com/go/auth"
 )

@@ -16,15 +16,15 @@ type AppConfig struct {
 	PgContactPoint         string `split_words:"true" default:"127.0.0.1"`
 	PgContactPort          string `split_words:"true" default:"5432"`
 	PgDbName               string `split_words:"true" default:"teddycare"`
-	SqlMigrationsSourceDir string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\DigitalFrameworksLLC\\teddycare\\sql"`
+	SqlMigrationsSourceDir string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\Vinubaba\\SANTC-API\\sql"`
 	GcpProjectID           string `split_words:"true" default:"teddycare-193910"`
 	LocalStoragePath       string `split_words:"true"`
 
 	BucketImagesName            string `split_words:"true" default:"teddycare-images"`
-	BucketServiceAccount        string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\DigitalFrameworksLLC\\teddycare\\adm-bucket-sa.json"`
+	BucketServiceAccount        string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\Vinubaba\\SANTC-API\\bucket-sa.json"`
 	BucketServiceAccountDetails ServiceAccountDetails
 
-	FirebaseServiceAccount string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\DigitalFrameworksLLC\\teddycare\\adm-firebase-sa.json"`
+	FirebaseServiceAccount string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\Vinubaba\\SANTC-API\\firebase-sa.json"`
 
 	TestAuthMode     bool `split_words:"true" default:"true"`
 	StartupMigration bool `split_words:"true" default:"false"`

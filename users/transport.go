@@ -7,9 +7,9 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 
-	"github.com/DigitalFrameworksLLC/teddycare/shared"
+	"github.com/Vinubaba/SANTC-API/shared"
 
-	"github.com/DigitalFrameworksLLC/teddycare/store"
+	"github.com/Vinubaba/SANTC-API/store"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/pkg/errors"
 )

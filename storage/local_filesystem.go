@@ -6,7 +6,7 @@ import (
 	"path"
 
 	"context"
-	"github.com/DigitalFrameworksLLC/teddycare/shared"
+	"github.com/Vinubaba/SANTC-API/shared"
 	"io/ioutil"
 	"os"
 )

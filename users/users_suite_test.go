@@ -51,7 +51,7 @@ func initDb() {
 
 	root := os.Getenv("TEDDYCARE_SQL_DIR")
 	if root == "" {
-		root = `C:\Users\arthur\gocode\src\github.com\DigitalFrameworksLLC\teddycare\sql`
+		root = `C:\Users\arthur\gocode\src\github.com\Vinubaba\SANTC-API\sql`
 		log.Println("please set env TEDDYCARE_SQL_DIR")
 		log.Println("default to " + root)
 	}

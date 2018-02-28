@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DigitalFrameworksLLC/teddycare/storage"
-	"github.com/DigitalFrameworksLLC/teddycare/store"
+	"github.com/Vinubaba/SANTC-API/storage"
+	"github.com/Vinubaba/SANTC-API/store"
 
-	"github.com/DigitalFrameworksLLC/teddycare/shared"
+	"github.com/Vinubaba/SANTC-API/shared"
 	"github.com/araddon/dateparse"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"

@@ -4,9 +4,9 @@ import (
 	b64 "encoding/base64"
 	"io/ioutil"
 
-	"github.com/DigitalFrameworksLLC/teddycare/shared"
-	. "github.com/DigitalFrameworksLLC/teddycare/shared/mocks"
-	. "github.com/DigitalFrameworksLLC/teddycare/storage"
+	"github.com/Vinubaba/SANTC-API/shared"
+	. "github.com/Vinubaba/SANTC-API/shared/mocks"
+	. "github.com/Vinubaba/SANTC-API/storage"
 
 	"context"
 	. "github.com/onsi/ginkgo"

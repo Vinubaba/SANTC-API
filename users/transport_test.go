@@ -6,15 +6,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	. "github.com/DigitalFrameworksLLC/teddycare/shared/mocks"
-	. "github.com/DigitalFrameworksLLC/teddycare/storage/mocks"
-	"github.com/DigitalFrameworksLLC/teddycare/store"
-	. "github.com/DigitalFrameworksLLC/teddycare/users"
+	. "github.com/Vinubaba/SANTC-API/shared/mocks"
+	. "github.com/Vinubaba/SANTC-API/storage/mocks"
+	"github.com/Vinubaba/SANTC-API/store"
+	. "github.com/Vinubaba/SANTC-API/users"
 
 	"encoding/json"
-	"github.com/DigitalFrameworksLLC/teddycare/authentication"
-	. "github.com/DigitalFrameworksLLC/teddycare/firebase/mocks"
-	"github.com/DigitalFrameworksLLC/teddycare/shared"
+	"github.com/Vinubaba/SANTC-API/authentication"
+	. "github.com/Vinubaba/SANTC-API/firebase/mocks"
+	"github.com/Vinubaba/SANTC-API/shared"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -425,19 +425,19 @@ var _ = Describe("Transport", func() {
 						"address_2": "VILLA 13",
 						"city": "TOULOUSE",
 						"state": "France",
-						"zip": "31100",
+						"zip": "31100"
 					}`
 			})
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"]}`)
+				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "","roles": ["adult"]}`)
 				assertHttpCode(http.StatusCreated)
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"]}`)
+				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "","roles": ["adult"]}`)
 				assertHttpCode(http.StatusCreated)
 			})
 

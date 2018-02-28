@@ -4,9 +4,9 @@ import (
 	b64 "encoding/base64"
 	"io/ioutil"
 
-	"github.com/DigitalFrameworksLLC/teddycare/shared"
-	. "github.com/DigitalFrameworksLLC/teddycare/shared/mocks"
-	. "github.com/DigitalFrameworksLLC/teddycare/storage"
+	"github.com/Vinubaba/SANTC-API/shared"
+	. "github.com/Vinubaba/SANTC-API/shared/mocks"
+	. "github.com/Vinubaba/SANTC-API/storage"
 
 	"context"
 	"encoding/json"
@@ -27,7 +27,7 @@ var _ = Describe("Gcs", func() {
 	BeforeEach(func() {
 		mockStringGenerator = &MockStringGenerator{}
 		config = &shared.AppConfig{
-			BucketServiceAccount: `C:\Users\arthur\gocode\src\github.com\DigitalFrameworksLLC\teddycare\adm-bucket-sa.json`,
+			BucketServiceAccount: `C:\Users\arthur\gocode\src\github.com\Vinubaba\SANTC-API\bucket-sa.json`,
 			BucketImagesName:     "teddycare-images",
 		}
 

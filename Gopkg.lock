@@ -33,6 +33,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/DigitalFrameworksLLC/teddycare"
+  packages = ["firebase"]
+  revision = "d2516d123a85baeef02255eb6cb34c176908b19b"
+
+[[projects]]
+  branch = "master"
   name = "github.com/Pallinder/go-randomdata"
   packages = ["."]
   revision = "442d37d9dbc782dbd737af9ec575d8858b79261b"
@@ -408,6 +414,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0531db6f50826b2472678a4b7ce18e12e0f8da68a583821b2fc263d2d024d492"
+  inputs-digest = "611e51a1d72fe91e03f2ecde4db8c9c89917cb205c8eb30284a6a8ab6ac12acb"
   solver-name = "gps-cdcl"
   solver-version = 1

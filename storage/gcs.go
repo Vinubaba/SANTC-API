@@ -4,7 +4,7 @@ import (
 	"context"
 	b64 "encoding/base64"
 
-	"github.com/DigitalFrameworksLLC/teddycare/shared"
+	"github.com/Vinubaba/SANTC-API/shared"
 
 	"cloud.google.com/go/storage"
 	"fmt"

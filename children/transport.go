@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/DigitalFrameworksLLC/teddycare/shared"
-	"github.com/DigitalFrameworksLLC/teddycare/store"
+	"github.com/Vinubaba/SANTC-API/shared"
+	"github.com/Vinubaba/SANTC-API/store"
 
 	"github.com/go-kit/kit/endpoint"
 	kithttp "github.com/go-kit/kit/transport/http"
