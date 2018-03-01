@@ -27,7 +27,7 @@ var _ = Describe("Gcs", func() {
 	BeforeEach(func() {
 		mockStringGenerator = &MockStringGenerator{}
 		config = &shared.AppConfig{
-			BucketServiceAccount: `C:\Users\arthur\gocode\src\github.com\Vinubaba\SANTC-API\bucket-sa.json`,
+			BucketServiceAccount: `C:\Users\arthur\gocode\src\github.com\Vinubaba\deployment\bucket-sa.json`,
 			BucketImagesName:     "teddycare-images",
 		}
 
