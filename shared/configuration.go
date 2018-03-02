@@ -21,10 +21,10 @@ type AppConfig struct {
 	LocalStoragePath       string `split_words:"true"`
 
 	BucketImagesName            string `split_words:"true" default:"teddycare-images"`
-	BucketServiceAccount        string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\Vinubaba\\SANTC-API\\bucket-sa.json"`
+	BucketServiceAccount        string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\Vinubaba\\deployment\\bucket-sa.json"`
 	BucketServiceAccountDetails ServiceAccountDetails
 
-	FirebaseServiceAccount string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\Vinubaba\\SANTC-API\\firebase-sa.json"`
+	FirebaseServiceAccount string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\Vinubaba\\deployment\\firebase-sa.json"`
 
 	TestAuthMode     bool `split_words:"true" default:"true"`
 	StartupMigration bool `split_words:"true" default:"false"`

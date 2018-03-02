@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"net/http"
+	"os"
 )
 
 var _ = Describe("Gcs", func() {
@@ -26,8 +27,12 @@ var _ = Describe("Gcs", func() {
 
 	BeforeEach(func() {
 		mockStringGenerator = &MockStringGenerator{}
+		bucketSa := os.Getenv("BUCKET_SERVICE_ACCOUNT_PATH")
+		if bucketSa == "" {
+			bucketSa =  `C:\Users\arthur\gocode\src\github.com\Vinubaba\deployment\bucket-sa.json`
+		}
 		config = &shared.AppConfig{
-			BucketServiceAccount: `C:\Users\arthur\gocode\src\github.com\Vinubaba\deployment\bucket-sa.json`,
+			BucketServiceAccount: bucketSa,
 			BucketImagesName:     "teddycare-images",
 		}
 
