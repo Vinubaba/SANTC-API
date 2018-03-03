@@ -19,6 +19,7 @@ type Child struct {
 	BirthDate           time.Time
 	Gender              sql.NullString
 	ImageUri            sql.NullString
+	Notes               sql.NullString
 	SpecialInstructions SpecialInstructions `sql:"-"`
 	Allergies           Allergies           `sql:"-"`
 }
@@ -64,6 +65,7 @@ func (s *Store) GetChild(tx *gorm.DB, childId string) (Child, error) {
 			"children.gender,"+
 			"children.birth_date,"+
 			"children.image_uri,"+
+			"children.notes,"+
 			"(SELECT string_agg(special_instructions.instruction, ',') FROM special_instructions WHERE special_instructions.child_id = children.child_id),"+
 			"(SELECT string_agg(allergies.allergy, ',')  FROM allergies WHERE allergies.child_id = children.child_id) FROM \"children\" "+
 			"WHERE children.child_id = ?", childId).
@@ -92,6 +94,7 @@ func (s *Store) scanChildRows(rows *sql.Rows) ([]Child, error) {
 			&currentChild.Gender,
 			&currentChild.BirthDate,
 			&currentChild.ImageUri,
+			&currentChild.Notes,
 			&currentChild.SpecialInstructions,
 			&currentChild.Allergies); err != nil {
 			return []Child{}, err
@@ -115,6 +118,7 @@ func (s *Store) ListChild(tx *gorm.DB) ([]Child, error) {
 			"children.gender," +
 			"children.birth_date," +
 			"children.image_uri," +
+			"children.notes," +
 			"(SELECT string_agg(special_instructions.instruction, ',') FROM special_instructions WHERE special_instructions.child_id = children.child_id)," +
 			"(SELECT string_agg(allergies.allergy, ',')  FROM allergies WHERE allergies.child_id = children.child_id)" +
 			" FROM children").

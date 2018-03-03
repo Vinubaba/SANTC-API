@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS children (
   last_name varchar NOT NULL,
   gender varchar NOT NULL,
   birth_date date NOT NULL,
-  image_uri varchar
+  image_uri varchar,
+  notes varchar
 );
 
 CREATE TABLE IF NOT EXISTS allergies (

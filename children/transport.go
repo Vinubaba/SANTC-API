@@ -25,6 +25,7 @@ type ChildTransport struct {
 	BirthDate           string   `json:"birthDate"` // dd/mm/yyyy
 	Gender              string   `json:"gender"`
 	ImageUri            string   `json:"imageUri"`
+	Notes               string   `json:"notes"`
 	Allergies           []string `json:"allergies"`
 	ResponsibleId       string   `json:"responsibleId,omitempty"`
 	Relationship        string   `json:"relationship,omitempty"`
@@ -95,6 +96,7 @@ func makeAddEndpoint(svc Service) endpoint.Endpoint {
 			BirthDate:           child.BirthDate.UTC().String(),
 			Gender:              child.Gender.String,
 			ImageUri:            child.ImageUri.String,
+			Notes:               child.Notes.String,
 			ResponsibleId:       req.ResponsibleId,
 			Allergies:           child.Allergies.ToList(),
 			SpecialInstructions: child.SpecialInstructions.ToList(),
@@ -118,6 +120,7 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 			BirthDate:           child.BirthDate.UTC().String(),
 			FirstName:           child.FirstName.String,
 			LastName:            child.LastName.String,
+			Notes:               child.Notes.String,
 			SpecialInstructions: child.SpecialInstructions.ToList(),
 			Allergies:           child.Allergies.ToList(),
 		}, nil
@@ -150,6 +153,7 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 				BirthDate:           child.BirthDate.UTC().String(),
 				FirstName:           child.FirstName.String,
 				LastName:            child.LastName.String,
+				Notes:               child.Notes.String,
 				SpecialInstructions: child.SpecialInstructions.ToList(),
 				Allergies:           child.Allergies.ToList(),
 			}
@@ -176,6 +180,7 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 			Gender:              child.Gender.String,
 			BirthDate:           child.BirthDate.UTC().String(),
 			ImageUri:            child.ImageUri.String,
+			Notes:               child.Notes.String,
 			SpecialInstructions: child.SpecialInstructions.ToList(),
 			Allergies:           child.Allergies.ToList(),
 		}, nil
@@ -213,12 +218,6 @@ func decodeUpdateChildRequest(_ context.Context, r *http.Request) (interface{}, 
 	}
 	request.Id = id
 	return request, nil
-}
-
-type User struct {
-	Username string   `json:"username"`
-	Password string   `json:"password"`
-	Roles    []string `json:"roles"`
 }
 
 func ignorePayload(_ context.Context, r *http.Request) (interface{}, error) {

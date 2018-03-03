@@ -86,6 +86,7 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		LastName:  store.DbNullString(request.LastName),
 		Gender:    store.DbNullString(request.Gender),
 		ImageUri:  store.DbNullString(filename),
+		Notes:     store.DbNullString(request.Notes),
 	})
 	if err != nil {
 		tx.Rollback()
@@ -256,6 +257,7 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 		FirstName: store.DbNullString(request.FirstName),
 		LastName:  store.DbNullString(request.LastName),
 		ChildId:   store.DbNullString(request.Id),
+		Notes:     store.DbNullString(request.Notes),
 	})
 	if err != nil {
 		tx.Rollback()
@@ -288,7 +290,6 @@ func (c *ChildService) setBucketUri(ctx context.Context, child *store.Child) {
 	if !strings.Contains(child.ImageUri.String, "/") {
 		uri, err := c.Storage.Get(ctx, child.ImageUri.String)
 		if err != nil {
-			// todo logger
 			c.Logger.Warn(ctx, "failed to generate image uri", "imageUri", child.ImageUri, "err", err.Error())
 		}
 		child.ImageUri = store.DbNullString(uri)
