@@ -29,7 +29,7 @@ var _ = Describe("Gcs", func() {
 		mockStringGenerator = &MockStringGenerator{}
 		bucketSa := os.Getenv("BUCKET_SERVICE_ACCOUNT_PATH")
 		if bucketSa == "" {
-			bucketSa =  `C:\Users\arthur\gocode\src\github.com\Vinubaba\deployment\bucket-sa.json`
+			bucketSa = `C:\Users\arthur\gocode\src\github.com\Vinubaba\deployment\bucket-sa.json`
 		}
 		config = &shared.AppConfig{
 			BucketServiceAccount: bucketSa,

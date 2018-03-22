@@ -53,7 +53,12 @@ type ChildService struct {
 }
 
 func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (store.Child, error) {
-	t, err := dateparse.ParseIn(request.BirthDate, time.UTC)
+	birthDate, err := dateparse.ParseIn(request.BirthDate, time.UTC)
+	if err != nil {
+		return store.Child{}, err
+	}
+
+	startDate, err := dateparse.ParseIn(request.StartDate, time.UTC)
 	if err != nil {
 		return store.Child{}, err
 	}
@@ -81,12 +86,13 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 	}
 
 	child, err := c.Store.AddChild(tx, store.Child{
-		BirthDate: t,
+		BirthDate: birthDate,
 		FirstName: store.DbNullString(request.FirstName),
 		LastName:  store.DbNullString(request.LastName),
 		Gender:    store.DbNullString(request.Gender),
 		ImageUri:  store.DbNullString(filename),
 		Notes:     store.DbNullString(request.Notes),
+		StartDate: startDate,
 	})
 	if err != nil {
 		tx.Rollback()
