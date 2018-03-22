@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS children (
   gender varchar NOT NULL,
   birth_date date NOT NULL,
   image_uri varchar,
+  start_date date NOT NULL,
   notes varchar
 );
 

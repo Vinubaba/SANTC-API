@@ -25,6 +25,7 @@ type ChildTransport struct {
 	BirthDate           string   `json:"birthDate"` // dd/mm/yyyy
 	Gender              string   `json:"gender"`
 	ImageUri            string   `json:"imageUri"`
+	StartDate           string   `json:"startDate"` // dd/mm/yyyy
 	Notes               string   `json:"notes"`
 	Allergies           []string `json:"allergies"`
 	ResponsibleId       string   `json:"responsibleId,omitempty"`
@@ -96,6 +97,7 @@ func makeAddEndpoint(svc Service) endpoint.Endpoint {
 			BirthDate:           child.BirthDate.UTC().String(),
 			Gender:              child.Gender.String,
 			ImageUri:            child.ImageUri.String,
+			StartDate:           child.StartDate.UTC().String(),
 			Notes:               child.Notes.String,
 			ResponsibleId:       req.ResponsibleId,
 			Allergies:           child.Allergies.ToList(),
@@ -120,6 +122,7 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 			BirthDate:           child.BirthDate.UTC().String(),
 			FirstName:           child.FirstName.String,
 			LastName:            child.LastName.String,
+			StartDate:           child.StartDate.UTC().String(),
 			Notes:               child.Notes.String,
 			SpecialInstructions: child.SpecialInstructions.ToList(),
 			Allergies:           child.Allergies.ToList(),
@@ -153,6 +156,7 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 				BirthDate:           child.BirthDate.UTC().String(),
 				FirstName:           child.FirstName.String,
 				LastName:            child.LastName.String,
+				StartDate:           child.StartDate.UTC().String(),
 				Notes:               child.Notes.String,
 				SpecialInstructions: child.SpecialInstructions.ToList(),
 				Allergies:           child.Allergies.ToList(),
@@ -180,6 +184,7 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 			Gender:              child.Gender.String,
 			BirthDate:           child.BirthDate.UTC().String(),
 			ImageUri:            child.ImageUri.String,
+			StartDate:           child.StartDate.UTC().String(),
 			Notes:               child.Notes.String,
 			SpecialInstructions: child.SpecialInstructions.ToList(),
 			Allergies:           child.Allergies.ToList(),

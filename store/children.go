@@ -18,6 +18,7 @@ type Child struct {
 	LastName            sql.NullString
 	BirthDate           time.Time
 	Gender              sql.NullString
+	StartDate           time.Time
 	ImageUri            sql.NullString
 	Notes               sql.NullString
 	SpecialInstructions SpecialInstructions `sql:"-"`
@@ -64,6 +65,7 @@ func (s *Store) GetChild(tx *gorm.DB, childId string) (Child, error) {
 			"children.last_name,"+
 			"children.gender,"+
 			"children.birth_date,"+
+			"children.start_date,"+
 			"children.image_uri,"+
 			"children.notes,"+
 			"(SELECT string_agg(special_instructions.instruction, ',') FROM special_instructions WHERE special_instructions.child_id = children.child_id),"+
@@ -93,6 +95,7 @@ func (s *Store) scanChildRows(rows *sql.Rows) ([]Child, error) {
 			&currentChild.LastName,
 			&currentChild.Gender,
 			&currentChild.BirthDate,
+			&currentChild.StartDate,
 			&currentChild.ImageUri,
 			&currentChild.Notes,
 			&currentChild.SpecialInstructions,
@@ -117,6 +120,7 @@ func (s *Store) ListChild(tx *gorm.DB) ([]Child, error) {
 			"children.last_name," +
 			"children.gender," +
 			"children.birth_date," +
+			"children.start_date," +
 			"children.image_uri," +
 			"children.notes," +
 			"(SELECT string_agg(special_instructions.instruction, ',') FROM special_instructions WHERE special_instructions.child_id = children.child_id)," +
