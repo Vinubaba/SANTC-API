@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/Vinubaba/SANTC-API/children"
+	"github.com/Vinubaba/SANTC-API/classes"
 	teddyFirebase "github.com/Vinubaba/SANTC-API/firebase"
 	. "github.com/Vinubaba/SANTC-API/shared"
 	"github.com/Vinubaba/SANTC-API/storage"
@@ -37,6 +38,7 @@ var (
 	userService            = &users.UserService{}
 	userHandlerFactory     = &users.HandlerFactory{}
 	childrenHandlerFactory = &children.HandlerFactory{}
+	classesHandlerFactory  = &classes.HandlerFactory{}
 	teddyFirebaseClient    = &teddyFirebase.Client{}
 
 	dbStore    = &Store{}
@@ -100,6 +102,7 @@ func initApplicationGraph() error {
 		&inject.Object{Value: userService},
 		&inject.Object{Value: userHandlerFactory},
 		&inject.Object{Value: childrenHandlerFactory},
+		&inject.Object{Value: classesHandlerFactory},
 		&inject.Object{Value: db},
 		&inject.Object{Value: stringGenerator},
 		&inject.Object{Value: dbStore},
@@ -146,6 +149,11 @@ func startHttpServer(ctx context.Context) {
 		kithttp.ServerErrorEncoder(children.EncodeError),
 	}
 
+	classesOpts := []kithttp.ServerOption{
+		kithttp.ServerErrorLogger(logger),
+		kithttp.ServerErrorEncoder(classes.EncodeError),
+	}
+
 	router := mux.NewRouter()
 
 	apiRouterV1 := router.PathPrefix("/api/v1").Subrouter()
@@ -173,6 +181,12 @@ func startHttpServer(ctx context.Context) {
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Get(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN, ROLE_TEACHER)).Methods(http.MethodGet)
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Update(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN)).Methods(http.MethodPatch)
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Delete(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodDelete)
+
+	apiRouterV1.Handle("/classes", authenticator.Roles(classesHandlerFactory.Add(classesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPost)
+	apiRouterV1.Handle("/classes", authenticator.Roles(classesHandlerFactory.List(classesOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN, ROLE_TEACHER)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/classes/{classId}", authenticator.Roles(classesHandlerFactory.Get(classesOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN, ROLE_TEACHER)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/classes/{classId}", authenticator.Roles(classesHandlerFactory.Update(classesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPatch)
+	apiRouterV1.Handle("/classes/{classId}", authenticator.Roles(classesHandlerFactory.Delete(classesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodDelete)
 
 	if config.TestAuthMode {
 		testAuthRouter := mux.NewRouter()
