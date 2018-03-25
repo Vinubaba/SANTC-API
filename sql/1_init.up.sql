@@ -48,6 +48,13 @@ CREATE TABLE IF NOT EXISTS roles (
   role varchar NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS classes (
+  class_id varchar PRIMARY KEY UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+  name varchar UNIQUE NOT NULL,
+  description varchar,
+  image_uri varchar
+);
+
 INSERT INTO users ("email", "first_name", "last_name", "gender") VALUES ('arthur.gustin@gmail.com', 'arthur', 'gustin', 'm');
 INSERT INTO users ("email", "first_name", "last_name", "gender") VALUES ('vinu.singh@gmail.com', 'vinu', 'singh', 'm');
 INSERT INTO users ("email", "first_name", "last_name", "gender") VALUES ('johngallegodev@gmail.com', 'john', 'gallego', 'm');
