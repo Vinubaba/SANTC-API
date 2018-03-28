@@ -7,14 +7,16 @@ import (
 	"github.com/Vinubaba/SANTC-API/storage"
 	"github.com/Vinubaba/SANTC-API/store"
 
+	"github.com/Vinubaba/SANTC-API/ageranges"
 	"github.com/Vinubaba/SANTC-API/shared"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
 var (
-	ErrEmptyClass   = errors.New("classId cannot be empty")
-	ErrInvalidImage = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
+	ErrEmptyClass    = errors.New("classId cannot be empty")
+	ErrInvalidImage  = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
+	ErrEmptyAgeRange = errors.New("please specify an age range")
 )
 
 type Service interface {
@@ -28,6 +30,7 @@ type Service interface {
 type ClassService struct {
 	Store interface {
 		Tx() *gorm.DB
+
 		AddClass(tx *gorm.DB, class store.Class) (store.Class, error)
 		UpdateClass(tx *gorm.DB, class store.Class) (store.Class, error)
 		GetClass(tx *gorm.DB, classId string) (store.Class, error)
@@ -39,6 +42,11 @@ type ClassService struct {
 }
 
 func (c *ClassService) AddClass(ctx context.Context, request ClassTransport) (store.Class, error) {
+
+	if (ageranges.AgeRangeTransport{}) == request.AgeRange {
+		return store.Class{}, ErrEmptyAgeRange
+	}
+
 	var filename string
 	if request.ImageUri != "" {
 		encoded, mimeType, err := c.validate64EncodedPhoto(request.ImageUri)
@@ -61,6 +69,15 @@ func (c *ClassService) AddClass(ctx context.Context, request ClassTransport) (st
 		Name:        store.DbNullString(request.Name),
 		Description: store.DbNullString(request.Description),
 		ImageUri:    store.DbNullString(filename),
+		AgeRangeId:  store.DbNullString(request.AgeRange.Id),
+		AgeRange: store.AgeRange{
+			AgeRangeId: store.DbNullString(request.AgeRange.Id),
+			Stage:      store.DbNullString(request.AgeRange.Stage),
+			Min:        request.AgeRange.Min,
+			MinUnit:    store.DbNullString(request.AgeRange.MinUnit),
+			Max:        request.AgeRange.Max,
+			MaxUnit:    store.DbNullString(request.AgeRange.MaxUnit),
+		},
 	})
 	if err != nil {
 		tx.Rollback()
@@ -163,6 +180,15 @@ func (c *ClassService) UpdateClass(ctx context.Context, request ClassTransport) 
 		ClassId:     store.DbNullString(request.Id),
 		Description: store.DbNullString(request.Description),
 		Name:        store.DbNullString(request.Name),
+		AgeRangeId:  store.DbNullString(request.AgeRange.Id),
+		AgeRange: store.AgeRange{
+			AgeRangeId: store.DbNullString(request.AgeRange.Id),
+			Stage:      store.DbNullString(request.AgeRange.Stage),
+			Min:        request.AgeRange.Min,
+			MinUnit:    store.DbNullString(request.AgeRange.MinUnit),
+			Max:        request.AgeRange.Max,
+			MaxUnit:    store.DbNullString(request.AgeRange.MaxUnit),
+		},
 	})
 	if err != nil {
 		tx.Rollback()

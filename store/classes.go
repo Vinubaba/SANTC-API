@@ -5,29 +5,43 @@ import (
 	"errors"
 
 	"github.com/jinzhu/gorm"
+	"strings"
 )
 
 var (
-	ErrClassNotFound = errors.New("class not found")
+	ErrClassNotFound          = errors.New("class not found")
+	ErrClassNameAlreadyExists = errors.New("class name already exists")
 )
 
 type Class struct {
 	ClassId     sql.NullString
+	AgeRangeId  sql.NullString
 	Name        sql.NullString
 	Description sql.NullString
 	ImageUri    sql.NullString
+	AgeRange    AgeRange `sql:"-" gorm:"foreignkey:AgeRangeId association_foreignkey:AgeRangeId"`
 }
 
 func (s *Store) AddClass(tx *gorm.DB, class Class) (Class, error) {
 	db := s.dbOrTx(tx)
 
-	class.ClassId = DbNullString(s.StringGenerator.GenerateUuid())
+	if class.AgeRange.AgeRangeId.String == "" {
+		ageRange, err := s.AddAgeRange(db, class.AgeRange)
+		if err != nil {
+			return Class{}, err
+		}
+		class.AgeRangeId = ageRange.AgeRangeId
+	}
 
+	class.ClassId = DbNullString(s.StringGenerator.GenerateUuid())
 	if err := db.Create(&class).Error; err != nil {
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint \"classes_name_key\"") {
+			return Class{}, ErrClassNameAlreadyExists
+		}
 		return Class{}, err
 	}
 
-	return class, nil
+	return s.GetClass(db, class.ClassId.String)
 }
 
 func (s *Store) DeleteClass(tx *gorm.DB, classId string) (err error) {
@@ -52,66 +66,36 @@ func (s *Store) classExists(tx *gorm.DB, classId string) bool {
 func (s *Store) GetClass(tx *gorm.DB, classId string) (Class, error) {
 	db := s.dbOrTx(tx)
 
-	rows, err := db.Table("classes").
-		Raw("SELECT classes.class_id,"+
-			"classes.name,"+
-			"classes.description,"+
-			"classes.image_uri"+
-			" FROM classes"+
-			" WHERE classes.class_id = ?", classId).
-		Rows()
-	if err != nil {
-		return Class{}, err
+	class := Class{
+		ClassId: DbNullString(classId),
 	}
-	classes, err := s.scanClassRows(rows)
-	if err != nil {
-		return Class{}, err
-	}
-
-	if len(classes) == 0 {
-		return Class{}, ErrClassNotFound
-	}
-	return classes[0], nil
-}
-
-func (s *Store) scanClassRows(rows *sql.Rows) ([]Class, error) {
-	classes := []Class{}
-	for rows.Next() {
-		currentClass := Class{}
-		if err := rows.Scan(&currentClass.ClassId,
-			&currentClass.Name,
-			&currentClass.Description,
-			&currentClass.ImageUri); err != nil {
-			return []Class{}, err
+	if err := db.Model(Class{}).Where("class_id = ?", classId).First(&class).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return Class{}, ErrClassNotFound
 		}
-		classes = append(classes, currentClass)
+		return Class{}, err
+	}
+	if err := db.Model(AgeRange{}).Where("age_range_id = ?", class.AgeRangeId).First(&class.AgeRange).Error; err != nil {
+		return Class{}, err
 	}
 
-	return classes, nil
+	return class, nil
 }
 
 func (s *Store) ListClass(tx *gorm.DB) ([]Class, error) {
 	db := s.dbOrTx(tx)
 
-	rows, err := db.Table("classes").
-		Raw("SELECT classes.class_id," +
-			"classes.name," +
-			"classes.description," +
-			"classes.image_uri" +
-			" FROM classes").
-		Rows()
+	classes := make([]Class, 0)
 
-	if err != nil {
-		return []Class{}, err
+	if err := db.Model(Class{}).Find(&classes).Error; err != nil {
+		return nil, err
 	}
-	classes, err := s.scanClassRows(rows)
-	if err != nil {
-		return []Class{}, err
+	for i, class := range classes {
+		if err := db.Model(classes[i]).Where("age_range_id = ?", class.AgeRangeId).First(&classes[i].AgeRange).Error; err != nil {
+			return nil, err
+		}
 	}
 
-	if len(classes) == 0 {
-		return []Class{}, ErrClassNotFound
-	}
 	return classes, nil
 }
 
@@ -123,6 +107,9 @@ func (s *Store) UpdateClass(tx *gorm.DB, class Class) (Class, error) {
 		return Class{}, ErrClassNotFound
 	}
 	if err := res.Error; err != nil {
+		if strings.Contains(err.Error(), "insert or update on table \"classes\" violates foreign key constraint \"classes_age_range_id_fkey\"") {
+			return Class{}, ErrAgeRangeNotFound
+		}
 		return Class{}, err
 	}
 

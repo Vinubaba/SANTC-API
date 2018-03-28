@@ -48,11 +48,26 @@ CREATE TABLE IF NOT EXISTS roles (
   role varchar NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS age_ranges (
+  age_range_id varchar PRIMARY KEY UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+  stage varchar NOT NULL,
+  min integer,
+  min_unit varchar,
+  max integer,
+  max_unit varchar
+);
+
 CREATE TABLE IF NOT EXISTS classes (
   class_id varchar PRIMARY KEY UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+  age_range_id varchar REFERENCES age_ranges (age_range_id) ON DELETE SET NULL,
   name varchar UNIQUE NOT NULL,
   description varchar,
   image_uri varchar
+);
+
+CREATE TABLE IF NOT EXISTS teacher_classes (
+  user_id varchar REFERENCES users (user_id) ON DELETE CASCADE,
+  age_range_id varchar REFERENCES age_ranges (age_range_id) ON DELETE SET NULL
 );
 
 INSERT INTO users ("email", "first_name", "last_name", "gender") VALUES ('arthur.gustin@gmail.com', 'arthur', 'gustin', 'm');

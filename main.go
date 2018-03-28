@@ -16,6 +16,7 @@ import (
 
 	"firebase.google.com/go"
 	"firebase.google.com/go/auth"
+	"github.com/Vinubaba/SANTC-API/ageranges"
 	"github.com/Vinubaba/SANTC-API/authentication"
 	"github.com/Vinubaba/SANTC-API/store/migrations"
 	"github.com/facebookgo/inject"
@@ -29,17 +30,18 @@ import (
 )
 
 var (
-	ctx                    = context.Background()
-	logger                 = NewLogger("teddycare")
-	config                 *AppConfig
-	db                     *gorm.DB
-	stringGenerator        = &StringGenerator{}
-	childService           = &children.ChildService{}
-	userService            = &users.UserService{}
-	userHandlerFactory     = &users.HandlerFactory{}
-	childrenHandlerFactory = &children.HandlerFactory{}
-	classesHandlerFactory  = &classes.HandlerFactory{}
-	teddyFirebaseClient    = &teddyFirebase.Client{}
+	ctx                     = context.Background()
+	logger                  = NewLogger("teddycare")
+	config                  *AppConfig
+	db                      *gorm.DB
+	stringGenerator         = &StringGenerator{}
+	childService            = &children.ChildService{}
+	userService             = &users.UserService{}
+	userHandlerFactory      = &users.HandlerFactory{}
+	childrenHandlerFactory  = &children.HandlerFactory{}
+	classesHandlerFactory   = &classes.HandlerFactory{}
+	ageRangesHandlerFactory = &ageranges.HandlerFactory{}
+	teddyFirebaseClient     = &teddyFirebase.Client{}
 
 	dbStore    = &Store{}
 	gcsStorage = &storage.GoogleStorage{}
@@ -103,6 +105,7 @@ func initApplicationGraph() error {
 		&inject.Object{Value: userHandlerFactory},
 		&inject.Object{Value: childrenHandlerFactory},
 		&inject.Object{Value: classesHandlerFactory},
+		&inject.Object{Value: ageRangesHandlerFactory},
 		&inject.Object{Value: db},
 		&inject.Object{Value: stringGenerator},
 		&inject.Object{Value: dbStore},
@@ -154,6 +157,11 @@ func startHttpServer(ctx context.Context) {
 		kithttp.ServerErrorEncoder(classes.EncodeError),
 	}
 
+	ageRangesOpts := []kithttp.ServerOption{
+		kithttp.ServerErrorLogger(logger),
+		kithttp.ServerErrorEncoder(ageranges.EncodeError),
+	}
+
 	router := mux.NewRouter()
 
 	apiRouterV1 := router.PathPrefix("/api/v1").Subrouter()
@@ -181,6 +189,12 @@ func startHttpServer(ctx context.Context) {
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Get(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN, ROLE_TEACHER)).Methods(http.MethodGet)
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Update(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN)).Methods(http.MethodPatch)
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Delete(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodDelete)
+
+	apiRouterV1.Handle("/age-ranges", authenticator.Roles(ageRangesHandlerFactory.Add(ageRangesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPost)
+	apiRouterV1.Handle("/age-ranges", authenticator.Roles(ageRangesHandlerFactory.List(ageRangesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/age-ranges/{ageRangeId}", authenticator.Roles(ageRangesHandlerFactory.Get(ageRangesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/age-ranges/{ageRangeId}", authenticator.Roles(ageRangesHandlerFactory.Update(ageRangesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPatch)
+	apiRouterV1.Handle("/age-ranges/{ageRangeId}", authenticator.Roles(ageRangesHandlerFactory.Delete(ageRangesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodDelete)
 
 	apiRouterV1.Handle("/classes", authenticator.Roles(classesHandlerFactory.Add(classesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPost)
 	apiRouterV1.Handle("/classes", authenticator.Roles(classesHandlerFactory.List(classesOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN, ROLE_TEACHER)).Methods(http.MethodGet)
