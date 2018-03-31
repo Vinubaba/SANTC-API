@@ -9,7 +9,7 @@ type MockGcs struct {
 	mock.Mock
 }
 
-func (m *MockGcs) Store(ctx context.Context, encodedImage, mimeType string) (string, error) {
+func (m *MockGcs) Store(ctx context.Context, b64image string) (string, error) {
 	args := m.Called()
 	return args.Get(0).(string), args.Error(1)
 }

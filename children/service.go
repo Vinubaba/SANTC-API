@@ -67,17 +67,9 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		return store.Child{}, ErrNoParent
 	}
 
-	var filename string
-	if request.ImageUri != "" {
-		encoded, mimeType, err := c.validate64EncodedPhoto(request.ImageUri)
-		if err != nil {
-			return store.Child{}, errors.Wrap(err, "failed to validate image")
-		}
-
-		filename, err = c.Storage.Store(ctx, encoded, mimeType)
-		if err != nil {
-			return store.Child{}, errors.Wrap(err, "failed to store image")
-		}
+	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
+	if err != nil {
+		return store.Child{}, errors.Wrap(err, "failed to store image")
 	}
 
 	tx := c.Store.Tx()
@@ -90,7 +82,7 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		FirstName: store.DbNullString(request.FirstName),
 		LastName:  store.DbNullString(request.LastName),
 		Gender:    store.DbNullString(request.Gender),
-		ImageUri:  store.DbNullString(filename),
+		ImageUri:  store.DbNullString(request.ImageUri),
 		Notes:     store.DbNullString(request.Notes),
 		StartDate: startDate,
 	})
@@ -110,12 +102,11 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		child.SpecialInstructions = append(child.SpecialInstructions, instructionToCreate)
 	}
 
-	uri, err := c.Storage.Get(ctx, filename)
+	uri, err := c.Storage.Get(ctx, request.ImageUri)
 	if err != nil {
 		tx.Rollback()
 		return store.Child{}, errors.Wrap(err, "failed to generate image uri")
 	}
-	// When adding a child, the json response will contains a temporary uri, so the frontend can do whatever it wants with it
 	child.ImageUri = store.DbNullString(uri)
 
 	if err = c.Store.SetResponsible(tx, store.ResponsibleOf{Relationship: request.Relationship, ChildId: child.ChildId.String, ResponsibleId: request.ResponsibleId}); err != nil {
@@ -215,9 +206,9 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 			return store.Child{}, err
 		}
 	}
-
-	if err := c.setAndStoreDecodedImage(ctx, &request); err != nil {
-		return store.Child{}, err
+	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
+	if err != nil {
+		return store.Child{}, errors.Wrap(err, "failed to store image")
 	}
 
 	tx := c.Store.Tx()
@@ -273,20 +264,6 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 	tx.Commit()
 	c.setBucketUri(ctx, &child)
 	return child, nil
-}
-
-func (c *ChildService) setAndStoreDecodedImage(ctx context.Context, request *ChildTransport) error {
-	if strings.HasPrefix(request.ImageUri, "data:image/jpeg;base64,") {
-		mimeType := "image/jpeg"
-		encoded := strings.TrimPrefix(request.ImageUri, "data:image/jpeg;base64,")
-
-		var err error
-		request.ImageUri, err = c.Storage.Store(ctx, encoded, mimeType)
-		if err != nil {
-			return errors.Wrap(err, "failed to store image")
-		}
-	}
-	return nil
 }
 
 func (c *ChildService) setBucketUri(ctx context.Context, child *store.Child) {

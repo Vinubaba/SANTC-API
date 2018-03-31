@@ -83,7 +83,7 @@ func makeAddEndpoint(svc Service) endpoint.Endpoint {
 		if err != nil {
 			return nil, err
 		}
-		return dbClassToTransportClass(class), nil
+		return storeToTransport(class), nil
 	}
 }
 
@@ -95,7 +95,7 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 			return nil, err
 		}
 
-		return dbClassToTransportClass(class), nil
+		return storeToTransport(class), nil
 	}
 }
 
@@ -118,7 +118,7 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 		classesRet := []ClassTransport{}
 
 		for _, class := range classes {
-			classesRet = append(classesRet, dbClassToTransportClass(class))
+			classesRet = append(classesRet, storeToTransport(class))
 		}
 
 		return classesRet, nil
@@ -134,24 +134,7 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 			return nil, err
 		}
 
-		return dbClassToTransportClass(class), nil
-	}
-}
-
-func dbClassToTransportClass(class store.Class) ClassTransport {
-	return ClassTransport{
-		Id:          class.ClassId.String,
-		ImageUri:    class.ImageUri.String,
-		Name:        class.Name.String,
-		Description: class.Description.String,
-		AgeRange: ageranges.AgeRangeTransport{
-			Id:      class.AgeRange.AgeRangeId.String,
-			Stage:   class.AgeRange.Stage.String,
-			Min:     class.AgeRange.Min,
-			MinUnit: class.AgeRange.MinUnit.String,
-			Max:     class.AgeRange.Max,
-			MaxUnit: class.AgeRange.MaxUnit.String,
-		},
+		return storeToTransport(class), nil
 	}
 }
 
@@ -206,4 +189,39 @@ func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"error": err.Error(),
 	})
+}
+
+func transportToStore(request ClassTransport) store.Class {
+	return store.Class{
+		ImageUri:    store.DbNullString(request.ImageUri),
+		ClassId:     store.DbNullString(request.Id),
+		Description: store.DbNullString(request.Description),
+		Name:        store.DbNullString(request.Name),
+		AgeRangeId:  store.DbNullString(request.AgeRange.Id),
+		AgeRange: store.AgeRange{
+			AgeRangeId: store.DbNullString(request.AgeRange.Id),
+			Stage:      store.DbNullString(request.AgeRange.Stage),
+			Min:        request.AgeRange.Min,
+			MinUnit:    store.DbNullString(request.AgeRange.MinUnit),
+			Max:        request.AgeRange.Max,
+			MaxUnit:    store.DbNullString(request.AgeRange.MaxUnit),
+		},
+	}
+}
+
+func storeToTransport(class store.Class) ClassTransport {
+	return ClassTransport{
+		Id:          class.ClassId.String,
+		ImageUri:    class.ImageUri.String,
+		Name:        class.Name.String,
+		Description: class.Description.String,
+		AgeRange: ageranges.AgeRangeTransport{
+			Id:      class.AgeRange.AgeRangeId.String,
+			Stage:   class.AgeRange.Stage.String,
+			Min:     class.AgeRange.Min,
+			MinUnit: class.AgeRange.MinUnit.String,
+			Max:     class.AgeRange.Max,
+			MaxUnit: class.AgeRange.MaxUnit.String,
+		},
+	}
 }

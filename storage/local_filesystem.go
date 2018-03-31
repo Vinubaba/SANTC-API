@@ -1,14 +1,14 @@
 package storage
 
 import (
-	b64 "encoding/base64"
-	"fmt"
-	"path"
-
 	"context"
-	"github.com/Vinubaba/SANTC-API/shared"
+	b64 "encoding/base64"
+	"errors"
 	"io/ioutil"
 	"os"
+	"path"
+
+	"github.com/Vinubaba/SANTC-API/shared"
 )
 
 const (
@@ -16,11 +16,11 @@ const (
 )
 
 var (
-	ErrUnsupportedFileFormat = fmt.Errorf("unsupported format. The only accepted format is %s", jpegMimetype)
+	ErrUnsupportedFileFormat = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
 )
 
 type Storage interface {
-	Store(ctx context.Context, encodedImage, mimeType string) (string, error)
+	Store(ctx context.Context, b64image string) (string, error)
 	Get(ctx context.Context, filename string) (string, error)
 	Delete(ctx context.Context, filename string) error
 }

@@ -3,14 +3,15 @@ package storage
 import (
 	"context"
 	b64 "encoding/base64"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/Vinubaba/SANTC-API/shared"
 
 	"cloud.google.com/go/storage"
-	"fmt"
 	"google.golang.org/api/option"
-	"net/http"
-	"time"
 )
 
 type GoogleStorage struct {
@@ -20,12 +21,16 @@ type GoogleStorage struct {
 	} `inject:""`
 }
 
-func (s *GoogleStorage) Store(ctx context.Context, encodedImage, mimeType string) (string, error) {
-	if mimeType != jpegMimetype {
-		return "", ErrUnsupportedFileFormat
+func (s *GoogleStorage) Store(ctx context.Context, b64image string) (string, error) {
+	if b64image == "" {
+		return "", nil
+	}
+	encoded, err := s.validate64EncodedPhoto(b64image)
+	if err != nil {
+		return "", err
 	}
 
-	decoded, err := b64.StdEncoding.DecodeString(encodedImage)
+	decoded, err := b64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		return "", err
 	}
@@ -43,6 +48,15 @@ func (s *GoogleStorage) Store(ctx context.Context, encodedImage, mimeType string
 	}
 
 	return fileName, nil
+}
+
+func (s *GoogleStorage) validate64EncodedPhoto(photo string) (encoded string, err error) {
+	if strings.HasPrefix(photo, "data:image/jpeg;base64,") {
+		encoded = strings.TrimPrefix(photo, "data:image/jpeg;base64,")
+	} else {
+		err = ErrUnsupportedFileFormat
+	}
+	return
 }
 
 // returns signedUrls

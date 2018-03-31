@@ -45,12 +45,14 @@ type UserService struct {
 }
 
 func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
+	var err error
 	tx := c.Store.Tx()
 	if tx.Error != nil {
 		return store.User{}, errors.Wrap(tx.Error, "failed to create user")
 	}
 
-	if err := c.setAndStoreDecodedImage(ctx, &request); err != nil {
+	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
+	if err != nil {
 		return store.User{}, err
 	}
 
@@ -93,20 +95,6 @@ func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport,
 	return createdUser, nil
 }
 
-func (c *UserService) setAndStoreDecodedImage(ctx context.Context, request *UserTransport) error {
-	if strings.HasPrefix(request.ImageUri, "data:image/jpeg;base64,") {
-		mimeType := "image/jpeg"
-		encoded := strings.TrimPrefix(request.ImageUri, "data:image/jpeg;base64,")
-
-		var err error
-		request.ImageUri, err = c.Storage.Store(ctx, encoded, mimeType)
-		if err != nil {
-			return errors.Wrap(err, "failed to store image")
-		}
-	}
-	return nil
-}
-
 func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
 	/*
 		//todo: when affiliation is developed
@@ -143,10 +131,10 @@ func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTranspo
 		}
 	}
 
-	if err := c.setAndStoreDecodedImage(ctx, &request); err != nil {
+	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
+	if err != nil {
 		return store.User{}, err
 	}
-
 	user, err = c.Store.UpdateUser(nil, store.User{
 		UserId:    store.DbNullString(request.Id),
 		Email:     store.DbNullString(request.Email),

@@ -2,19 +2,20 @@ package users_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
+	"github.com/Vinubaba/SANTC-API/authentication"
+	. "github.com/Vinubaba/SANTC-API/firebase/mocks"
+	"github.com/Vinubaba/SANTC-API/shared"
 	. "github.com/Vinubaba/SANTC-API/shared/mocks"
 	. "github.com/Vinubaba/SANTC-API/storage/mocks"
 	"github.com/Vinubaba/SANTC-API/store"
 	. "github.com/Vinubaba/SANTC-API/users"
 
-	"encoding/json"
-	"github.com/Vinubaba/SANTC-API/authentication"
-	. "github.com/Vinubaba/SANTC-API/firebase/mocks"
-	"github.com/Vinubaba/SANTC-API/shared"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -22,7 +23,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
-	"strings"
 )
 
 var _ = Describe("Transport", func() {
@@ -43,7 +43,7 @@ var _ = Describe("Transport", func() {
 		reqToUse                                          *http.Request
 		httpMethodToUse, httpEndpointToUse, httpBodyToUse string
 
-		mockImageUriName string
+		mockImageUriName = "bar.jpg"
 	)
 
 	var (
@@ -101,34 +101,24 @@ var _ = Describe("Transport", func() {
 	BeforeEach(func() {
 		logger := shared.NewLogger("teddycare")
 
-		var err error
-		connectString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-			"localhost",
-			"5432",
-			"postgres",
-			"postgres",
-			"test_teddycare")
-		concreteDb, err = gorm.Open("postgres", connectString)
-		if err != nil {
-			panic(err)
-		}
-		concreteDb.LogMode(false)
-		concreteDb.SetLogger(logger)
+		concreteDb = shared.NewDbInstance(true, logger)
+
 		mockStringGenerator = &MockStringGenerator{}
 		mockStringGenerator.On("GenerateUuid").Return("aaa").Once()
 
 		mockStorage = &MockGcs{}
-		mockImageUriName = "bar.jpg"
 		mockStorage.On("Get", mock.Anything, mock.Anything).Return("gs://foo/"+mockImageUriName, nil)
 		mockStorage.On("Delete", mock.Anything, mock.Anything).Return(nil)
+
+		mockFirebaseClient = &MockClient{}
+		mockFirebaseClient.On("DeleteUserByEmail", mock.Anything, mock.Anything).Return(nil)
+
+		recorder = httptest.NewRecorder()
 
 		concreteStore = &store.Store{
 			Db:              concreteDb,
 			StringGenerator: mockStringGenerator,
 		}
-
-		mockFirebaseClient = &MockClient{}
-		mockFirebaseClient.On("DeleteUserByEmail", mock.Anything, mock.Anything).Return(nil)
 
 		userService := &UserService{
 			FirebaseClient: mockFirebaseClient,
@@ -173,20 +163,7 @@ var _ = Describe("Transport", func() {
 		router.Handle("/adults/{id}", authenticator.Roles(handlerFactory.DeleteAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
 		router.Handle("/adults/{id}", authenticator.Roles(handlerFactory.UpdateAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
 
-		recorder = httptest.NewRecorder()
-
-		concreteStore.Db.Exec(`TRUNCATE TABLE "users" CASCADE`)
-		concreteStore.Db.Exec(`TRUNCATE TABLE "roles" CASCADE`)
-		concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri") VALUES ('id1','arthur@gmail.com','Arthur','Gustin','M','+3365651','1 RUE TRUC','APP 4','Toulouse','FRANCE','31400','http://image.com')`)
-		concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri") VALUES ('id2','vinu@gmail.com','Vinu','Singh','M','+3365651','1 RUE TRUC','APP 4','Toulouse','FRANCE','31400','http://image.com')`)
-		concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri") VALUES ('id3','john@gmail.com','John','John','M','+3365651','1 RUE TRUC','APP 4','Toulouse','FRANCE','31400','http://image.com')`)
-		concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri") VALUES ('id4','estree@gmail.com','Estree','Delacour','F','+3365651','1 RUE TRUC','APP 4','Toulouse','FRANCE','31400','http://image.com')`)
-		concreteStore.Db.Exec(`INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri") VALUES ('id5','anna@gmail.com','Anna','Melnychuk','F','+3365651','1 RUE TRUC','APP 4','Toulouse','FRANCE','31400','http://image.com')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id1', '` + shared.ROLE_ADMIN + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id2', '` + shared.ROLE_OFFICE_MANAGER + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id3', '` + shared.ROLE_OFFICE_MANAGER + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id4', '` + shared.ROLE_TEACHER + `')`)
-		concreteStore.Db.Exec(`INSERT INTO "roles" ("user_id","role") VALUES ('id5', '` + shared.ROLE_ADULT + `')`)
+		shared.SetDbInitialState()
 	})
 
 	AfterEach(func() {
@@ -414,7 +391,7 @@ var _ = Describe("Transport", func() {
 				mockStorage.On("Store", mock.Anything, mock.Anything, mock.Anything).Return(mockImageUriName, nil)
 				httpMethodToUse = http.MethodPost
 				httpEndpointToUse = "/adults"
-				httpBodyToUse = `
+				httpBodyToUse = fmt.Sprintf(`
 					{
 						"firstName": "Arthur",
 						"lastName": "Gustin",
@@ -425,19 +402,20 @@ var _ = Describe("Transport", func() {
 						"address_2": "VILLA 13",
 						"city": "TOULOUSE",
 						"state": "France",
-						"zip": "31100"
-					}`
+						"zip": "31100",
+						"imageUri": "%s"
+					}`, b64imageTest)
 			})
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "","roles": ["adult"]}`)
+				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"]}`)
 				assertHttpCode(http.StatusCreated)
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "","roles": ["adult"]}`)
+				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"]}`)
 				assertHttpCode(http.StatusCreated)
 			})
 

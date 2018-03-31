@@ -67,7 +67,7 @@ var _ = Describe("Gcs", func() {
 			// First store
 			image, _ = ioutil.ReadFile("test_data/DSCF6458.JPG")
 			encodedImage = b64.RawStdEncoding.EncodeToString(image)
-			fileName, storeError = storage.Store(ctx, encodedImage, "image/jpeg")
+			fileName, storeError = storage.Store(ctx, "data:image/jpeg;base64,"+encodedImage)
 
 			// Then get
 			uri, getError = storage.Get(ctx, fileName)
