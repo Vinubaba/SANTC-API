@@ -25,6 +25,7 @@ type User struct {
 	Gender    sql.NullString
 	ImageUri  sql.NullString
 	Roles     Roles `sql:"-"`
+	DaycareId sql.NullString
 }
 
 func (u *User) Is(role string) bool {
@@ -51,6 +52,7 @@ func (s *Store) GetUser(tx *gorm.DB, userId string) (User, error) {
 	db := s.dbOrTx(tx)
 	rows, err := db.Table("users").
 		Select("users.user_id, "+
+			"users.daycare_id,"+
 			"users.email, "+
 			"users.first_name,"+
 			"users.last_name,"+
@@ -96,7 +98,8 @@ func (s *Store) GetUserByEmail(tx *gorm.DB, email string) (User, error) {
 			"users.zip,"+
 			"users.gender,"+
 			"users.image_uri,"+
-			"string_agg(roles.role, ',')").
+			"string_agg(roles.role, ','),"+
+			"users.daycare_id").
 		Joins("left join roles ON roles.user_id = users.user_id").
 		Where("users.email = ?", email).
 		Group("users.user_id").
@@ -147,7 +150,7 @@ func (s *Store) DeleteUser(tx *gorm.DB, userId string) (err error) {
 	return nil
 }
 
-func (s *Store) ListUsers(tx *gorm.DB, roleConstraint string) ([]User, error) {
+func (s *Store) ListDaycareUsers(tx *gorm.DB, roleConstraint string, daycareId string) ([]User, error) {
 	db := s.dbOrTx(tx)
 
 	query := db.Table("users").
@@ -163,8 +166,12 @@ func (s *Store) ListUsers(tx *gorm.DB, roleConstraint string) ([]User, error) {
 			"users.zip," +
 			"users.gender," +
 			"users.image_uri," +
-			"string_agg(roles.role, ',')").
-		Joins("left join roles ON roles.user_id = users.user_id").
+			"string_agg(roles.role, ',')," +
+			"users.daycare_id")
+	if daycareId != "" {
+		query = query.Where("users.daycare_id = ?", daycareId)
+	}
+	query = query.Joins("left join roles ON roles.user_id = users.user_id").
 		Group("users.user_id")
 
 	if roleConstraint != "" {
@@ -183,6 +190,7 @@ func (s *Store) scanUserRows(rows *sql.Rows) ([]User, error) {
 	for rows.Next() {
 		currentUser := User{}
 		if err := rows.Scan(&currentUser.UserId,
+			&currentUser.DaycareId,
 			&currentUser.Email,
 			&currentUser.FirstName,
 			&currentUser.LastName,

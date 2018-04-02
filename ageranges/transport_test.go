@@ -158,6 +158,7 @@ var _ = Describe("Transport", func() {
 	BeforeEach(func() {
 		claims = map[string]interface{}{
 			"userId":                   "",
+			"daycareId":                "peyredragon",
 			shared.ROLE_TEACHER:        false,
 			shared.ROLE_OFFICE_MANAGER: false,
 			shared.ROLE_ADULT:          false,
@@ -182,13 +183,16 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedAgeRangeWithIds("agerangeid-1", "agerangeid-2")
+				assertReturnedAgeRangeWithIds("agerangeid-1", "agerangeid-2", "agerangeid-3")
 				assertHttpCode(http.StatusOK)
 			})
 
-			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedAgeRangeWithIds("agerangeid-1", "agerangeid-2")
+			Context("When user is an office manager from namek", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims["daycareId"] = "namek"
+				})
+				assertReturnedAgeRangeWithIds("agerangeid-1", "agerangeid-3")
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -220,6 +224,7 @@ var _ = Describe("Transport", func() {
 			var (
 				jsonClassRef = `{
 					"id": "agerangeid-1",
+					"daycareId": "namek",
 					"stage": "infant",
 					"min": 3,
 					"minUnit": "M",
@@ -239,8 +244,20 @@ var _ = Describe("Transport", func() {
 				assertHttpCode(http.StatusOK)
 			})
 
-			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
+			Context("When user is an office manager from peydragon", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims["daycareId"] = "peyredragon"
+				})
+				assertReturnedSingleAgeRange(`{"error": "failed to get age range: age range not found"}`)
+				assertHttpCode(http.StatusNotFound)
+			})
+
+			Context("When user is an office manager from namek", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims["daycareId"] = "namek"
+				})
 				assertReturnedSingleAgeRange(jsonClassRef)
 				assertHttpCode(http.StatusOK)
 			})
@@ -290,8 +307,20 @@ var _ = Describe("Transport", func() {
 				assertHttpCode(http.StatusNoContent)
 			})
 
-			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
+			Context("When user is an office manager from peyredragon", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims["daycareId"] = "peyredragon"
+				})
+				assertJsonResponse(`{"error": "failed to delete age range: age range not found"}`)
+				assertHttpCode(http.StatusNotFound)
+			})
+
+			Context("When user is an office manager from namek", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims["daycareId"] = "namek"
+				})
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusNoContent)
 			})
@@ -333,6 +362,7 @@ var _ = Describe("Transport", func() {
 			var (
 				jsonUpdatedAgeRange = `{
 					"id": "agerangeid-1",
+					"daycareId": "namek",
 					"stage": "updated infant",
 					"min": 2,
 					"minUnit": "Y",
@@ -353,8 +383,20 @@ var _ = Describe("Transport", func() {
 				assertHttpCode(http.StatusOK)
 			})
 
-			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
+			Context("When user is an office manager from peydredragon", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims["daycareId"] = "peyredragon"
+				})
+				assertJsonResponse(`{"error": "failed to update age range: age range not found"}`)
+				assertHttpCode(http.StatusNotFound)
+			})
+
+			Context("When user is an office manager from namek", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims["daycareId"] = "namek"
+				})
 				assertReturnedSingleAgeRange(jsonUpdatedAgeRange)
 				assertHttpCode(http.StatusOK)
 			})
@@ -396,6 +438,7 @@ var _ = Describe("Transport", func() {
 			var (
 				jsonCreatedAgeRange = `{
 					"id": "aaa",
+					"daycareId": "namek",
 					"stage": "created infant",
 					"min": 2,
 					"minUnit": "Y",
@@ -407,7 +450,7 @@ var _ = Describe("Transport", func() {
 			BeforeEach(func() {
 				httpMethodToUse = http.MethodPost
 				httpEndpointToUse = "/age-ranges"
-				httpBodyToUse = `{"stage": "created infant","min": 2,"minUnit": "Y","max": 3,"maxUnit": "Y"}`
+				httpBodyToUse = `{"stage": "created infant","daycareId": "namek","min": 2,"minUnit": "Y","max": 3,"maxUnit": "Y"}`
 			})
 
 			Context("When user is an admin", func() {
@@ -416,8 +459,12 @@ var _ = Describe("Transport", func() {
 				assertHttpCode(http.StatusCreated)
 			})
 
-			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
+			Context("When user is an office manager and daycareId is not specified", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims["daycareId"] = "namek"
+					httpBodyToUse = `{"stage": "created infant","min": 2,"minUnit": "Y","max": 3,"maxUnit": "Y"}`
+				})
 				assertReturnedSingleAgeRange(jsonCreatedAgeRange)
 				assertHttpCode(http.StatusCreated)
 			})

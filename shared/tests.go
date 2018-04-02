@@ -80,6 +80,7 @@ func SetDbInitialState() {
 	if err != nil {
 		log.Print(string(out))
 		log.Fatal(err.Error())
+		panic(err)
 	}
 }
 

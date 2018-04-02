@@ -36,6 +36,7 @@ var _ = Describe("Transport", func() {
 		mockStringGenerator *MockStringGenerator
 		mockStorage         *MockGcs
 		mockFirebaseClient  *MockClient
+		config              *shared.AppConfig
 
 		authenticator *authentication.Authenticator
 
@@ -120,11 +121,20 @@ var _ = Describe("Transport", func() {
 			StringGenerator: mockStringGenerator,
 		}
 
+		publicDaycare, err := concreteStore.GetPublicDaycare(concreteDb)
+		if err != nil {
+			panic(err)
+		}
+		config = &shared.AppConfig{
+			PublicDaycareId: publicDaycare.DaycareId.String,
+		}
+
 		userService := &UserService{
 			FirebaseClient: mockFirebaseClient,
 			Store:          concreteStore,
 			Storage:        mockStorage,
 			Logger:         logger,
+			Config:         config,
 		}
 
 		authenticator = &authentication.Authenticator{
@@ -152,6 +162,7 @@ var _ = Describe("Transport", func() {
 		router.Handle("/office-managers/{id}", authenticator.Roles(handlerFactory.DeleteOfficeManager(opts), shared.ROLE_ADMIN)).Methods(http.MethodDelete)
 		router.Handle("/office-managers/{id}", authenticator.Roles(handlerFactory.UpdateOfficeManager(opts), shared.ROLE_ADMIN)).Methods(http.MethodPatch)
 
+		router.Handle("/teachers", authenticator.Roles(handlerFactory.CreateTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodPost)
 		router.Handle("/teachers", authenticator.Roles(handlerFactory.ListTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
 		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.GetTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
 		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.DeleteTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
@@ -173,6 +184,7 @@ var _ = Describe("Transport", func() {
 	BeforeEach(func() {
 		claims = map[string]interface{}{
 			"userId":                   "",
+			"daycareId":                "peyredragon",
 			shared.ROLE_TEACHER:        false,
 			shared.ROLE_OFFICE_MANAGER: false,
 			shared.ROLE_ADULT:          false,
@@ -197,7 +209,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedUsersWithIds("id5")
+				assertReturnedUsersWithIds("id5", "id10")
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -239,13 +251,13 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"id":"id5","firstName":"Anna","lastName":"Melnychuk","gender":"F","email":"anna@gmail.com","phone":"+3365651","address_1":"1 RUE TRUC","address_2":"APP 4","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"http://image.com","roles":["adult"]}`)
+				assertReturnedSingleUser(`{"id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"http://image.com","roles":["adult"],"daycareId":"peyredragon"}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"id":"id5","firstName":"Anna","lastName":"Melnychuk","gender":"F","email":"anna@gmail.com","phone":"+3365651","address_1":"1 RUE TRUC","address_2":"APP 4","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"http://image.com","roles":["adult"]}`)
+				assertReturnedSingleUser(`{"id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"http://image.com","roles":["adult"],"daycareId":"peyredragon"}`)
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -343,13 +355,13 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"id":"id5","firstName":"Anna","lastName":"Melnychuk","gender":"F","email":"anna@gmail.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"]}`)
+				assertReturnedSingleUser(`{"daycareId":"peyredragon","id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"id":"id5","firstName":"Anna","lastName":"Melnychuk","gender":"F","email":"anna@gmail.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"]}`)
+				assertReturnedSingleUser(`{"daycareId":"peyredragon","id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -393,8 +405,8 @@ var _ = Describe("Transport", func() {
 				httpEndpointToUse = "/adults"
 				httpBodyToUse = fmt.Sprintf(`
 					{
-						"firstName": "Arthur",
-						"lastName": "Gustin",
+						"firstName": "Elaria",
+						"lastName": "Sand",
 						"gender": "M",
 						"email": "saint.sulp.la.pointe@gmail.com",
 						"phone": "0633326825",
@@ -403,20 +415,44 @@ var _ = Describe("Transport", func() {
 						"city": "TOULOUSE",
 						"state": "France",
 						"zip": "31100",
-						"imageUri": "%s"
+						"imageUri": "%s",
+						"daycareId": "peyredragon"
 					}`, b64imageTest)
 			})
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"]}`)
+				assertReturnedSingleUser(`{"daycareId":"peyredragon","id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"], "daycareId": "peyredragon"}`)
 				assertHttpCode(http.StatusCreated)
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"id": "aaa","firstName": "Arthur","lastName": "Gustin","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"]}`)
+				assertReturnedSingleUser(`{"daycareId":"peyredragon","id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"], "daycareId": "peyredragon"}`)
 				assertHttpCode(http.StatusCreated)
+			})
+
+			Context("When user is an office manager and tries to create adult for another daycare", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					httpBodyToUse = fmt.Sprintf(`
+					{
+						"firstName": "Elaria",
+						"lastName": "Sand",
+						"gender": "M",
+						"email": "saint.sulp.la.pointe@gmail.com",
+						"phone": "0633326825",
+						"address_1": "8 RUE PIERRE DELDI",
+						"address_2": "VILLA 13",
+						"city": "TOULOUSE",
+						"state": "France",
+						"zip": "31100",
+						"imageUri": "%s",
+						"daycareId": "foobar"
+					}`, b64imageTest)
+				})
+				assertJsonResponse(`{"error":"cannot create user for another daycare"}`)
+				assertHttpCode(http.StatusForbidden)
 			})
 
 			Context("When user is a teacher", func() {
@@ -455,7 +491,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedUsersWithIds("id2", "id3")
+				assertReturnedUsersWithIds("id2", "id3", "id7", "id8")
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -497,7 +533,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"id":"id2","firstName":"Vinu","lastName":"Singh","gender":"M","email":"vinu@gmail.com","phone":"+3365651","address_1":"1 RUE TRUC","address_2":"APP 4","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"http://image.com","roles":["officemanager"]}`)
+				assertReturnedSingleUser(`{"daycareId":"peyredragon","id":"id2","firstName":"John","lastName":"Snow","gender":"M","email":"john.snow@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"http://image.com","roles":["officemanager"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -601,7 +637,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"id": "id2","firstName": "Vinu","lastName": "Singh","gender": "M","email": "vinu@gmail.com","phone": "+3365651","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "Toulouse","state": "FRANCE","zip": "31400","imageUri": "gs://foo/bar.jpg","roles": ["officemanager"]}`)
+				assertReturnedSingleUser(`{"daycareId": "peyredragon", "id": "id2","firstName": "John","lastName": "Snow","gender": "M","email": "john.snow@got.com","phone": "+3365651","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "Peyredragon","state": "WESTEROS","zip": "31400","imageUri": "gs://foo/bar.jpg","roles": ["officemanager"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -656,7 +692,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedUsersWithIds("id4")
+				assertReturnedUsersWithIds("id4", "id9")
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -698,13 +734,13 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"id":"id4","firstName":"Estree","lastName":"Delacour","gender":"F","email":"estree@gmail.com","phone":"+3365651","address_1":"1 RUE TRUC","address_2":"APP 4","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"http://image.com","roles":["teacher"]}`)
+				assertReturnedSingleUser(`{"daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"http://image.com","roles":["teacher"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"id":"id4","firstName":"Estree","lastName":"Delacour","gender":"F","email":"estree@gmail.com","phone":"+3365651","address_1":"1 RUE TRUC","address_2":"APP 4","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"http://image.com","roles":["teacher"]}`)
+				assertReturnedSingleUser(`{"daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"http://image.com","roles":["teacher"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -802,13 +838,13 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"id":"id4","firstName":"Estree","lastName":"Delacour","gender":"F","email":"estree@gmail.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"]}`)
+				assertReturnedSingleUser(`{"daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"id":"id4","firstName":"Estree","lastName":"Delacour","gender":"F","email":"estree@gmail.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Toulouse","state":"FRANCE","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"]}`)
+				assertReturnedSingleUser(`{"daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"]}`)
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -840,6 +876,87 @@ var _ = Describe("Transport", func() {
 				})
 				assertJsonResponse(`{"error":"failed to update user: user not found"}`)
 				assertHttpCode(http.StatusNotFound)
+			})
+
+		})
+
+		Describe("CREATE", func() {
+
+			BeforeEach(func() {
+				mockStorage.On("Store", mock.Anything, mock.Anything, mock.Anything).Return(mockImageUriName, nil)
+				httpMethodToUse = http.MethodPost
+				httpEndpointToUse = "/teachers"
+				httpBodyToUse = fmt.Sprintf(`
+					{
+						"firstName": "Elaria",
+						"lastName": "Sand",
+						"gender": "M",
+						"email": "saint.sulp.la.pointe@gmail.com",
+						"phone": "0633326825",
+						"address_1": "8 RUE PIERRE DELDI",
+						"address_2": "VILLA 13",
+						"city": "TOULOUSE",
+						"state": "France",
+						"zip": "31100",
+						"imageUri": "%s",
+						"daycareId": "peyredragon"
+					}`, b64imageTest)
+			})
+
+			Context("When user is an admin", func() {
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				assertReturnedSingleUser(`{"id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["teacher"], "daycareId": "peyredragon"}`)
+				assertHttpCode(http.StatusCreated)
+			})
+
+			Context("When user is an office manager", func() {
+				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
+				assertReturnedSingleUser(`{"id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["teacher"], "daycareId": "peyredragon"}`)
+				assertHttpCode(http.StatusCreated)
+			})
+
+			Context("When user is an office manager and tries to create teacher for another daycare", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					httpBodyToUse = fmt.Sprintf(`
+					{
+						"firstName": "Elaria",
+						"lastName": "Sand",
+						"gender": "M",
+						"email": "saint.sulp.la.pointe@gmail.com",
+						"phone": "0633326825",
+						"address_1": "8 RUE PIERRE DELDI",
+						"address_2": "VILLA 13",
+						"city": "TOULOUSE",
+						"state": "France",
+						"zip": "31100",
+						"imageUri": "%s",
+						"daycareId": "foobar"
+					}`, b64imageTest)
+				})
+				assertJsonResponse(`{"error":"cannot create user for another daycare"}`)
+				assertHttpCode(http.StatusForbidden)
+			})
+
+			Context("When user is a teacher", func() {
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusUnauthorized)
+			})
+
+			Context("When user is an adult", func() {
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusUnauthorized)
+			})
+
+			Context("When database is closed", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_ADMIN] = true
+					concreteDb.Close()
+				})
+				assertJsonResponse(`{"error":"failed to create user: sql: database is closed"}`)
+				assertHttpCode(http.StatusInternalServerError)
 			})
 
 		})

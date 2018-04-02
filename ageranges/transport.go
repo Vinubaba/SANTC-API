@@ -19,12 +19,13 @@ var (
 )
 
 type AgeRangeTransport struct {
-	Id      string `json:"id"`
-	Stage   string `json:"stage"`
-	Min     int    `json:"min"`
-	MinUnit string `json:"minUnit"`
-	Max     int    `json:"max"`
-	MaxUnit string `json:"maxUnit"`
+	Id        string `json:"id"`
+	DaycareId string `json:"daycareId"`
+	Stage     string `json:"stage"`
+	Min       int    `json:"min"`
+	MinUnit   string `json:"minUnit"`
+	Max       int    `json:"max"`
+	MaxUnit   string `json:"maxUnit"`
 }
 
 type HandlerFactory struct {
@@ -139,12 +140,13 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 
 func dbAgeRangeToTransportAgeRange(ageRange store.AgeRange) AgeRangeTransport {
 	return AgeRangeTransport{
-		Id:      ageRange.AgeRangeId.String,
-		Stage:   ageRange.Stage.String,
-		Min:     ageRange.Min,
-		MinUnit: ageRange.MinUnit.String,
-		Max:     ageRange.Max,
-		MaxUnit: ageRange.MaxUnit.String,
+		Id:        ageRange.AgeRangeId.String,
+		DaycareId: ageRange.DaycareId.String,
+		Stage:     ageRange.Stage.String,
+		Min:       ageRange.Min,
+		MinUnit:   ageRange.MinUnit.String,
+		Max:       ageRange.Max,
+		MaxUnit:   ageRange.MaxUnit.String,
 	}
 }
 

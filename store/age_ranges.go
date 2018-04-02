@@ -9,6 +9,7 @@ import (
 
 type AgeRange struct {
 	AgeRangeId sql.NullString
+	DaycareId  sql.NullString
 	Stage      sql.NullString
 	Min        int
 	MinUnit    sql.NullString
@@ -51,27 +52,81 @@ func (s *Store) ageRangeExists(tx *gorm.DB, ageRangeId string) bool {
 	return !tx.Model(AgeRange{}).Where("age_range_id = ?", ageRangeId).First(&c).RecordNotFound()
 }
 
-func (s *Store) GetAgeRange(tx *gorm.DB, ageRangeId string) (AgeRange, error) {
+func (s *Store) GetAgeRange(tx *gorm.DB, ageRangeId string, options SearchOptions) (AgeRange, error) {
 	db := s.dbOrTx(tx)
 
-	ageRange := AgeRange{
-		AgeRangeId: DbNullString(ageRangeId),
+	query := db.Table("age_ranges").
+		Select("age_ranges.age_range_id," +
+			"age_ranges.daycare_id," +
+			"age_ranges.stage," +
+			"age_ranges.min," +
+			"age_ranges.min_unit," +
+			"age_ranges.max," +
+			"age_ranges.max_unit")
+	if options.DaycareId != "" {
+		query = query.Where("age_ranges.daycare_id = ?", options.DaycareId)
 	}
-	if err := db.Model(Class{}).Where("age_range_id = ?", ageRangeId).First(&ageRange).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return AgeRange{}, ErrAgeRangeNotFound
-		}
+	query = query.Where("age_ranges.age_range_id = ?", ageRangeId)
+
+	rows, err := query.Rows()
+	if err != nil {
 		return AgeRange{}, err
 	}
-	return ageRange, nil
+
+	ageRanges, err := s.scanAgeRangeRows(rows)
+	if err != nil {
+		return AgeRange{}, err
+	}
+	if len(ageRanges) == 0 {
+		return AgeRange{}, ErrAgeRangeNotFound
+	}
+
+	return ageRanges[0], nil
 }
 
-func (s *Store) ListAgeRange(tx *gorm.DB) ([]AgeRange, error) {
+func (s *Store) scanAgeRangeRows(rows *sql.Rows) ([]AgeRange, error) {
+	ageRanges := []AgeRange{}
+	for rows.Next() {
+		currentAgeRange := AgeRange{}
+		if err := rows.Scan(&currentAgeRange.AgeRangeId,
+			&currentAgeRange.DaycareId,
+			&currentAgeRange.Stage,
+			&currentAgeRange.Min,
+			&currentAgeRange.MinUnit,
+			&currentAgeRange.Max,
+			&currentAgeRange.MaxUnit,
+		); err != nil {
+			return []AgeRange{}, err
+		}
+		ageRanges = append(ageRanges, currentAgeRange)
+	}
+
+	return ageRanges, nil
+}
+
+func (s *Store) ListAgeRange(tx *gorm.DB, options SearchOptions) ([]AgeRange, error) {
 	db := s.dbOrTx(tx)
 
-	ageRanges := make([]AgeRange, 0)
-	if err := db.Model(AgeRange{}).Find(&ageRanges).Error; err != nil {
-		return nil, err
+	query := db.Table("age_ranges").
+		Select("age_ranges.age_range_id," +
+			"age_ranges.daycare_id," +
+			"age_ranges.stage," +
+			"age_ranges.min," +
+			"age_ranges.min_unit," +
+			"age_ranges.max," +
+			"age_ranges.max_unit")
+	if options.DaycareId != "" {
+		query = query.Where("age_ranges.daycare_id = ?", options.DaycareId)
+	}
+
+	rows, err := query.Rows()
+	if err != nil {
+		return []AgeRange{}, err
+	}
+
+	ageRanges, err := s.scanAgeRangeRows(rows)
+	if err != nil {
+		return []AgeRange{}, err
 	}
 
 	return ageRanges, nil
@@ -88,5 +143,5 @@ func (s *Store) UpdateAgeRange(tx *gorm.DB, ageRange AgeRange) (AgeRange, error)
 		return AgeRange{}, err
 	}
 
-	return s.GetAgeRange(db, ageRange.AgeRangeId.String)
+	return s.GetAgeRange(db, ageRange.AgeRangeId.String, SearchOptions{})
 }

@@ -15,11 +15,12 @@ import (
 )
 
 var (
-	ErrNoParent       = errors.New("responsibleId is mandatory")
-	ErrEmptyChild     = errors.New("childId cannot be empty")
-	ErrSetResponsible = errors.New("failed to set responsibleId")
-	ErrSetAllergy     = errors.New("failed to set allergy")
-	ErrInvalidImage   = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
+	ErrNoParent               = errors.New("responsibleId is mandatory")
+	ErrEmptyChild             = errors.New("childId cannot be empty")
+	ErrSetResponsible         = errors.New("failed to set responsibleId")
+	ErrSetAllergy             = errors.New("failed to set allergy")
+	ErrInvalidImage           = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
+	ErrCreateDifferentDaycare = errors.New("you can't add a child to a different daycare of you")
 )
 
 type Service interface {
@@ -27,7 +28,7 @@ type Service interface {
 	DeleteChild(ctx context.Context, request ChildTransport) error
 	UpdateChild(ctx context.Context, request ChildTransport) (store.Child, error)
 	GetChild(ctx context.Context, request ChildTransport) (store.Child, error)
-	ListChild(ctx context.Context) ([]store.Child, error)
+	ListChildren(ctx context.Context) ([]store.Child, error)
 	FindAllergiesOfChild(ctx context.Context, childId string) ([]store.Allergy, error)
 }
 
@@ -36,8 +37,8 @@ type ChildService struct {
 		Tx() *gorm.DB
 		AddChild(tx *gorm.DB, child store.Child) (store.Child, error)
 		UpdateChild(tx *gorm.DB, child store.Child) (store.Child, error)
-		GetChild(tx *gorm.DB, childId string) (store.Child, error)
-		ListChild(tx *gorm.DB) ([]store.Child, error)
+		GetChild(tx *gorm.DB, childId string, options store.SearchOptions) (store.Child, error)
+		ListChildren(tx *gorm.DB, options store.SearchOptions) ([]store.Child, error)
 		DeleteChild(tx *gorm.DB, childId string) error
 		SetResponsible(tx *gorm.DB, responsibleOf store.ResponsibleOf) error
 
@@ -67,6 +68,21 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		return store.Child{}, ErrNoParent
 	}
 
+	claims := ctx.Value("claims").(map[string]interface{})
+
+	if claims[shared.ROLE_ADMIN].(bool) && request.DaycareId == "" {
+		return store.Child{}, errors.New("as an admin, you must specify the user daycare")
+	} else {
+		// default to requester daycare (e.g office manager)
+		if request.DaycareId == "" {
+			request.DaycareId = claims["daycareId"].(string)
+		}
+
+		if claims["daycareId"].(string) != request.DaycareId {
+			return store.Child{}, ErrCreateDifferentDaycare
+		}
+	}
+
 	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
 	if err != nil {
 		return store.Child{}, errors.Wrap(err, "failed to store image")
@@ -78,6 +94,7 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 	}
 
 	child, err := c.Store.AddChild(tx, store.Child{
+		DaycareId: store.DbNullString(request.DaycareId),
 		BirthDate: birthDate,
 		FirstName: store.DbNullString(request.FirstName),
 		LastName:  store.DbNullString(request.LastName),
@@ -138,7 +155,16 @@ func (c *ChildService) validate64EncodedPhoto(photo string) (encoded, mimeType s
 }
 
 func (c *ChildService) GetChild(ctx context.Context, request ChildTransport) (store.Child, error) {
-	child, err := c.Store.GetChild(nil, request.Id)
+	claims := ctx.Value("claims").(map[string]interface{})
+	searchOptions := store.SearchOptions{}
+	if !claims[shared.ROLE_ADMIN].(bool) {
+		searchOptions.DaycareId = claims["daycareId"].(string)
+	}
+	if claims[shared.ROLE_ADULT].(bool) {
+		searchOptions.ResponsibleId = claims["userId"].(string)
+	}
+
+	child, err := c.Store.GetChild(nil, request.Id, searchOptions)
 	if err != nil {
 		return child, errors.Wrap(err, "failed to get child")
 	}
@@ -147,14 +173,22 @@ func (c *ChildService) GetChild(ctx context.Context, request ChildTransport) (st
 	if err != nil {
 		return store.Child{}, errors.Wrap(err, "failed to generate image uri")
 	}
-	// When adding a child, the json response will contains a temporary uri, so the frontend can do whatever it wants with it
 	child.ImageUri = store.DbNullString(uri)
 
 	return child, nil
 }
 
 func (c *ChildService) DeleteChild(ctx context.Context, request ChildTransport) error {
-	child, err := c.Store.GetChild(nil, request.Id)
+	claims := ctx.Value("claims").(map[string]interface{})
+	searchOptions := store.SearchOptions{}
+	if !claims[shared.ROLE_ADMIN].(bool) {
+		searchOptions.DaycareId = claims["daycareId"].(string)
+	}
+	if claims[shared.ROLE_ADULT].(bool) {
+		searchOptions.ResponsibleId = claims["userId"].(string)
+	}
+
+	child, err := c.Store.GetChild(nil, request.Id, searchOptions)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete child")
 	}
@@ -170,8 +204,17 @@ func (c *ChildService) DeleteChild(ctx context.Context, request ChildTransport) 
 	return nil
 }
 
-func (c *ChildService) ListChild(ctx context.Context) ([]store.Child, error) {
-	children, err := c.Store.ListChild(nil)
+func (c *ChildService) ListChildren(ctx context.Context) ([]store.Child, error) {
+	claims := ctx.Value("claims").(map[string]interface{})
+	searchOptions := store.SearchOptions{}
+	if !claims[shared.ROLE_ADMIN].(bool) {
+		searchOptions.DaycareId = claims["daycareId"].(string)
+	}
+	if claims[shared.ROLE_ADULT].(bool) {
+		searchOptions.ResponsibleId = claims["userId"].(string)
+	}
+
+	children, err := c.Store.ListChildren(nil, searchOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list children")
 	}
@@ -196,7 +239,16 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 		return store.Child{}, ErrEmptyChild
 	}
 
-	if _, err := c.Store.GetChild(nil, request.Id); err != nil {
+	claims := ctx.Value("claims").(map[string]interface{})
+	searchOptions := store.SearchOptions{}
+	if !claims[shared.ROLE_ADMIN].(bool) {
+		searchOptions.DaycareId = claims["daycareId"].(string)
+	}
+	if claims[shared.ROLE_ADULT].(bool) {
+		searchOptions.ResponsibleId = claims["userId"].(string)
+	}
+
+	if _, err := c.Store.GetChild(nil, request.Id, searchOptions); err != nil {
 		return store.Child{}, errors.Wrap(err, "failed to update child")
 	}
 

@@ -2,21 +2,23 @@ package classes
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 
+	"github.com/Vinubaba/SANTC-API/ageranges"
+	"github.com/Vinubaba/SANTC-API/claims"
+	"github.com/Vinubaba/SANTC-API/shared"
 	"github.com/Vinubaba/SANTC-API/storage"
 	"github.com/Vinubaba/SANTC-API/store"
 
-	"database/sql"
-	"github.com/Vinubaba/SANTC-API/ageranges"
-	"github.com/Vinubaba/SANTC-API/shared"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
 var (
-	ErrEmptyClass    = errors.New("classId cannot be empty")
-	ErrEmptyAgeRange = errors.New("please specify an age range")
+	ErrEmptyClass             = errors.New("classId cannot be empty")
+	ErrEmptyAgeRange          = errors.New("please specify an age range")
+	ErrCreateDifferentDaycare = errors.New("you can't add a class to a different daycare of you")
 )
 
 type Service interface {
@@ -24,7 +26,7 @@ type Service interface {
 	DeleteClass(ctx context.Context, request ClassTransport) error
 	UpdateClass(ctx context.Context, request ClassTransport) (store.Class, error)
 	GetClass(ctx context.Context, request ClassTransport) (store.Class, error)
-	ListClass(ctx context.Context) ([]store.Class, error)
+	ListClasses(ctx context.Context) ([]store.Class, error)
 }
 
 type ClassService struct {
@@ -33,19 +35,46 @@ type ClassService struct {
 
 		AddClass(tx *gorm.DB, class store.Class) (store.Class, error)
 		UpdateClass(tx *gorm.DB, class store.Class) (store.Class, error)
-		GetClass(tx *gorm.DB, classId string) (store.Class, error)
-		ListClass(tx *gorm.DB) ([]store.Class, error)
+		GetClass(tx *gorm.DB, classId string, options store.SearchOptions) (store.Class, error)
+		ListClasses(tx *gorm.DB, options store.SearchOptions) ([]store.Class, error)
 		DeleteClass(tx *gorm.DB, classId string) error
+
+		GetAgeRange(tx *gorm.DB, ageRangeId string, options store.SearchOptions) (store.AgeRange, error)
 	} `inject:""`
 	Storage storage.Storage `inject:""`
 	Logger  *shared.Logger  `inject:""`
 }
 
 func (c *ClassService) AddClass(ctx context.Context, request ClassTransport) (store.Class, error) {
+	if claims.IsAdmin(ctx) && request.DaycareId == "" {
+		return store.Class{}, errors.New("as an admin, you must specify the a daycareId")
+	} else {
+		// default to requester daycare (e.g office manager)
+		if request.DaycareId == "" {
+			request.DaycareId = claims.GetDaycareId(ctx)
+		}
+
+		if claims.GetDaycareId(ctx) != request.DaycareId {
+			return store.Class{}, ErrCreateDifferentDaycare
+		}
+	}
+
 	var err error
 
 	if (ageranges.AgeRangeTransport{}) == request.AgeRange {
 		return store.Class{}, ErrEmptyAgeRange
+	}
+	// Ensure same daycare for age range and class
+	request.AgeRange.DaycareId = request.DaycareId
+
+	// Ensure specified age range is part of the same daycare
+	if request.AgeRange.Id != "" {
+		searchOptions := claims.GetDefaultSearchOptions(ctx)
+		searchOptions.DaycareId = request.DaycareId
+		_, err = c.Store.GetAgeRange(nil, request.AgeRange.Id, searchOptions)
+		if err != nil {
+			return store.Class{}, errors.Wrap(err, "failed to add class")
+		}
 	}
 
 	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
@@ -68,11 +97,11 @@ func (c *ClassService) AddClass(ctx context.Context, request ClassTransport) (st
 }
 
 func (c *ClassService) GetClass(ctx context.Context, request ClassTransport) (store.Class, error) {
-	class, err := c.Store.GetClass(nil, request.Id)
+	searchOptions := claims.GetDefaultSearchOptions(ctx)
+	class, err := c.Store.GetClass(nil, request.Id, searchOptions)
 	if err != nil {
 		return class, errors.Wrap(err, "failed to get class")
 	}
-
 	uri, err := c.Storage.Get(ctx, class.ImageUri.String)
 	if err != nil {
 		return store.Class{}, errors.Wrap(err, "failed to generate image uri")
@@ -83,7 +112,8 @@ func (c *ClassService) GetClass(ctx context.Context, request ClassTransport) (st
 }
 
 func (c *ClassService) DeleteClass(ctx context.Context, request ClassTransport) error {
-	class, err := c.Store.GetClass(nil, request.Id)
+	searchOptions := claims.GetDefaultSearchOptions(ctx)
+	class, err := c.Store.GetClass(nil, request.Id, searchOptions)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete class")
 	}
@@ -99,8 +129,9 @@ func (c *ClassService) DeleteClass(ctx context.Context, request ClassTransport) 
 	return nil
 }
 
-func (c *ClassService) ListClass(ctx context.Context) ([]store.Class, error) {
-	classes, err := c.Store.ListClass(nil)
+func (c *ClassService) ListClasses(ctx context.Context) ([]store.Class, error) {
+	searchOptions := claims.GetDefaultSearchOptions(ctx)
+	classes, err := c.Store.ListClasses(nil, searchOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list classes")
 	}
@@ -123,8 +154,17 @@ func (c *ClassService) UpdateClass(ctx context.Context, request ClassTransport) 
 		return store.Class{}, ErrEmptyClass
 	}
 
-	if _, err := c.Store.GetClass(nil, request.Id); err != nil {
+	searchOptions := claims.GetDefaultSearchOptions(ctx)
+	_, err = c.Store.GetClass(nil, request.Id, searchOptions)
+	if err != nil {
 		return store.Class{}, errors.Wrap(err, "failed to update class")
+	}
+
+	if request.AgeRange.Id != "" {
+		_, err = c.Store.GetAgeRange(nil, request.AgeRange.Id, searchOptions)
+		if err != nil {
+			return store.Class{}, errors.Wrap(err, "failed to update class")
+		}
 	}
 
 	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)

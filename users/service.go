@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	ErrInvalidEmail          = errors.New("invalid email")
-	ErrInvalidPasswordFormat = errors.New("password must be at least 6 characters long")
+	ErrInvalidEmail           = errors.New("invalid email")
+	ErrInvalidPasswordFormat  = errors.New("password must be at least 6 characters long")
+	ErrCreateDifferentDaycare = errors.New("cannot create user for another daycare")
 )
 
 type Service interface {
@@ -28,7 +29,7 @@ type Service interface {
 type UserService struct {
 	Store interface {
 		AddUser(tx *gorm.DB, user store.User) (store.User, error)
-		ListUsers(tx *gorm.DB, roleConstraint string) ([]store.User, error)
+		ListDaycareUsers(tx *gorm.DB, roleConstraint string, daycareId string) ([]store.User, error)
 		UpdateUser(tx *gorm.DB, user store.User) (store.User, error)
 		DeleteUser(tx *gorm.DB, userId string) (err error)
 		GetUser(tx *gorm.DB, userId string) (store.User, error)
@@ -40,12 +41,36 @@ type UserService struct {
 	FirebaseClient interface {
 		DeleteUserByEmail(ctx context.Context, email string) error
 	} `inject:"teddyFirebaseClient"`
-	Storage storage.Storage `inject:""`
-	Logger  *shared.Logger  `inject:""`
+	Storage storage.Storage   `inject:""`
+	Config  *shared.AppConfig `inject:""`
+	Logger  *shared.Logger    `inject:""`
+}
+
+func (c *UserService) validateDaycareRequest(ctx context.Context, request *UserTransport) error {
+	claims := ctx.Value("claims").(map[string]interface{})
+
+	if claims[shared.ROLE_ADMIN].(bool) && request.DaycareId == "" {
+		return errors.New("as an admin, you must specify the user daycare")
+	}
+
+	// default to requester daycare (e.g office manager)
+	if request.DaycareId == "" {
+		request.DaycareId = claims["daycareId"].(string)
+	}
+
+	if claims["daycareId"].(string) != request.DaycareId {
+		return ErrCreateDifferentDaycare
+	}
+
+	return nil
 }
 
 func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
 	var err error
+	if err = c.validateDaycareRequest(ctx, &request); err != nil {
+		return store.User{}, ErrCreateDifferentDaycare
+	}
+
 	tx := c.Store.Tx()
 	if tx.Error != nil {
 		return store.User{}, errors.Wrap(tx.Error, "failed to create user")
@@ -54,6 +79,10 @@ func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport,
 	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
 	if err != nil {
 		return store.User{}, err
+	}
+
+	if request.DaycareId == "" {
+		request.DaycareId = c.Config.PublicDaycareId
 	}
 
 	createdUser, err := c.Store.AddUser(tx, store.User{
@@ -69,6 +98,7 @@ func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport,
 		Address_2: store.DbNullString(request.Address_2),
 		UserId:    store.DbNullString(request.Id),
 		ImageUri:  store.DbNullString(request.ImageUri),
+		DaycareId: store.DbNullString(request.DaycareId),
 	})
 	if err != nil {
 		tx.Rollback()
@@ -96,33 +126,13 @@ func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport,
 }
 
 func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
-	/*
-		//todo: when affiliation is developed
-		userToUpdate, err := c.Store.GetUser(nil, request.Id)
-		if err != nil {
-			return store.User{}, err
-		}
-
-		userToUpdateRoles, err := c.Store.GetUserRoles(nil, request.Id)
-		if err != nil {
-			return store.User{}, err
-		}
-
-		claims := ctx.Value("claims").(map[string]interface{})
-		requesterId := claims["userId"].(string)
-		if isAdmin, ok := claims[store.ROLE_ADMIN]; ok && isAdmin.(bool) {
-			// ok
-		}
-
-		if isOfficeManager, ok := claims[store.ROLE_OFFICE_MANAGER]; ok && isOfficeManager.(bool) {
-			// if store.IsAffiliatedTo(userToUpdate.Id, requesterId)
-			// ok
-		}
-	*/
-
 	user, err := c.Store.GetUser(nil, request.Id)
 	if err != nil {
 		return store.User{}, errors.Wrap(err, "failed to update user")
+	}
+
+	if IsDaycareDifferentFromContext(ctx, user.DaycareId.String) {
+		return store.User{}, store.ErrUserNotFound
 	}
 
 	for _, role := range roles {
@@ -148,6 +158,7 @@ func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTranspo
 		LastName:  store.DbNullString(request.LastName),
 		FirstName: store.DbNullString(request.FirstName),
 		ImageUri:  store.DbNullString(request.ImageUri),
+		DaycareId: store.DbNullString(request.DaycareId),
 	})
 	if err != nil {
 		return store.User{}, err
@@ -155,6 +166,11 @@ func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTranspo
 
 	c.setBucketUri(ctx, &user)
 	return user, nil
+}
+
+func IsDaycareDifferentFromContext(ctx context.Context, daycareId string) bool {
+	claims := ctx.Value("claims").(map[string]interface{})
+	return !claims[shared.ROLE_ADMIN].(bool) && claims["daycareId"].(string) != daycareId
 }
 
 func (c *UserService) setBucketUri(ctx context.Context, user *store.User) {
@@ -177,9 +193,13 @@ func (c *UserService) GetUserByRoles(ctx context.Context, request UserTransport,
 		return store.User{}, errors.Wrap(err, "failed to get user")
 	}
 
+	if IsDaycareDifferentFromContext(ctx, user.DaycareId.String) {
+		return store.User{}, store.ErrUserNotFound
+	}
+
 	for _, role := range roles {
 		if !user.Is(role) {
-			return store.User{}, errors.Errorf("user %s is not a %s", user.UserId, role)
+			return store.User{}, errors.Errorf("user %s is not a %s", user.UserId.String, role)
 		}
 	}
 
@@ -194,6 +214,10 @@ func (c *UserService) GetUserByEmail(ctx context.Context, request UserTransport)
 		return store.User{}, errors.Wrap(err, "failed to get user")
 	}
 
+	if IsDaycareDifferentFromContext(ctx, user.DaycareId.String) {
+		return store.User{}, store.ErrUserNotFound
+	}
+
 	c.setBucketUri(ctx, &user)
 
 	return user, nil
@@ -203,6 +227,10 @@ func (c *UserService) DeleteUserByRoles(ctx context.Context, request UserTranspo
 	user, err := c.Store.GetUser(nil, request.Id)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete user")
+	}
+
+	if IsDaycareDifferentFromContext(ctx, user.DaycareId.String) {
+		return store.ErrUserNotFound
 	}
 
 	for _, role := range roles {
@@ -227,7 +255,13 @@ func (c *UserService) DeleteUserByRoles(ctx context.Context, request UserTranspo
 }
 
 func (c *UserService) ListUsersByRole(ctx context.Context, roleConstraint string) ([]store.User, error) {
-	users, err := c.Store.ListUsers(nil, roleConstraint)
+	claims := ctx.Value("claims").(map[string]interface{})
+	daycareId := ""
+	if !claims[shared.ROLE_ADMIN].(bool) {
+		daycareId = claims["daycareId"].(string)
+	}
+
+	users, err := c.Store.ListDaycareUsers(nil, roleConstraint, daycareId)
 	if err != nil {
 		return make([]store.User, 0), err
 	}

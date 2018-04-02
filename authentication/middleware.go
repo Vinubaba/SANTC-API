@@ -75,6 +75,7 @@ func (f *Authenticator) Firebase(next http.Handler) http.Handler {
 
 			claims := map[string]interface{}{
 				"userId":            user.UserId.String,
+				"daycareId":         user.DaycareId.String,
 				ROLE_TEACHER:        false,
 				ROLE_OFFICE_MANAGER: false,
 				ROLE_ADULT:          false,

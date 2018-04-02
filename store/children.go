@@ -14,6 +14,7 @@ var (
 
 type Child struct {
 	ChildId             sql.NullString
+	DaycareId           sql.NullString
 	FirstName           sql.NullString
 	LastName            sql.NullString
 	BirthDate           time.Time
@@ -56,22 +57,30 @@ func (s *Store) childExists(tx *gorm.DB, childId string) bool {
 	return !tx.Model(Child{}).Where("child_id = ?", childId).First(&c).RecordNotFound()
 }
 
-func (s *Store) GetChild(tx *gorm.DB, childId string) (Child, error) {
+func (s *Store) GetChild(tx *gorm.DB, childId string, options SearchOptions) (Child, error) {
 	db := s.dbOrTx(tx)
 
-	rows, err := db.Table("children").
-		Raw("SELECT children.child_id,"+
-			"children.first_name,"+
-			"children.last_name,"+
-			"children.gender,"+
-			"children.birth_date,"+
-			"children.start_date,"+
-			"children.image_uri,"+
-			"children.notes,"+
-			"(SELECT string_agg(special_instructions.instruction, ',') FROM special_instructions WHERE special_instructions.child_id = children.child_id),"+
-			"(SELECT string_agg(allergies.allergy, ',')  FROM allergies WHERE allergies.child_id = children.child_id) FROM \"children\" "+
-			"WHERE children.child_id = ?", childId).
-		Rows()
+	query := db.Table("children").
+		Select("children.child_id," +
+			"children.daycare_id," +
+			"children.first_name," +
+			"children.last_name," +
+			"children.gender," +
+			"children.birth_date," +
+			"children.start_date," +
+			"children.image_uri," +
+			"children.notes," +
+			"(SELECT string_agg(special_instructions.instruction, ',') FROM special_instructions WHERE special_instructions.child_id = children.child_id)," +
+			"(SELECT string_agg(allergies.allergy, ',')  FROM allergies WHERE allergies.child_id = children.child_id)")
+	if options.ResponsibleId != "" {
+		query = query.Joins("left join responsible_of ON responsible_of.child_id = children.child_id").Where("responsible_of.responsible_id = ?", options.ResponsibleId)
+	}
+	if options.DaycareId != "" {
+		query = query.Where("children.daycare_id = ?", options.DaycareId)
+	}
+	query = query.Where("children.child_id = ?", childId)
+
+	rows, err := query.Rows()
 	if err != nil {
 		return Child{}, err
 	}
@@ -91,6 +100,7 @@ func (s *Store) scanChildRows(rows *sql.Rows) ([]Child, error) {
 	for rows.Next() {
 		currentChild := Child{}
 		if err := rows.Scan(&currentChild.ChildId,
+			&currentChild.DaycareId,
 			&currentChild.FirstName,
 			&currentChild.LastName,
 			&currentChild.Gender,
@@ -111,11 +121,12 @@ func (s *Store) scanChildRows(rows *sql.Rows) ([]Child, error) {
 	return children, nil
 }
 
-func (s *Store) ListChild(tx *gorm.DB) ([]Child, error) {
+func (s *Store) ListChildren(tx *gorm.DB, options SearchOptions) ([]Child, error) {
 	db := s.dbOrTx(tx)
 
-	rows, err := db.Table("children").
-		Raw("SELECT children.child_id," +
+	query := db.Table("children").
+		Select("children.child_id," +
+			"children.daycare_id," +
 			"children.first_name," +
 			"children.last_name," +
 			"children.gender," +
@@ -124,10 +135,20 @@ func (s *Store) ListChild(tx *gorm.DB) ([]Child, error) {
 			"children.image_uri," +
 			"children.notes," +
 			"(SELECT string_agg(special_instructions.instruction, ',') FROM special_instructions WHERE special_instructions.child_id = children.child_id)," +
-			"(SELECT string_agg(allergies.allergy, ',')  FROM allergies WHERE allergies.child_id = children.child_id)" +
-			" FROM children").
-		Rows()
+			"(SELECT string_agg(allergies.allergy, ',') FROM allergies WHERE allergies.child_id = children.child_id)")
+	if options.ResponsibleId != "" {
+		query = query.Joins("left join responsible_of ON responsible_of.child_id = children.child_id").Where("responsible_of.responsible_id = ?", options.ResponsibleId)
+	}
+	if options.DaycareId != "" {
+		query = query.Where("children.daycare_id = ?", options.DaycareId)
+	}
+	// TODO: when https://github.com/Vinubaba/SANTC-API/issues/19 is done
+	/*if options.TeacherId != "" {
+		query = query.Joins("left join roles ON roles.user_id = users.user_id")
+	}*/
 
+	query.LogMode(true)
+	rows, err := query.Rows()
 	if err != nil {
 		return []Child{}, err
 	}
@@ -153,5 +174,5 @@ func (s *Store) UpdateChild(tx *gorm.DB, child Child) (Child, error) {
 		return Child{}, err
 	}
 
-	return s.GetChild(db, child.ChildId.String)
+	return s.GetChild(db, child.ChildId.String, SearchOptions{})
 }

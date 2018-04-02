@@ -32,6 +32,7 @@ type UserTransport struct {
 	Zip       string   `json:"zip"`
 	ImageUri  string   `json:"imageUri"`
 	Roles     []string `json:"roles"`
+	DaycareId string   `json:"daycareId"`
 }
 
 type HandlerFactory struct {
@@ -136,6 +137,15 @@ func (h *HandlerFactory) UpdateOfficeManager(opts []kithttp.ServerOption) *kitht
 
 // TEACHER
 
+func (h *HandlerFactory) CreateTeacher(opts []kithttp.ServerOption) *kithttp.Server {
+	return kithttp.NewServer(
+		makeAddEndpoint(h.Service, shared.ROLE_TEACHER),
+		decodeUserRequest,
+		shared.EncodeResponse201,
+		opts...,
+	)
+}
+
 func (h *HandlerFactory) ListTeacher(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
 		makeListEndpoint(h.Service, shared.ROLE_TEACHER),
@@ -195,6 +205,7 @@ func makeAddEndpoint(svc Service, role string) endpoint.Endpoint {
 			Zip:       createdUser.Zip.String,
 			ImageUri:  createdUser.ImageUri.String,
 			Roles:     createdUser.Roles.ToList(),
+			DaycareId: createdUser.DaycareId.String,
 		}, nil
 	}
 }
@@ -222,6 +233,7 @@ func makeUpdateEndpoint(svc Service, role string) endpoint.Endpoint {
 			Zip:       user.Zip.String,
 			ImageUri:  user.ImageUri.String,
 			Roles:     user.Roles.ToList(),
+			DaycareId: user.DaycareId.String,
 		}, nil
 	}
 }
@@ -261,6 +273,7 @@ func makeGetEndpoint(svc Service, role string) endpoint.Endpoint {
 			Zip:       user.Zip.String,
 			ImageUri:  user.ImageUri.String,
 			Roles:     user.Roles.ToList(),
+			DaycareId: user.DaycareId.String,
 		}, nil
 	}
 }
@@ -294,6 +307,7 @@ func makeMeEndpoint(svc Service) endpoint.Endpoint {
 			Zip:       user.Zip.String,
 			ImageUri:  user.ImageUri.String,
 			Roles:     user.Roles.ToList(),
+			DaycareId: user.DaycareId.String,
 		}, nil
 	}
 }
@@ -321,6 +335,7 @@ func makeListEndpoint(svc Service, roleConstraint string) endpoint.Endpoint {
 				Address_1: user.Address_1.String,
 				Address_2: user.Address_2.String,
 				Roles:     user.Roles.ToList(),
+				DaycareId: user.DaycareId.String,
 			})
 		}
 		return allUsers, nil
@@ -369,6 +384,8 @@ func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	switch errors.Cause(err).Error() {
+	case ErrCreateDifferentDaycare.Error():
+		w.WriteHeader(http.StatusForbidden)
 	case ErrInvalidPasswordFormat.Error(), ErrInvalidEmail.Error():
 		w.WriteHeader(http.StatusBadRequest)
 	case store.ErrUserNotFound.Error():

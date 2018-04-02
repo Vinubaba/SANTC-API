@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"firebase.google.com/go/auth"
+	"github.com/Vinubaba/SANTC-API/shared"
 	"github.com/jinzhu/gorm"
 )
 
@@ -11,7 +12,8 @@ type Store struct {
 	StringGenerator interface {
 		GenerateUuid() string
 	} `inject:""`
-	FirebaseClient *auth.Client `inject:""`
+	FirebaseClient *auth.Client      `inject:""`
+	Config         *shared.AppConfig `inject:""`
 }
 
 func (s *Store) Tx() *gorm.DB {
@@ -36,4 +38,10 @@ func DbNullString(value string) sql.NullString {
 		String: "",
 		Valid:  false,
 	}
+}
+
+type SearchOptions struct {
+	DaycareId     string
+	TeacherId     string
+	ResponsibleId string
 }

@@ -55,6 +55,7 @@ func init() {
 	checkErrAndExit(initPostgresConnection())
 	checkErrAndExit(initFirebase())
 	checkErrAndExit(initApplicationGraph())
+	checkErrAndExit(setPublicDaycare())
 }
 
 func initAppConfiguration() (err error) {
@@ -121,6 +122,15 @@ func initApplicationGraph() error {
 	return nil
 }
 
+func setPublicDaycare() error {
+	publicDaycare, err := dbStore.GetPublicDaycare(db)
+	if err != nil {
+		return err
+	}
+	config.PublicDaycareId = publicDaycare.DaycareId.String
+	return nil
+}
+
 func main() {
 	if config.StartupMigration {
 		applySqlSchemaMigrations(ctx)
@@ -173,6 +183,7 @@ func startHttpServer(ctx context.Context) {
 	apiRouterV1.Handle("/office-managers/{id}", authenticator.Roles(userHandlerFactory.DeleteOfficeManager(userOpts), ROLE_ADMIN)).Methods(http.MethodDelete)
 	apiRouterV1.Handle("/office-managers/{id}", authenticator.Roles(userHandlerFactory.UpdateOfficeManager(userOpts), ROLE_ADMIN)).Methods(http.MethodPatch)
 
+	apiRouterV1.Handle("/teachers", authenticator.Roles(userHandlerFactory.CreateTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodPost)
 	apiRouterV1.Handle("/teachers", authenticator.Roles(userHandlerFactory.ListTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
 	apiRouterV1.Handle("/teachers/{id}", authenticator.Roles(userHandlerFactory.GetTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
 	apiRouterV1.Handle("/teachers/{id}", authenticator.Roles(userHandlerFactory.DeleteTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)

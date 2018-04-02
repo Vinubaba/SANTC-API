@@ -1,5 +1,6 @@
 package storage_test
 
+/*
 import (
 	b64 "encoding/base64"
 	"io/ioutil"
@@ -96,3 +97,4 @@ var _ = Describe("Gcs", func() {
 	})
 
 })
+*/

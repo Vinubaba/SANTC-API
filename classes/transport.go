@@ -21,6 +21,7 @@ var (
 
 type ClassTransport struct {
 	Id          string                      `json:"id"`
+	DaycareId   string                      `json:"daycareId"`
 	Name        string                      `json:"name"`
 	Description string                      `json:"description"`
 	ImageUri    string                      `json:"imageUri"`
@@ -94,7 +95,6 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 		if err != nil {
 			return nil, err
 		}
-
 		return storeToTransport(class), nil
 	}
 }
@@ -111,7 +111,7 @@ func makeDeleteEndpoint(svc Service) endpoint.Endpoint {
 
 func makeListEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		classes, err := svc.ListClass(ctx)
+		classes, err := svc.ListClasses(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -193,6 +193,7 @@ func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 
 func transportToStore(request ClassTransport) store.Class {
 	return store.Class{
+		DaycareId:   store.DbNullString(request.DaycareId),
 		ImageUri:    store.DbNullString(request.ImageUri),
 		ClassId:     store.DbNullString(request.Id),
 		Description: store.DbNullString(request.Description),
@@ -200,6 +201,7 @@ func transportToStore(request ClassTransport) store.Class {
 		AgeRangeId:  store.DbNullString(request.AgeRange.Id),
 		AgeRange: store.AgeRange{
 			AgeRangeId: store.DbNullString(request.AgeRange.Id),
+			DaycareId:  store.DbNullString(request.AgeRange.DaycareId),
 			Stage:      store.DbNullString(request.AgeRange.Stage),
 			Min:        request.AgeRange.Min,
 			MinUnit:    store.DbNullString(request.AgeRange.MinUnit),
@@ -212,16 +214,18 @@ func transportToStore(request ClassTransport) store.Class {
 func storeToTransport(class store.Class) ClassTransport {
 	return ClassTransport{
 		Id:          class.ClassId.String,
+		DaycareId:   class.DaycareId.String,
 		ImageUri:    class.ImageUri.String,
 		Name:        class.Name.String,
 		Description: class.Description.String,
 		AgeRange: ageranges.AgeRangeTransport{
-			Id:      class.AgeRange.AgeRangeId.String,
-			Stage:   class.AgeRange.Stage.String,
-			Min:     class.AgeRange.Min,
-			MinUnit: class.AgeRange.MinUnit.String,
-			Max:     class.AgeRange.Max,
-			MaxUnit: class.AgeRange.MaxUnit.String,
+			Id:        class.AgeRange.AgeRangeId.String,
+			DaycareId: class.AgeRange.DaycareId.String,
+			Stage:     class.AgeRange.Stage.String,
+			Min:       class.AgeRange.Min,
+			MinUnit:   class.AgeRange.MinUnit.String,
+			Max:       class.AgeRange.Max,
+			MaxUnit:   class.AgeRange.MaxUnit.String,
 		},
 	}
 }

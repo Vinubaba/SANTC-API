@@ -28,6 +28,8 @@ type AppConfig struct {
 
 	TestAuthMode     bool `split_words:"true" default:"true"`
 	StartupMigration bool `split_words:"true" default:"false"`
+
+	PublicDaycareId string
 }
 
 func InitAppConfiguration() (config *AppConfig, err error) {

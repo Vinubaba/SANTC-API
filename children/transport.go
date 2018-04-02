@@ -20,6 +20,7 @@ var (
 
 type ChildTransport struct {
 	Id                  string   `json:"id"`
+	DaycareId           string   `json:"daycareId"`
 	FirstName           string   `json:"firstName"`
 	LastName            string   `json:"lastName"`
 	BirthDate           string   `json:"birthDate"` // dd/mm/yyyy
@@ -92,6 +93,7 @@ func makeAddEndpoint(svc Service) endpoint.Endpoint {
 
 		ret := ChildTransport{
 			Id:                  child.ChildId.String,
+			DaycareId:           child.DaycareId.String,
 			LastName:            child.LastName.String,
 			FirstName:           child.FirstName.String,
 			BirthDate:           child.BirthDate.UTC().String(),
@@ -117,6 +119,7 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 
 		return ChildTransport{
 			Id:                  child.ChildId.String,
+			DaycareId:           child.DaycareId.String,
 			ImageUri:            child.ImageUri.String,
 			Gender:              child.Gender.String,
 			BirthDate:           child.BirthDate.UTC().String(),
@@ -142,7 +145,7 @@ func makeDeleteEndpoint(svc Service) endpoint.Endpoint {
 
 func makeListEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		children, err := svc.ListChild(ctx)
+		children, err := svc.ListChildren(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -151,6 +154,7 @@ func makeListEndpoint(svc Service) endpoint.Endpoint {
 		for _, child := range children {
 			currentChild := ChildTransport{
 				Id:                  child.ChildId.String,
+				DaycareId:           child.DaycareId.String,
 				ImageUri:            child.ImageUri.String,
 				Gender:              child.Gender.String,
 				BirthDate:           child.BirthDate.UTC().String(),
@@ -179,6 +183,7 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 
 		return ChildTransport{
 			Id:                  child.ChildId.String,
+			DaycareId:           child.DaycareId.String,
 			FirstName:           child.FirstName.String,
 			LastName:            child.LastName.String,
 			Gender:              child.Gender.String,

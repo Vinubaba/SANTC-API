@@ -1,5 +1,15 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+CREATE TABLE IF NOT EXISTS daycares (
+  daycare_id varchar PRIMARY KEY UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+  name varchar NOT NULL,
+  address_1 varchar NOT NULL,
+  address_2 varchar,
+  city varchar NOT NULL,
+  state varchar NOT NULL,
+  zip varchar NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS users (
   user_id varchar PRIMARY KEY UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
   email varchar UNIQUE NOT NULL,
@@ -12,11 +22,13 @@ CREATE TABLE IF NOT EXISTS users (
   state varchar,
   zip varchar,
   gender varchar,
-  image_uri varchar
+  image_uri varchar,
+  daycare_id varchar REFERENCES daycares (daycare_id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS children (
   child_id varchar UNIQUE NOT NULL PRIMARY KEY,
+  daycare_id varchar REFERENCES daycares (daycare_id) NOT NULL,
   first_name varchar NOT NULL,
   last_name varchar NOT NULL,
   gender varchar NOT NULL,
@@ -38,7 +50,7 @@ CREATE TABLE IF NOT EXISTS special_instructions (
 );
 
 CREATE TABLE IF NOT EXISTS responsible_of (
-  responsible_id varchar references users (user_id) ON DELETE CASCADE,
+  responsible_id varchar REFERENCES users (user_id) ON DELETE CASCADE,
   child_id varchar REFERENCES children (child_id) ON DELETE CASCADE,
   relationship varchar  NOT NULL --mother, father, grandmother, grandfather, guardian
 );
@@ -50,6 +62,7 @@ CREATE TABLE IF NOT EXISTS roles (
 
 CREATE TABLE IF NOT EXISTS age_ranges (
   age_range_id varchar PRIMARY KEY UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+  daycare_id varchar REFERENCES daycares (daycare_id) NOT NULL,
   stage varchar NOT NULL,
   min integer,
   min_unit varchar,
@@ -59,6 +72,7 @@ CREATE TABLE IF NOT EXISTS age_ranges (
 
 CREATE TABLE IF NOT EXISTS classes (
   class_id varchar PRIMARY KEY UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+  daycare_id varchar REFERENCES daycares (daycare_id) ON DELETE SET NULL,
   age_range_id varchar REFERENCES age_ranges (age_range_id) ON DELETE SET NULL,
   name varchar UNIQUE NOT NULL,
   description varchar,
@@ -70,9 +84,13 @@ CREATE TABLE IF NOT EXISTS teacher_classes (
   age_range_id varchar REFERENCES age_ranges (age_range_id) ON DELETE SET NULL
 );
 
-INSERT INTO users ("email", "first_name", "last_name", "gender") VALUES ('arthur.gustin@gmail.com', 'arthur', 'gustin', 'm');
-INSERT INTO users ("email", "first_name", "last_name", "gender") VALUES ('vinu.singh@gmail.com', 'vinu', 'singh', 'm');
-INSERT INTO users ("email", "first_name", "last_name", "gender") VALUES ('johngallegodev@gmail.com', 'john', 'gallego', 'm');
+INSERT INTO daycares ("daycare_id", "name", "address_1", "address_2", "city", "state", "zip") VALUES ('PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC');
+
+INSERT INTO users ("email", "first_name", "last_name", "gender", "daycare_id") VALUES ('arthur.gustin@gmail.com', 'arthur', 'gustin', 'm', 'PUBLIC');
+
+INSERT INTO users ("email", "first_name", "last_name", "gender", "daycare_id") VALUES ('vinu.singh@gmail.com', 'vinu', 'singh', 'm', 'PUBLIC');
+
+INSERT INTO users ("email", "first_name", "last_name", "gender", "daycare_id") VALUES ('johngallegodev@gmail.com', 'john', 'gallego', 'm', 'PUBLIC');
 
 INSERT INTO roles ("user_id", "role") (SELECT user_id, 'admin' FROM users WHERE email = 'arthur.gustin@gmail.com');
 INSERT INTO roles ("user_id", "role") (SELECT user_id, 'officemanager' FROM users WHERE email = 'vinu.singh@gmail.com');
