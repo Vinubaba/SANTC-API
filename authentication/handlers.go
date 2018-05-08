@@ -19,15 +19,15 @@ func ServeTestAuth(w http.ResponseWriter, r *http.Request) {
 
         <script src="https://www.gstatic.com/firebasejs/4.9.1/firebase.js"></script>
         <script>
-            var config = {
-                apiKey: "AIzaSyCqNlOLHg3FiCYCu2hkz3djXs8Tmw4DKpw",
-                authDomain: "teddycare-193910.firebaseapp.com",
-                databaseURL: "https://teddycare-193910.firebaseio.com",
-                projectId: "teddycare-193910",
-                storageBucket: "teddycare-193910.appspot.com",
-                messagingSenderId: "36000389039"
-            };
-            firebase.initializeApp(config);
+             var config = {
+				apiKey: "AIzaSyCY308jrOtyUA02PxbXa3_r7GOycUzLuwU",
+				authDomain: "teddy-care.firebaseapp.com",
+				databaseURL: "https://teddy-care.firebaseio.com",
+				projectId: "teddy-care",
+				storageBucket: "teddy-care.appspot.com",
+				messagingSenderId: "1036190605742"
+			};
+			firebase.initializeApp(config);
 
             // Initialize the FirebaseUI Widget using Firebase.
             var ui = new firebaseui.auth.AuthUI(firebase.auth());
@@ -42,7 +42,6 @@ func ServeTestAuth(w http.ResponseWriter, r *http.Request) {
                         }).catch(function(error) {
                             console.log(error)
                         });
-
                     },
                     uiShown: function() {
                         // The widget is rendered.
@@ -94,7 +93,7 @@ func ServeTestAuth(w http.ResponseWriter, r *http.Request) {
                 },
                 // Will use popup for IDP Providers sign-in flow instead of the default, redirect.
                 signInFlow: 'redirect',
-                signInSuccessUrl: '/test-auth-on-success',
+                signInSuccessUrl: '/auth/success',
                 signInOptions: [
                     // Leave the lines as is for the providers you want to offer your users.
                     firebase.auth.GoogleAuthProvider.PROVIDER_ID,
@@ -125,7 +124,6 @@ func ServeTestAuth(w http.ResponseWriter, r *http.Request) {
 }
 
 func ServeTestAuthOnSuccess(w http.ResponseWriter, r *http.Request) {
-
 	token := r.Header.Get("authorization")
 
 	payload, _ := ioutil.ReadAll(r.Body)

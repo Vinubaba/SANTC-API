@@ -37,8 +37,16 @@ func (f *Authenticator) Roles(next http.Handler, roles ...string) http.Handler {
 	})
 }
 
-func (f *Authenticator) Firebase(next http.Handler) http.Handler {
+func (f *Authenticator) Firebase(next http.Handler, excludePath []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// Some route are public (users does not need to be authenticated)
+		for _, path := range excludePath {
+			if req.RequestURI == path {
+				next.ServeHTTP(w, req)
+				return
+			}
+		}
+
 		ctx := req.Context()
 		authorizationHeader := req.Header.Get("authorization")
 
@@ -52,6 +60,7 @@ func (f *Authenticator) Firebase(next http.Handler) http.Handler {
 			HttpError(w, NewError("invalid authorization token"), http.StatusBadRequest)
 			return
 		}
+
 		token, err := f.FirebaseClient.VerifyIDToken(bearerToken[1])
 		if err != nil {
 			HttpError(w, NewError(fmt.Sprintf("invalid authorization token: %s", err.Error())), http.StatusBadRequest)
@@ -88,12 +97,12 @@ func (f *Authenticator) Firebase(next http.Handler) http.Handler {
 				HttpError(w, NewError(err.Error()), http.StatusInternalServerError)
 				return
 			}
+
 			firebaseUser.CustomClaims = claims
 			ctx = context.WithValue(ctx, "claims", claims)
 		}
 
-		req = req.WithContext(context.WithValue(context.Background(), "claims", firebaseUser.CustomClaims))
-
+		req = req.WithContext(context.WithValue(ctx, "claims", firebaseUser.CustomClaims))
 		next.ServeHTTP(w, req)
 	})
 }

@@ -25,18 +25,21 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/pkg/errors"
-	"github.com/rs/cors"
 	"google.golang.org/api/option"
 )
 
 var (
-	ctx                     = context.Background()
-	logger                  = NewLogger("teddycare")
-	config                  *AppConfig
-	db                      *gorm.DB
-	stringGenerator         = &StringGenerator{}
-	childService            = &children.ChildService{}
-	userService             = &users.UserService{}
+	ctx             = context.Background()
+	logger          = NewLogger("teddycare")
+	config          *AppConfig
+	db              *gorm.DB
+	stringGenerator = &StringGenerator{}
+
+	childService    = &children.ChildService{}
+	userService     = &users.UserService{}
+	classService    = &classes.ClassService{}
+	ageRangeService = &ageranges.AgeRangeService{}
+
 	userHandlerFactory      = &users.HandlerFactory{}
 	childrenHandlerFactory  = &children.HandlerFactory{}
 	classesHandlerFactory   = &classes.HandlerFactory{}
@@ -55,7 +58,6 @@ func init() {
 	checkErrAndExit(initPostgresConnection())
 	checkErrAndExit(initFirebase())
 	checkErrAndExit(initApplicationGraph())
-	checkErrAndExit(setPublicDaycare())
 }
 
 func initAppConfiguration() (err error) {
@@ -82,7 +84,7 @@ func initPostgresConnection() (err error) {
 
 func initFirebase() error {
 	opt := option.WithCredentialsFile(config.FirebaseServiceAccount)
-	config := &firebase.Config{ProjectID: "teddycare-193910"}
+	config := &firebase.Config{ProjectID: config.GcpProjectID}
 
 	firebaseApp, err := firebase.NewApp(context.Background(), config, opt)
 	if err != nil {
@@ -103,6 +105,8 @@ func initApplicationGraph() error {
 		&inject.Object{Value: config},
 		&inject.Object{Value: childService},
 		&inject.Object{Value: userService},
+		&inject.Object{Value: classService},
+		&inject.Object{Value: ageRangeService},
 		&inject.Object{Value: userHandlerFactory},
 		&inject.Object{Value: childrenHandlerFactory},
 		&inject.Object{Value: classesHandlerFactory},
@@ -119,15 +123,6 @@ func initApplicationGraph() error {
 	if err := g.Populate(); err != nil {
 		return errors.Wrap(err, "failed to populate")
 	}
-	return nil
-}
-
-func setPublicDaycare() error {
-	publicDaycare, err := dbStore.GetPublicDaycare(db)
-	if err != nil {
-		return err
-	}
-	config.PublicDaycareId = publicDaycare.DaycareId.String
 	return nil
 }
 
@@ -174,6 +169,19 @@ func startHttpServer(ctx context.Context) {
 
 	router := mux.NewRouter()
 
+	router.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}).Methods(http.MethodGet)
+
+	router.HandleFunc("/readyz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}).Methods(http.MethodGet)
+
+	if config.TestAuthMode {
+		router.HandleFunc("/auth/login", authentication.ServeTestAuth).Methods(http.MethodGet)
+		router.HandleFunc("/auth/success", authentication.ServeTestAuthOnSuccess)
+	}
+
 	apiRouterV1 := router.PathPrefix("/api/v1").Subrouter()
 
 	apiRouterV1.Handle("/me", authenticator.Roles(userHandlerFactory.Me(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_TEACHER)).Methods(http.MethodGet)
@@ -213,25 +221,9 @@ func startHttpServer(ctx context.Context) {
 	apiRouterV1.Handle("/classes/{classId}", authenticator.Roles(classesHandlerFactory.Update(classesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPatch)
 	apiRouterV1.Handle("/classes/{classId}", authenticator.Roles(classesHandlerFactory.Delete(classesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodDelete)
 
-	if config.TestAuthMode {
-		testAuthRouter := mux.NewRouter()
-		testAuthRouter.HandleFunc("/test-auth-login", authentication.ServeTestAuth).Methods(http.MethodGet)
-		testAuthRouter.HandleFunc("/test-auth-on-success", authentication.ServeTestAuthOnSuccess)
-		go func() {
-			checkErrAndExit(http.ListenAndServe(":8082", testAuthRouter))
-		}()
-	}
-
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"https://teddy-care-project.firebaseapp.com", "teddy-care-project.firebaseapp.com", "http://localhost:4200"},
-		AllowCredentials: true,
-		Debug:            true,
-	})
-	checkErrAndExit(http.ListenAndServe(":8083",
+	checkErrAndExit(http.ListenAndServe("0.0.0.0:8080",
 		logger.RequestLoggerMiddleware(
-			c.Handler(
-				authenticator.Firebase(router),
-			),
+			authenticator.Firebase(router, []string{"/healthz", "/readyz", "/auth/login", "/auth/success"}),
 		),
 	))
 }

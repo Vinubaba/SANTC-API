@@ -208,14 +208,11 @@ func (c *UserService) GetUserByRoles(ctx context.Context, request UserTransport,
 	return user, nil
 }
 
+// Only called by firebase middleware
 func (c *UserService) GetUserByEmail(ctx context.Context, request UserTransport) (store.User, error) {
 	user, err := c.Store.GetUserByEmail(nil, request.Email)
 	if err != nil {
 		return store.User{}, errors.Wrap(err, "failed to get user")
-	}
-
-	if IsDaycareDifferentFromContext(ctx, user.DaycareId.String) {
-		return store.User{}, store.ErrUserNotFound
 	}
 
 	c.setBucketUri(ctx, &user)

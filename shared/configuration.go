@@ -17,7 +17,7 @@ type AppConfig struct {
 	PgContactPort          string `split_words:"true" default:"5432"`
 	PgDbName               string `split_words:"true" default:"teddycare"`
 	SqlMigrationsSourceDir string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\Vinubaba\\SANTC-API\\sql"`
-	GcpProjectID           string `split_words:"true" default:"teddycare-193910"`
+	GcpProjectID           string `split_words:"true" default:"teddy-care"`
 	LocalStoragePath       string `split_words:"true"`
 
 	BucketImagesName            string `split_words:"true" default:"teddycare-images"`
@@ -29,7 +29,7 @@ type AppConfig struct {
 	TestAuthMode     bool `split_words:"true" default:"true"`
 	StartupMigration bool `split_words:"true" default:"false"`
 
-	PublicDaycareId string
+	PublicDaycareId string `split_words:"true" default:"PUBLIC"`
 }
 
 func InitAppConfiguration() (config *AppConfig, err error) {

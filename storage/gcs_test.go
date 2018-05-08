@@ -1,6 +1,5 @@
 package storage_test
 
-/*
 import (
 	b64 "encoding/base64"
 	"io/ioutil"
@@ -34,7 +33,7 @@ var _ = Describe("Gcs", func() {
 		}
 		config = &shared.AppConfig{
 			BucketServiceAccount: bucketSa,
-			BucketImagesName:     "teddycare-images",
+			BucketImagesName:     "teddycare-profiles",
 		}
 
 		b, err := ioutil.ReadFile(config.BucketServiceAccount)
@@ -85,10 +84,10 @@ var _ = Describe("Gcs", func() {
 			Expect(fileName).To(Equal("image1.jpg"))
 
 			// Get
-			Expect(getError).To(BeNil())
-			Expect(getResponse.StatusCode).To(Equal(http.StatusOK))
 			b, _ := ioutil.ReadAll(getResponse.Body)
 			Expect(b).To(Equal(image))
+			Expect(getError).To(BeNil())
+			Expect(getResponse.StatusCode).To(Equal(http.StatusOK))
 
 			// Delete
 			Expect(deleteError).To(BeNil())
@@ -97,4 +96,3 @@ var _ = Describe("Gcs", func() {
 	})
 
 })
-*/

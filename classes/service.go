@@ -23,10 +23,10 @@ var (
 
 type Service interface {
 	AddClass(ctx context.Context, request ClassTransport) (store.Class, error)
-	DeleteClass(ctx context.Context, request ClassTransport) error
-	UpdateClass(ctx context.Context, request ClassTransport) (store.Class, error)
 	GetClass(ctx context.Context, request ClassTransport) (store.Class, error)
+	DeleteClass(ctx context.Context, request ClassTransport) error
 	ListClasses(ctx context.Context) ([]store.Class, error)
+	UpdateClass(ctx context.Context, request ClassTransport) (store.Class, error)
 }
 
 type ClassService struct {

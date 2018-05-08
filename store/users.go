@@ -86,8 +86,9 @@ func (s *Store) GetUser(tx *gorm.DB, userId string) (User, error) {
 func (s *Store) GetUserByEmail(tx *gorm.DB, email string) (User, error) {
 	db := s.dbOrTx(tx)
 	rows, err := db.Table("users").
-		Select("users.user_id,"+
-			"users.email,"+
+		Select("users.user_id, "+
+			"users.daycare_id,"+
+			"users.email, "+
 			"users.first_name,"+
 			"users.last_name,"+
 			"users.phone,"+
@@ -98,8 +99,7 @@ func (s *Store) GetUserByEmail(tx *gorm.DB, email string) (User, error) {
 			"users.zip,"+
 			"users.gender,"+
 			"users.image_uri,"+
-			"string_agg(roles.role, ','),"+
-			"users.daycare_id").
+			"string_agg(roles.role, ',')").
 		Joins("left join roles ON roles.user_id = users.user_id").
 		Where("users.email = ?", email).
 		Group("users.user_id").
