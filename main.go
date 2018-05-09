@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -30,6 +31,7 @@ import (
 
 var (
 	ctx             = context.Background()
+	swagger         []byte
 	logger          = NewLogger("teddycare")
 	config          *AppConfig
 	db              *gorm.DB
@@ -58,6 +60,7 @@ func init() {
 	checkErrAndExit(initPostgresConnection())
 	checkErrAndExit(initFirebase())
 	checkErrAndExit(initApplicationGraph())
+	checkErrAndExit(initSwagger())
 }
 
 func initAppConfiguration() (err error) {
@@ -126,6 +129,12 @@ func initApplicationGraph() error {
 	return nil
 }
 
+func initSwagger() error {
+	var err error
+	swagger, err = ioutil.ReadFile(config.SwaggerFilePath)
+	return err
+}
+
 func main() {
 	if config.StartupMigration {
 		applySqlSchemaMigrations(ctx)
@@ -177,6 +186,11 @@ func startHttpServer(ctx context.Context) {
 		w.WriteHeader(http.StatusOK)
 	}).Methods(http.MethodGet)
 
+	router.HandleFunc("/swagger.yaml", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write(swagger)
+	})
+
 	if config.TestAuthMode {
 		router.HandleFunc("/auth/login", authentication.ServeTestAuth).Methods(http.MethodGet)
 		router.HandleFunc("/auth/success", authentication.ServeTestAuthOnSuccess)
@@ -223,7 +237,7 @@ func startHttpServer(ctx context.Context) {
 
 	checkErrAndExit(http.ListenAndServe("0.0.0.0:8080",
 		logger.RequestLoggerMiddleware(
-			authenticator.Firebase(router, []string{"/healthz", "/readyz", "/auth/login", "/auth/success"}),
+			authenticator.Firebase(router, []string{"/healthz", "/readyz", "/auth/login", "/auth/success", "/swagger.yaml"}),
 		),
 	))
 }

@@ -1,0 +1,1006 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "Teddycare API"
+  contact:
+    email: "arthur.gustin@gmail.com"
+host: "dev.teddycare.net"
+basePath: "/"
+schemes:
+- "http"
+paths:
+  /auth/login:
+    get:
+      tags:
+      - "login"
+      summary: "sample web page that print token in the debug console. used in development only"
+      description: ""
+      operationId: "login"
+      responses:
+        200:
+          description: "success"
+  /api/v1/office-managers:
+    get:
+      tags:
+      - "office-managers"
+      summary: "List office managers"
+      description: ""
+      operationId: "listOfficeManagers"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "success"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/User"
+        500:
+          description: "server error"
+  /api/v1/office-managers/{id}:
+    get:
+      tags:
+      - "office-managers"
+      summary: "Retrieve existing office manager"
+      description: ""
+      operationId: "getOfficeManager"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of office manager to return"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/User"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+    delete:
+      tags:
+      - "office-managers"
+      summary: "Delete an existing office manager"
+      description: ""
+      operationId: "deleteOfficeManager"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of office manager to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        204:
+          description: "success"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+    patch:
+      tags:
+      - "office-managers"
+      summary: "Update an existing office manager"
+      description: ""
+      operationId: "updateOfficeManager"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of office manager to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      - in: body
+        name: user
+        description: The user to update.
+        schema:
+          $ref: "#/definitions/User"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/User"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+  /api/v1/teachers:
+    get:
+      tags:
+      - "teachers"
+      summary: "List teachers"
+      description: ""
+      operationId: "listTeachers"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "success"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/User"
+        500:
+          description: "server error"
+    post:
+      tags:
+      - "teachers"
+      summary: "Create a new teacher"
+      description: ""
+      operationId: "createTeacher"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: body
+        name: user
+        description: The teacher to create
+        schema:
+          $ref: "#/definitions/User"
+      responses:
+        201:
+          description: "created"
+          schema:
+            $ref: "#/definitions/User"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+  /api/v1/teachers/{id}:
+    get:
+      tags:
+      - "teachers"
+      summary: "Retrieve existing teachers"
+      description: ""
+      operationId: "getTeacher"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of teacher to return"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/User"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+    delete:
+      tags:
+      - "teachers"
+      summary: "Delete an existing teacher"
+      description: ""
+      operationId: "deleteTeacher"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of teacher to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        204:
+          description: "success"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+    patch:
+      tags:
+      - "teachers"
+      summary: "Update an existing teacher"
+      description: ""
+      operationId: "updateTeacher"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of teacher to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      - in: body
+        name: user
+        description: The teacher to update.
+        schema:
+          $ref: "#/definitions/User"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/User"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+  /api/v1/adults:
+    get:
+      tags:
+      - "adults"
+      summary: "List adults"
+      description: ""
+      operationId: "listAdults"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "success"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/User"
+        500:
+          description: "server error"
+    post:
+      tags:
+      - "adults"
+      summary: "Create a new adult"
+      description: ""
+      operationId: "createAdult"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: body
+        name: user
+        description: The adult to create
+        schema:
+          $ref: "#/definitions/User"
+      responses:
+        201:
+          description: "created"
+          schema:
+            $ref: "#/definitions/User"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+  /api/v1/adults/{id}:
+    get:
+      tags:
+      - "adults"
+      summary: "Retrieve existing adult"
+      description: ""
+      operationId: "getAdult"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of adult to return"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/User"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+    delete:
+      tags:
+      - "adults"
+      summary: "Delete an existing adult"
+      description: ""
+      operationId: "deleteAdult"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of adult to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        204:
+          description: "success"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+    patch:
+      tags:
+      - "adults"
+      summary: "Update an existing adult"
+      description: ""
+      operationId: "updateAdult"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of adult to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      - in: body
+        name: user
+        description: The adult to update.
+        schema:
+          $ref: "#/definitions/User"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/User"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+  /api/v1/children:
+    get:
+      tags:
+      - "children"
+      summary: "List children"
+      description: ""
+      operationId: "listChildren"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "success"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/Child"
+        500:
+          description: "server error"
+    post:
+      tags:
+      - "children"
+      summary: "Create a new child"
+      description: ""
+      operationId: "createChild"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: body
+        name: child
+        description: The child to create
+        schema:
+          $ref: "#/definitions/Child"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Child"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+  /api/v1/children/{id}:
+    get:
+      tags:
+      - "children"
+      summary: "Retrieve existing child"
+      description: ""
+      operationId: "getChild"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of child to return"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Child"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+    delete:
+      tags:
+      - "children"
+      summary: "Delete an existing child"
+      description: ""
+      operationId: "deleteChild"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of child to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        204:
+          description: "success"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+    patch:
+      tags:
+      - "children"
+      summary: "Update an existing child"
+      description: ""
+      operationId: "updateChild"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of child to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      - in: body
+        name: user
+        description: The child to update.
+        schema:
+          $ref: "#/definitions/Child"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Child"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+  /api/v1/age-ranges:
+    get:
+      tags:
+      - "age-ranges"
+      summary: "List age ranges"
+      description: ""
+      operationId: "listAgeRanges"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "success"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/AgeRange"
+        500:
+          description: "server error"
+    post:
+      tags:
+      - "age-ranges"
+      summary: "Create a new age range"
+      description: ""
+      operationId: "createAgeRange"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: body
+        name: ageRange
+        description: The age range to create
+        schema:
+          $ref: "#/definitions/AgeRange"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/AgeRange"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+  /api/v1/age-ranges/{id}:
+    get:
+      tags:
+      - "age-ranges"
+      summary: "Retrieve existing age range"
+      description: ""
+      operationId: "getAgeRange"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of ageRange to return"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/AgeRange"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "office manager not found"
+        500:
+          description: "server error"
+    delete:
+      tags:
+      - "age-ranges"
+      summary: "Delete an existing age range"
+      description: ""
+      operationId: "deleteAgeRange"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of age range to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        204:
+          description: "success"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "age range not found"
+        500:
+          description: "server error"
+    patch:
+      tags:
+      - "age-ranges"
+      summary: "Update an existing age range"
+      description: ""
+      operationId: "updateAgeRange"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of age range to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      - in: body
+        name: age range
+        description: The age range to update.
+        schema:
+          $ref: "#/definitions/AgeRange"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/AgeRange"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "age range not found"
+        500:
+          description: "server error"
+  /api/v1/classes:
+    get:
+      tags:
+      - "classes"
+      summary: "List classes"
+      description: ""
+      operationId: "listClasses"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "success"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/Class"
+        500:
+          description: "server error"
+    post:
+      tags:
+      - "classes"
+      summary: "Create a new class"
+      description: ""
+      operationId: "createClass"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: body
+        name: class
+        description: The class to create
+        schema:
+          $ref: "#/definitions/Class"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Class"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "class not found"
+        500:
+          description: "server error"
+  /api/v1/classes/{id}:
+    get:
+      tags:
+      - "classes"
+      summary: "Retrieve existing class"
+      description: ""
+      operationId: "getClass"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of class to return"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Class"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "class not found"
+        500:
+          description: "server error"
+    delete:
+      tags:
+      - "classes"
+      summary: "Delete an existing class"
+      description: ""
+      operationId: "deleteClass"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of class to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        204:
+          description: "success"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "class not found"
+        500:
+          description: "server error"
+    patch:
+      tags:
+      - "classes"
+      summary: "Update an existing class"
+      description: ""
+      operationId: "updateClass"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of class to delete"
+        required: true
+        type: "string"
+        format: "uid"
+      - in: body
+        name: age range
+        description: The age range to update.
+        schema:
+          $ref: "#/definitions/Class"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Class"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "class not found"
+        500:
+          description: "server error"
+definitions:
+  User:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uid"
+      firstName:
+        type: "string"
+      lastName:
+        type: "string"
+      gender:
+        type: "string"
+      email:
+        type: "string"
+      phone:
+        type: "string"
+      address_1:
+        type: "string"
+      address_2:
+        type: "string"
+      city:
+        type: "string"
+      state:
+        type: "string"
+      zip:
+        type: "string"
+      imageUri:
+        type: "string"
+        format: "base64"
+      roles:
+        type: "array"
+        items:
+          type: "string"
+        enum: [admin, officemanager, teacher, adult]
+      daycareId:
+        type: "string"
+  Child:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uid"
+      daycareId:
+        type: "string"
+      firstName:
+        type: "string"
+      lastName:
+        type: "string"
+      birthDate:
+        type: "string"
+      gender:
+        type: "string"
+      imageUri:
+        type: "string"
+        format: "base64"
+      startDate:
+        type: "string"
+      notes:
+        type: "string"
+      allergies:
+        type: "array"
+        items:
+          type: "string"
+      responsibleId:
+        type: "string"
+      relationship:
+        type: "string"
+        enum: ["mother","father","grandmother","grandfather","guardian"]
+      specialInstructions:
+        type: "array"
+        items:
+          type: "string"
+  AgeRange:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uid"
+      daycareId:
+        type: "string"
+      stage:
+        type: "string"
+      min:
+        type: "integer"
+      minUnit:
+        type: "string"
+        enum: ["M", "Y"]
+      max:
+        type: "integer"
+      maxUnit:
+        type: "string"
+        enum: ["M", "Y"]
+  Class:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uid"
+      daycareId:
+        type: "string"
+      name:
+        type: "string"
+      description:
+        type: "string"
+      imageUri:
+        type: "string"
+        format: "base64"
+      ageRange:
+        $ref: "#/definitions/AgeRange"

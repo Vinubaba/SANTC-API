@@ -30,6 +30,7 @@ type AppConfig struct {
 	StartupMigration bool `split_words:"true" default:"false"`
 
 	PublicDaycareId string `split_words:"true" default:"PUBLIC"`
+	SwaggerFilePath string `split_words:"true" default:"C:\\Users\\arthur\\gocode\\src\\github.com\\Vinubaba\\SANTC-API\\.docs\\swagger.yml"`
 }
 
 func InitAppConfiguration() (config *AppConfig, err error) {
