@@ -218,6 +218,15 @@ var _ = Describe("Transport", func() {
 				assertHttpCode(http.StatusOK)
 			})
 
+			Context("When there are no children", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_ADULT] = true
+					claims["userId"] = "foo"
+				})
+				assertJsonResponse(`[]`)
+				assertHttpCode(http.StatusOK)
+			})
+
 			Context("When database is closed", func() {
 				BeforeEach(func() {
 					claims[shared.ROLE_ADMIN] = true

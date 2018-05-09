@@ -157,9 +157,6 @@ func (s *Store) ListChildren(tx *gorm.DB, options SearchOptions) ([]Child, error
 		return []Child{}, err
 	}
 
-	if len(children) == 0 {
-		return []Child{}, ErrChildNotFound
-	}
 	return children, nil
 }
 
