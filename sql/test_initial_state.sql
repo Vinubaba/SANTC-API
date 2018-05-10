@@ -5,6 +5,7 @@ TRUNCATE TABLE "age_ranges" CASCADE;
 TRUNCATE TABLE "responsible_of" CASCADE;
 TRUNCATE TABLE "children" CASCADE;
 TRUNCATE TABLE "age_ranges" CASCADE;
+TRUNCATE TABLE "daycares" CASCADE;
 
 INSERT INTO daycares ("daycare_id", "name", "address_1", "address_2", "city", "state", "zip") VALUES ('peyredragon', 'peyredragon', 'peyredragon', 'peyredragon', 'peyredragon', 'peyredragon', 'peyredragon');
 INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri","daycare_id") VALUES ('id1','elaria.sand@got.com','Elaria','Sand','M','+3365651','address','floor','Peyredragon','WESTEROS','31400','http://image.com','peyredragon');

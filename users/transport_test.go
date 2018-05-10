@@ -121,12 +121,8 @@ var _ = Describe("Transport", func() {
 			StringGenerator: mockStringGenerator,
 		}
 
-		publicDaycare, err := concreteStore.GetPublicDaycare(concreteDb)
-		if err != nil {
-			panic(err)
-		}
 		config = &shared.AppConfig{
-			PublicDaycareId: publicDaycare.DaycareId.String,
+			PublicDaycareId: "PUBLIC",
 		}
 
 		userService := &UserService{
