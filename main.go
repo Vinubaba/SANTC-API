@@ -19,6 +19,7 @@ import (
 	"firebase.google.com/go/auth"
 	"github.com/Vinubaba/SANTC-API/ageranges"
 	"github.com/Vinubaba/SANTC-API/authentication"
+	"github.com/Vinubaba/SANTC-API/daycares"
 	"github.com/Vinubaba/SANTC-API/store/migrations"
 	"github.com/facebookgo/inject"
 	kithttp "github.com/go-kit/kit/transport/http"
@@ -37,11 +38,13 @@ var (
 	db              *gorm.DB
 	stringGenerator = &StringGenerator{}
 
+	daycareService  = &daycares.DaycareService{}
 	childService    = &children.ChildService{}
 	userService     = &users.UserService{}
 	classService    = &classes.ClassService{}
 	ageRangeService = &ageranges.AgeRangeService{}
 
+	daycareHandlerFactory   = &daycares.HandlerFactory{}
 	userHandlerFactory      = &users.HandlerFactory{}
 	childrenHandlerFactory  = &children.HandlerFactory{}
 	classesHandlerFactory   = &classes.HandlerFactory{}
@@ -106,11 +109,13 @@ func initApplicationGraph() error {
 	g := inject.Graph{}
 	g.Provide(
 		&inject.Object{Value: config},
+		&inject.Object{Value: daycareService},
 		&inject.Object{Value: childService},
 		&inject.Object{Value: userService},
 		&inject.Object{Value: classService},
 		&inject.Object{Value: ageRangeService},
 		&inject.Object{Value: userHandlerFactory},
+		&inject.Object{Value: daycareHandlerFactory},
 		&inject.Object{Value: childrenHandlerFactory},
 		&inject.Object{Value: classesHandlerFactory},
 		&inject.Object{Value: ageRangesHandlerFactory},
@@ -156,6 +161,11 @@ func applySqlSchemaMigrations(ctx context.Context) {
 }
 
 func startHttpServer(ctx context.Context) {
+	daycareOpts := []kithttp.ServerOption{
+		kithttp.ServerErrorLogger(logger),
+		kithttp.ServerErrorEncoder(daycares.EncodeError),
+	}
+
 	userOpts := []kithttp.ServerOption{
 		kithttp.ServerErrorLogger(logger),
 		kithttp.ServerErrorEncoder(users.EncodeError),
@@ -199,6 +209,12 @@ func startHttpServer(ctx context.Context) {
 	apiRouterV1 := router.PathPrefix("/api/v1").Subrouter()
 
 	apiRouterV1.Handle("/me", authenticator.Roles(userHandlerFactory.Me(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_TEACHER)).Methods(http.MethodGet)
+
+	apiRouterV1.Handle("/daycares", authenticator.Roles(daycareHandlerFactory.Add(daycareOpts), ROLE_ADMIN)).Methods(http.MethodPost)
+	apiRouterV1.Handle("/daycares", authenticator.Roles(daycareHandlerFactory.List(daycareOpts), ROLE_ADMIN)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/daycares/{daycareId}", authenticator.Roles(daycareHandlerFactory.Get(daycareOpts), ROLE_ADMIN)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/daycares/{daycareId}", authenticator.Roles(daycareHandlerFactory.Update(daycareOpts), ROLE_ADMIN)).Methods(http.MethodPatch)
+	apiRouterV1.Handle("/daycares/{daycareId}", authenticator.Roles(daycareHandlerFactory.Delete(daycareOpts), ROLE_ADMIN)).Methods(http.MethodDelete)
 
 	apiRouterV1.Handle("/office-managers", authenticator.Roles(userHandlerFactory.ListOfficeManager(userOpts), ROLE_ADMIN)).Methods(http.MethodGet)
 	apiRouterV1.Handle("/office-managers/{id}", authenticator.Roles(userHandlerFactory.GetOfficeManager(userOpts), ROLE_ADMIN)).Methods(http.MethodGet)
