@@ -80,8 +80,8 @@ CREATE TABLE IF NOT EXISTS classes (
 );
 
 CREATE TABLE IF NOT EXISTS teacher_classes (
-  user_id varchar REFERENCES users (user_id) ON DELETE CASCADE,
-  age_range_id varchar REFERENCES age_ranges (age_range_id) ON DELETE SET NULL
+  teacher_id varchar REFERENCES users (user_id),
+  class_id varchar REFERENCES classes (class_id)
 );
 
 INSERT INTO daycares ("daycare_id", "name", "address_1", "address_2", "city", "state", "zip") VALUES ('PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC');

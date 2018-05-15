@@ -35,6 +35,11 @@ type UserTransport struct {
 	DaycareId string   `json:"daycareId"`
 }
 
+type TeacherClassTransport struct {
+	TeacherId string `json:"teacherId"`
+	ClassId   string `json:"classId"`
+}
+
 type HandlerFactory struct {
 	Service Service `inject:""`
 }
@@ -178,6 +183,15 @@ func (h *HandlerFactory) DeleteTeacher(opts []kithttp.ServerOption) *kithttp.Ser
 		makeDeleteEndpoint(h.Service, shared.ROLE_TEACHER),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse204,
+		opts...,
+	)
+}
+
+func (h *HandlerFactory) SetTeacherClass(opts []kithttp.ServerOption) *kithttp.Server {
+	return kithttp.NewServer(
+		makeSetTeacherClassEndpoint(h.Service),
+		decodeSetTeacherClassRequest,
+		shared.EncodeResponse200,
 		opts...,
 	)
 }
@@ -342,6 +356,17 @@ func makeListEndpoint(svc Service, roleConstraint string) endpoint.Endpoint {
 	}
 }
 
+func makeSetTeacherClassEndpoint(svc Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(TeacherClassTransport)
+		if err := svc.SetTeacherClass(ctx, req.TeacherId, req.ClassId); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	}
+}
+
 func decodeUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var request UserTransport
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -375,6 +400,20 @@ func decodeGetOrDeleteRequest(_ context.Context, r *http.Request) (interface{}, 
 	return UserTransport{Id: id}, nil
 }
 
+func decodeSetTeacherClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	teacherId, ok := vars["id"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+	var request TeacherClassTransport
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		return nil, err
+	}
+	request.TeacherId = teacherId
+	return request, nil
+}
+
 func ignorePayload(_ context.Context, _ *http.Request) (interface{}, error) {
 	return nil, nil
 }
@@ -388,7 +427,7 @@ func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 		w.WriteHeader(http.StatusForbidden)
 	case ErrInvalidPasswordFormat.Error(), ErrInvalidEmail.Error():
 		w.WriteHeader(http.StatusBadRequest)
-	case store.ErrUserNotFound.Error():
+	case store.ErrUserNotFound.Error(), store.ErrClassNotFound.Error():
 		w.WriteHeader(http.StatusNotFound)
 	default:
 		w.WriteHeader(http.StatusInternalServerError)
