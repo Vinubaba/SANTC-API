@@ -163,6 +163,7 @@ var _ = Describe("Transport", func() {
 		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.GetTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
 		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.DeleteTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
 		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.UpdateTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
+		router.Handle("/teachers/{id}/classes", authenticator.Roles(handlerFactory.SetTeacherClass(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodPost)
 
 		router.Handle("/adults", authenticator.Roles(handlerFactory.CreateAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodPost)
 		router.Handle("/adults", authenticator.Roles(handlerFactory.ListAdult(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
@@ -952,6 +953,63 @@ var _ = Describe("Transport", func() {
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to create user: sql: database is closed"}`)
+				assertHttpCode(http.StatusInternalServerError)
+			})
+
+		})
+
+		Describe("SET TEACHER CLASS", func() {
+
+			BeforeEach(func() {
+				httpMethodToUse = http.MethodPost
+				httpEndpointToUse = "/teachers/id4/classes"
+				httpBodyToUse = `{
+						"classId": "classid-2"
+					}`
+			})
+
+			Context("When user is an admin", func() {
+				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusOK)
+			})
+
+			Context("When user is an office manager from the same daycare than teacher and class", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims["daycareId"] = "peyredragon"
+				})
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusOK)
+			})
+
+			Context("When user is an office manager from a different daycare than teacher and class", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims["daycareId"] = "namek"
+				})
+				assertJsonResponse(`{"error": "class not found"}`)
+				assertHttpCode(http.StatusNotFound)
+			})
+
+			Context("When user is a teacher", func() {
+				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusUnauthorized)
+			})
+
+			Context("When user is an adult", func() {
+				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusUnauthorized)
+			})
+
+			Context("When database is closed", func() {
+				BeforeEach(func() {
+					claims[shared.ROLE_ADMIN] = true
+					concreteDb.Close()
+				})
+				assertJsonResponse(`{"error":"sql: database is closed"}`)
 				assertHttpCode(http.StatusInternalServerError)
 			})
 

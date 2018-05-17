@@ -290,6 +290,42 @@ paths:
           description: "office manager not found"
         500:
           description: "server error"
+  /api/v1/teachers/{id}/classes:
+    post:
+      tags:
+      - "teachers"
+      summary: "Set a teacher for a class"
+      description: ""
+      operationId: "setTeacherClass"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of teacher"
+        required: true
+        type: "string"
+        format: "uid"
+      - in: "body"
+        name: "teacherClass"
+        description: "The classId of the class to teach"
+        schema:
+          $ref: "#/definitions/TeacherClass"
+      responses:
+        200:
+          description: "success"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin or office manager"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "teacher not found"
+        500:
+          description: "server error"
   /api/v1/adults:
     get:
       tags:
@@ -1004,3 +1040,9 @@ definitions:
         format: "base64"
       ageRange:
         $ref: "#/definitions/AgeRange"
+  TeacherClass:
+    type: "object"
+    properties:
+      classId:
+        type: "string"
+        format: "uid"

@@ -28,6 +28,11 @@ type User struct {
 	DaycareId sql.NullString
 }
 
+type TeacherClass struct {
+	TeacherId sql.NullString
+	ClassId   sql.NullString
+}
+
 func (u *User) Is(role string) bool {
 	for _, r := range u.Roles {
 		if r.Role == role {
@@ -48,27 +53,32 @@ func (s *Store) AddUser(tx *gorm.DB, user User) (User, error) {
 	return user, nil
 }
 
-func (s *Store) GetUser(tx *gorm.DB, userId string) (User, error) {
+func (s *Store) GetUser(tx *gorm.DB, userId string, searchOptions SearchOptions) (User, error) {
 	db := s.dbOrTx(tx)
-	rows, err := db.Table("users").
-		Select("users.user_id, "+
-			"users.daycare_id,"+
-			"users.email, "+
-			"users.first_name,"+
-			"users.last_name,"+
-			"users.phone,"+
-			"users.address_1,"+
-			"users.address_2,"+
-			"users.city,"+
-			"users.state,"+
-			"users.zip,"+
-			"users.gender,"+
-			"users.image_uri,"+
+
+	query := db.Table("users").
+		Select("users.user_id, " +
+			"users.daycare_id," +
+			"users.email, " +
+			"users.first_name," +
+			"users.last_name," +
+			"users.phone," +
+			"users.address_1," +
+			"users.address_2," +
+			"users.city," +
+			"users.state," +
+			"users.zip," +
+			"users.gender," +
+			"users.image_uri," +
 			"string_agg(roles.role, ',')").
-		Joins("left join roles ON roles.user_id = users.user_id").
-		Where("users.user_id = ?", userId).
-		Group("users.user_id").
-		Rows()
+		Joins("left join roles ON roles.user_id = users.user_id")
+
+	if searchOptions.DaycareId != "" {
+		query = query.Where("users.daycare_id = ?", searchOptions.DaycareId)
+	}
+	query = query.Where("users.user_id = ?", userId).Group("users.user_id")
+
+	rows, err := query.Rows()
 	if err != nil {
 		return User{}, err
 	}
@@ -139,7 +149,7 @@ func (s *Store) UpdateUser(tx *gorm.DB, user User) (User, error) {
 func (s *Store) DeleteUser(tx *gorm.DB, userId string) (err error) {
 	db := s.dbOrTx(tx)
 
-	if _, err := s.GetUser(db, userId); err != nil {
+	if _, err := s.GetUser(db, userId, SearchOptions{}); err != nil {
 		return err
 	}
 
@@ -212,4 +222,13 @@ func (s *Store) scanUserRows(rows *sql.Rows) ([]User, error) {
 	}
 
 	return users, nil
+}
+
+func (s *Store) SetTeacherClass(tx *gorm.DB, teacherClass TeacherClass) error {
+	db := s.dbOrTx(tx)
+
+	if err := db.Create(teacherClass).Error; err != nil {
+		return err
+	}
+	return nil
 }

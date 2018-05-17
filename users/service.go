@@ -8,6 +8,7 @@ import (
 	"github.com/Vinubaba/SANTC-API/storage"
 	"github.com/Vinubaba/SANTC-API/store"
 
+	"github.com/Vinubaba/SANTC-API/claims"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -16,6 +17,7 @@ var (
 	ErrInvalidEmail           = errors.New("invalid email")
 	ErrInvalidPasswordFormat  = errors.New("password must be at least 6 characters long")
 	ErrCreateDifferentDaycare = errors.New("cannot create user for another daycare")
+	ErrUserNotOfficeManager   = errors.New("you must be an office manager to perform this operation")
 )
 
 type Service interface {
@@ -24,16 +26,23 @@ type Service interface {
 	UpdateUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error)
 	DeleteUserByRoles(ctx context.Context, request UserTransport, roles ...string) error
 	ListUsersByRole(ctx context.Context, roleConstraint string) ([]store.User, error)
+
+	SetTeacherClass(ctx context.Context, teacherId, classId string) error
 }
 
 type UserService struct {
 	Store interface {
+		// User methods
 		AddUser(tx *gorm.DB, user store.User) (store.User, error)
 		ListDaycareUsers(tx *gorm.DB, roleConstraint string, daycareId string) ([]store.User, error)
 		UpdateUser(tx *gorm.DB, user store.User) (store.User, error)
 		DeleteUser(tx *gorm.DB, userId string) (err error)
-		GetUser(tx *gorm.DB, userId string) (store.User, error)
+		GetUser(tx *gorm.DB, userId string, searchOptions store.SearchOptions) (store.User, error)
 		GetUserByEmail(tx *gorm.DB, email string) (store.User, error)
+
+		// Teacher specific method
+		SetTeacherClass(tx *gorm.DB, teacherClass store.TeacherClass) error
+		GetClass(tx *gorm.DB, classId string, options store.SearchOptions) (store.Class, error)
 
 		AddRole(tx *gorm.DB, role store.Role) (store.Role, error)
 		Tx() *gorm.DB
@@ -126,13 +135,10 @@ func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport,
 }
 
 func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
-	user, err := c.Store.GetUser(nil, request.Id)
+	searchOptions := claims.GetDefaultSearchOptions(ctx)
+	user, err := c.Store.GetUser(nil, request.Id, searchOptions)
 	if err != nil {
 		return store.User{}, errors.Wrap(err, "failed to update user")
-	}
-
-	if IsDaycareDifferentFromContext(ctx, user.DaycareId.String) {
-		return store.User{}, store.ErrUserNotFound
 	}
 
 	for _, role := range roles {
@@ -168,11 +174,6 @@ func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTranspo
 	return user, nil
 }
 
-func IsDaycareDifferentFromContext(ctx context.Context, daycareId string) bool {
-	claims := ctx.Value("claims").(map[string]interface{})
-	return !claims[shared.ROLE_ADMIN].(bool) && claims["daycareId"].(string) != daycareId
-}
-
 func (c *UserService) setBucketUri(ctx context.Context, user *store.User) {
 	if user.ImageUri.String == "" {
 		return
@@ -188,13 +189,10 @@ func (c *UserService) setBucketUri(ctx context.Context, user *store.User) {
 }
 
 func (c *UserService) GetUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
-	user, err := c.Store.GetUser(nil, request.Id)
+	searchOptions := claims.GetDefaultSearchOptions(ctx)
+	user, err := c.Store.GetUser(nil, request.Id, searchOptions)
 	if err != nil {
 		return store.User{}, errors.Wrap(err, "failed to get user")
-	}
-
-	if IsDaycareDifferentFromContext(ctx, user.DaycareId.String) {
-		return store.User{}, store.ErrUserNotFound
 	}
 
 	for _, role := range roles {
@@ -221,13 +219,10 @@ func (c *UserService) GetUserByEmail(ctx context.Context, request UserTransport)
 }
 
 func (c *UserService) DeleteUserByRoles(ctx context.Context, request UserTransport, roles ...string) error {
-	user, err := c.Store.GetUser(nil, request.Id)
+	searchOptions := claims.GetDefaultSearchOptions(ctx)
+	user, err := c.Store.GetUser(nil, request.Id, searchOptions)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete user")
-	}
-
-	if IsDaycareDifferentFromContext(ctx, user.DaycareId.String) {
-		return store.ErrUserNotFound
 	}
 
 	for _, role := range roles {
@@ -267,6 +262,25 @@ func (c *UserService) ListUsersByRole(ctx context.Context, roleConstraint string
 		c.setBucketUri(ctx, &users[i])
 	}
 	return users, nil
+}
+
+func (c *UserService) SetTeacherClass(ctx context.Context, teacherId, classId string) error {
+	searchOptions := claims.GetDefaultSearchOptions(ctx)
+	if _, err := c.Store.GetClass(nil, classId, searchOptions); err != nil {
+		return err
+	}
+	if _, err := c.Store.GetUser(nil, teacherId, searchOptions); err != nil {
+		return err
+	}
+
+	if err := c.Store.SetTeacherClass(nil, store.TeacherClass{
+		TeacherId: store.DbNullString(teacherId),
+		ClassId:   store.DbNullString(classId),
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ServiceMiddleware is a chainable behavior modifier for adultResponsibleService.
