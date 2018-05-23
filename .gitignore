@@ -1,7 +1,5 @@
-.idea/*
-vendor/
+.idea/
 *.coverage
 *.coverprofile
 *.json
-*.yaml
 
