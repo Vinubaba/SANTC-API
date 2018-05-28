@@ -224,16 +224,10 @@
   version = "v1.0.0"
 
 [[projects]]
-  name = "github.com/rs/cors"
-  packages = ["."]
-  revision = "feef513b9575b32f84bafa580aad89b011259019"
-  version = "v1.3.0"
-
-[[projects]]
+  branch = "master"
   name = "github.com/satori/go.uuid"
   packages = ["."]
-  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
-  version = "v1.2.0"
+  revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
 
 [[projects]]
   name = "github.com/stretchr/objx"
@@ -409,6 +403,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "dd7a591bdf5b957ce3fcedfd6b6e09736b062fbc07be7f073512569857156a0d"
+  inputs-digest = "8a684c2e6d3e56a7276cee4bafe16b880e4735cf96050b0a91de67fb0224603e"
   solver-name = "gps-cdcl"
   solver-version = 1

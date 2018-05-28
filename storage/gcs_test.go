@@ -72,7 +72,6 @@ var _ = Describe("Gcs", func() {
 			// Then get
 			uri, getError = storage.Get(ctx, fileName)
 			getResponse, _ = http.Get(uri)
-
 			// Finally delete
 			deleteError = storage.Delete(ctx, fileName)
 		})

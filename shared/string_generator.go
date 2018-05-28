@@ -15,6 +15,9 @@ func (n *StringGenerator) GenerateRandomName() string {
 }
 
 func (n *StringGenerator) GenerateUuid() string {
-	id := uuid.NewV4()
+	id, err := uuid.NewV4()
+	if err != nil {
+		panic(err)
+	}
 	return id.String()
 }
