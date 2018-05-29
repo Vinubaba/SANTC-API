@@ -2,50 +2,39 @@ package store
 
 import (
 	"database/sql"
-	"errors"
+
 	"github.com/jinzhu/gorm"
-	"strings"
 )
+
+type SpecialInstruction struct {
+	SpecialInstructionId sql.NullString
+	ChildId              sql.NullString
+	Instruction          sql.NullString
+}
 
 type SpecialInstructions []SpecialInstruction
 
-func (s *SpecialInstructions) Scan(src interface{}) error {
-	if src == nil {
-		return nil
+func (s *SpecialInstructions) add(instruction SpecialInstruction) {
+	if instruction.SpecialInstructionId.String == "" {
+		return
 	}
-	switch v := src.(type) {
-	case string:
-		instructions := strings.Split(v, ",")
-		for _, instruction := range instructions {
-			*s = append(*s, SpecialInstruction{Instruction: DbNullString(instruction)})
+	for _, si := range *s {
+		if si.SpecialInstructionId.String == instruction.SpecialInstructionId.String {
+			return
 		}
-	default:
-		return errors.New("need string with roles separated by virgula")
 	}
-	return nil
-}
-
-func (s SpecialInstructions) ToList() []string {
-	instructions := make([]string, 0)
-	for _, instruction := range s {
-		instructions = append(instructions, instruction.Instruction.String)
-	}
-	return instructions
-}
-
-type SpecialInstruction struct {
-	ChildId     sql.NullString
-	Instruction sql.NullString
+	*s = append(*s, instruction)
 }
 
 func (SpecialInstruction) TableName() string {
 	return "special_instructions"
 }
 
-func (s *Store) AddSpecialInstruction(tx *gorm.DB, specialInstruction SpecialInstruction) error {
+func (s *Store) AddSpecialInstruction(tx *gorm.DB, specialInstruction SpecialInstruction) (SpecialInstruction, error) {
 	db := s.dbOrTx(tx)
-
-	return db.Create(&specialInstruction).Error
+	specialInstruction.SpecialInstructionId = DbNullString(s.StringGenerator.GenerateUuid())
+	err := db.Create(&specialInstruction).Error
+	return specialInstruction, err
 }
 
 func (s *Store) RemoveChildSpecialInstructions(tx *gorm.DB, childId string) error {

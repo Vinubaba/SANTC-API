@@ -993,7 +993,7 @@ definitions:
       allergies:
         type: "array"
         items:
-          type: "string"
+          $ref: "#/definitions/Allergy"
       responsibleId:
         type: "string"
       relationship:
@@ -1002,7 +1002,27 @@ definitions:
       specialInstructions:
         type: "array"
         items:
-          type: "string"
+          $ref: "#/definitions/SpecialInstruction"
+  SpecialInstruction:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uid"
+      childId:
+        type: "string"
+      instruction:
+        type: "string"
+  Allergy:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uid"
+      allergy:
+        type: "string"
+      instruction:
+        type: "string"
   AgeRange:
     type: "object"
     properties:
