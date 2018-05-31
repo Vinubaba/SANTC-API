@@ -90,11 +90,11 @@ INSERT INTO users ("email", "first_name", "last_name", "gender", "daycare_id") V
 
 INSERT INTO users ("email", "first_name", "last_name", "gender", "daycare_id") VALUES ('vinu.singh@gmail.com', 'vinu', 'singh', 'm', 'PUBLIC');
 
-INSERT INTO users ("email", "first_name", "last_name", "gender", "daycare_id") VALUES ('johngallegodev@gmail.com', 'john', 'gallego', 'm', 'PUBLIC');
+INSERT INTO users ("email", "first_name", "last_name", "gender", "daycare_id") VALUES ('muneerkk66@gmail.com', 'muneer', 'kk', 'm', 'PUBLIC');
 
 INSERT INTO roles ("user_id", "role") (SELECT user_id, 'admin' FROM users WHERE email = 'arthur.gustin@gmail.com');
 INSERT INTO roles ("user_id", "role") (SELECT user_id, 'officemanager' FROM users WHERE email = 'vinu.singh@gmail.com');
-INSERT INTO roles ("user_id", "role") (SELECT user_id, 'officemanager' FROM users WHERE email = 'johngallegodev@gmail.com');
+INSERT INTO roles ("user_id", "role") (SELECT user_id, 'officemanager' FROM users WHERE email = 'muneerkk66@gmail.com');
 
 --CREATE TABLE IF NOT EXISTS teachers (
 --  teacher_id varchar REFERENCES users (user_id) UNIQUE,
