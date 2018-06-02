@@ -1,47 +1,40 @@
 package store
 
 import (
+	"database/sql"
 	"errors"
+
 	"github.com/jinzhu/gorm"
-	"strings"
 )
+
+var (
+	ErrAllergyNotFound = errors.New("allergy not found")
+)
+
+type Allergy struct {
+	AllergyId   sql.NullString
+	ChildId     sql.NullString
+	Allergy     sql.NullString
+	Instruction sql.NullString
+}
 
 type Allergies []Allergy
 
-func (s *Allergies) Scan(src interface{}) error {
-	if src == nil {
-		return nil
+func (a *Allergies) add(allergy Allergy) {
+	if allergy.AllergyId.String == "" {
+		return
 	}
-	switch v := src.(type) {
-	case string:
-		instructions := strings.Split(v, ",")
-		for _, instruction := range instructions {
-			*s = append(*s, Allergy{Allergy: instruction})
+	for _, al := range *a {
+		if al.AllergyId.String == allergy.AllergyId.String {
+			return
 		}
-	default:
-		return errors.New("need string with roles separated by virgula")
 	}
-	return nil
-}
-
-func (s Allergies) ToList() []string {
-	allergies := make([]string, 0)
-	for _, allergy := range s {
-		allergies = append(allergies, allergy.Allergy)
-	}
-	return allergies
-}
-
-type Allergy struct {
-	AllergyId string
-	ChildId   string
-	Allergy   string
+	*a = append(*a, allergy)
 }
 
 func (s *Store) AddAllergy(tx *gorm.DB, allergy Allergy) (Allergy, error) {
 	db := s.dbOrTx(tx)
-
-	allergy.AllergyId = s.StringGenerator.GenerateUuid()
+	allergy.AllergyId = DbNullString(s.StringGenerator.GenerateUuid())
 	if err := db.Create(&allergy).Error; err != nil {
 		return Allergy{}, err
 	}
@@ -52,11 +45,16 @@ func (s *Store) AddAllergy(tx *gorm.DB, allergy Allergy) (Allergy, error) {
 func (s *Store) DeleteAllergy(tx *gorm.DB, allergyId string) error {
 	db := s.dbOrTx(tx)
 
-	if err := db.Delete(&Allergy{AllergyId: allergyId}).Error; err != nil {
-		return err
+	if !s.allergyExists(db, allergyId) {
+		return ErrAllergyNotFound
 	}
 
-	return nil
+	return db.Where("allergy_id = ?", allergyId).Delete(&Class{}).Error
+}
+
+func (s *Store) allergyExists(tx *gorm.DB, allergyId string) bool {
+	c := Allergy{AllergyId: sql.NullString{String: s.StringGenerator.GenerateUuid(), Valid: true}}
+	return !tx.Model(Class{}).Where("allergy_id = ?", allergyId).First(&c).RecordNotFound()
 }
 
 func (s *Store) FindAllergiesOfChild(tx *gorm.DB, childId string) ([]Allergy, error) {

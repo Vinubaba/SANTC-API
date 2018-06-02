@@ -41,10 +41,12 @@ CREATE TABLE IF NOT EXISTS children (
 CREATE TABLE IF NOT EXISTS allergies (
   allergy_id varchar UNIQUE NOT NULL PRIMARY KEY,
   child_id varchar REFERENCES children (child_id) ON DELETE CASCADE,
-  allergy varchar NOT NULL
+  allergy varchar NOT NULL,
+  instruction varchar
 );
 
 CREATE TABLE IF NOT EXISTS special_instructions (
+  special_instruction_id varchar UNIQUE NOT NULL PRIMARY KEY,
   child_id varchar REFERENCES children (child_id) ON DELETE CASCADE,
   instruction varchar NOT NULL
 );

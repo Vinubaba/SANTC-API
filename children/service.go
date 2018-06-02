@@ -3,13 +3,12 @@ package children
 import (
 	"context"
 	"strings"
-	"time"
 
+	"github.com/Vinubaba/SANTC-API/claims"
+	"github.com/Vinubaba/SANTC-API/shared"
 	"github.com/Vinubaba/SANTC-API/storage"
 	"github.com/Vinubaba/SANTC-API/store"
 
-	"github.com/Vinubaba/SANTC-API/shared"
-	"github.com/araddon/dateparse"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -17,10 +16,9 @@ import (
 var (
 	ErrNoParent               = errors.New("responsibleId is mandatory")
 	ErrEmptyChild             = errors.New("childId cannot be empty")
-	ErrSetResponsible         = errors.New("failed to set responsibleId")
-	ErrSetAllergy             = errors.New("failed to set allergy")
 	ErrInvalidImage           = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
 	ErrCreateDifferentDaycare = errors.New("you can't add a child to a different daycare of you")
+	ErrUpdateDaycare          = errors.New("you can't update a child daycare")
 )
 
 type Service interface {
@@ -29,60 +27,40 @@ type Service interface {
 	UpdateChild(ctx context.Context, request ChildTransport) (store.Child, error)
 	GetChild(ctx context.Context, request ChildTransport) (store.Child, error)
 	ListChildren(ctx context.Context) ([]store.Child, error)
-	FindAllergiesOfChild(ctx context.Context, childId string) ([]store.Allergy, error)
 }
 
 type ChildService struct {
 	Store interface {
 		Tx() *gorm.DB
 		AddChild(tx *gorm.DB, child store.Child) (store.Child, error)
-		UpdateChild(tx *gorm.DB, child store.Child) (store.Child, error)
+		UpdateChild(tx *gorm.DB, child store.Child) error
 		GetChild(tx *gorm.DB, childId string, options store.SearchOptions) (store.Child, error)
 		ListChildren(tx *gorm.DB, options store.SearchOptions) ([]store.Child, error)
 		DeleteChild(tx *gorm.DB, childId string) error
-		SetResponsible(tx *gorm.DB, responsibleOf store.ResponsibleOf) error
-
-		AddAllergy(tx *gorm.DB, allergy store.Allergy) (store.Allergy, error)
-		FindAllergiesOfChild(tx *gorm.DB, childId string) ([]store.Allergy, error)
-		RemoveAllergiesOfChild(tx *gorm.DB, childId string) error
-
-		AddSpecialInstruction(tx *gorm.DB, specialInstruction store.SpecialInstruction) error
-		RemoveChildSpecialInstructions(tx *gorm.DB, childId string) error
 	} `inject:""`
 	Storage storage.Storage `inject:""`
 	Logger  *shared.Logger  `inject:""`
 }
 
 func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (store.Child, error) {
-	birthDate, err := dateparse.ParseIn(request.BirthDate, time.UTC)
-	if err != nil {
-		return store.Child{}, err
-	}
-
-	startDate, err := dateparse.ParseIn(request.StartDate, time.UTC)
-	if err != nil {
-		return store.Child{}, err
-	}
-
 	if request.ResponsibleId == "" {
 		return store.Child{}, ErrNoParent
 	}
 
-	claims := ctx.Value("claims").(map[string]interface{})
-
-	if claims[shared.ROLE_ADMIN].(bool) && request.DaycareId == "" {
+	if claims.IsAdmin(ctx) && request.DaycareId == "" {
 		return store.Child{}, errors.New("as an admin, you must specify the user daycare")
 	} else {
 		// default to requester daycare (e.g office manager)
 		if request.DaycareId == "" {
-			request.DaycareId = claims["daycareId"].(string)
+			request.DaycareId = claims.GetDaycareId(ctx)
 		}
 
-		if claims["daycareId"].(string) != request.DaycareId {
+		if claims.GetDaycareId(ctx) != request.DaycareId {
 			return store.Child{}, ErrCreateDifferentDaycare
 		}
 	}
 
+	var err error
 	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
 	if err != nil {
 		return store.Child{}, errors.Wrap(err, "failed to store image")
@@ -93,30 +71,16 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		return store.Child{}, errors.Wrap(tx.Error, "failed to add child")
 	}
 
-	child, err := c.Store.AddChild(tx, store.Child{
-		DaycareId: store.DbNullString(request.DaycareId),
-		BirthDate: birthDate,
-		FirstName: store.DbNullString(request.FirstName),
-		LastName:  store.DbNullString(request.LastName),
-		Gender:    store.DbNullString(request.Gender),
-		ImageUri:  store.DbNullString(request.ImageUri),
-		Notes:     store.DbNullString(request.Notes),
-		StartDate: startDate,
-	})
+	childToCreate, err := transportToStore(request, true)
+	if err != nil {
+		tx.Rollback()
+		return store.Child{}, errors.Wrap(err, "failed to decode request")
+	}
+
+	child, err := c.Store.AddChild(tx, childToCreate)
 	if err != nil {
 		tx.Rollback()
 		return store.Child{}, errors.Wrap(err, "failed to add child")
-	}
-
-	for _, specialInstruction := range request.SpecialInstructions {
-		instructionToCreate := store.SpecialInstruction{
-			Instruction: store.DbNullString(specialInstruction),
-			ChildId:     child.ChildId,
-		}
-		if err := c.Store.AddSpecialInstruction(tx, instructionToCreate); err != nil {
-			return store.Child{}, errors.Wrap(err, "failed to add child")
-		}
-		child.SpecialInstructions = append(child.SpecialInstructions, instructionToCreate)
 	}
 
 	uri, err := c.Storage.Get(ctx, request.ImageUri)
@@ -125,20 +89,6 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		return store.Child{}, errors.Wrap(err, "failed to generate image uri")
 	}
 	child.ImageUri = store.DbNullString(uri)
-
-	if err = c.Store.SetResponsible(tx, store.ResponsibleOf{Relationship: request.Relationship, ChildId: child.ChildId.String, ResponsibleId: request.ResponsibleId}); err != nil {
-		tx.Rollback()
-		return store.Child{}, errors.Wrap(ErrSetResponsible, "failed to set responsible. err: "+err.Error())
-	}
-
-	for _, allergy := range request.Allergies {
-		allergyToCreate := store.Allergy{ChildId: child.ChildId.String, Allergy: allergy}
-		if _, err := c.Store.AddAllergy(tx, allergyToCreate); err != nil {
-			tx.Rollback()
-			return store.Child{}, errors.Wrap(ErrSetAllergy, "failed to set allergy. err: "+err.Error())
-		}
-		child.Allergies = append(child.Allergies, allergyToCreate)
-	}
 
 	tx.Commit()
 	return child, nil
@@ -155,16 +105,7 @@ func (c *ChildService) validate64EncodedPhoto(photo string) (encoded, mimeType s
 }
 
 func (c *ChildService) GetChild(ctx context.Context, request ChildTransport) (store.Child, error) {
-	claims := ctx.Value("claims").(map[string]interface{})
-	searchOptions := store.SearchOptions{}
-	if !claims[shared.ROLE_ADMIN].(bool) {
-		searchOptions.DaycareId = claims["daycareId"].(string)
-	}
-	if claims[shared.ROLE_ADULT].(bool) {
-		searchOptions.ResponsibleId = claims["userId"].(string)
-	}
-
-	child, err := c.Store.GetChild(nil, request.Id, searchOptions)
+	child, err := c.Store.GetChild(nil, request.Id, claims.GetDefaultSearchOptions(ctx))
 	if err != nil {
 		return child, errors.Wrap(err, "failed to get child")
 	}
@@ -179,16 +120,7 @@ func (c *ChildService) GetChild(ctx context.Context, request ChildTransport) (st
 }
 
 func (c *ChildService) DeleteChild(ctx context.Context, request ChildTransport) error {
-	claims := ctx.Value("claims").(map[string]interface{})
-	searchOptions := store.SearchOptions{}
-	if !claims[shared.ROLE_ADMIN].(bool) {
-		searchOptions.DaycareId = claims["daycareId"].(string)
-	}
-	if claims[shared.ROLE_ADULT].(bool) {
-		searchOptions.ResponsibleId = claims["userId"].(string)
-	}
-
-	child, err := c.Store.GetChild(nil, request.Id, searchOptions)
+	child, err := c.Store.GetChild(nil, request.Id, claims.GetDefaultSearchOptions(ctx))
 	if err != nil {
 		return errors.Wrap(err, "failed to delete child")
 	}
@@ -205,16 +137,7 @@ func (c *ChildService) DeleteChild(ctx context.Context, request ChildTransport) 
 }
 
 func (c *ChildService) ListChildren(ctx context.Context) ([]store.Child, error) {
-	claims := ctx.Value("claims").(map[string]interface{})
-	searchOptions := store.SearchOptions{}
-	if !claims[shared.ROLE_ADMIN].(bool) {
-		searchOptions.DaycareId = claims["daycareId"].(string)
-	}
-	if claims[shared.ROLE_ADULT].(bool) {
-		searchOptions.ResponsibleId = claims["userId"].(string)
-	}
-
-	children, err := c.Store.ListChildren(nil, searchOptions)
+	children, err := c.Store.ListChildren(nil, claims.GetDefaultSearchOptions(ctx))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list children")
 	}
@@ -232,90 +155,43 @@ func (c *ChildService) ListChildren(ctx context.Context) ([]store.Child, error) 
 }
 
 func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) (store.Child, error) {
-	var t time.Time
 	var err error
 
 	if request.Id == "" {
 		return store.Child{}, ErrEmptyChild
 	}
 
-	claims := ctx.Value("claims").(map[string]interface{})
-	searchOptions := store.SearchOptions{}
-	if !claims[shared.ROLE_ADMIN].(bool) {
-		searchOptions.DaycareId = claims["daycareId"].(string)
-	}
-	if claims[shared.ROLE_ADULT].(bool) {
-		searchOptions.ResponsibleId = claims["userId"].(string)
-	}
-
-	if _, err := c.Store.GetChild(nil, request.Id, searchOptions); err != nil {
+	child, err := c.Store.GetChild(nil, request.Id, claims.GetDefaultSearchOptions(ctx))
+	if err != nil {
 		return store.Child{}, errors.Wrap(err, "failed to update child")
 	}
 
-	if request.BirthDate != "" {
-		t, err = dateparse.ParseIn(request.BirthDate, time.UTC)
-		if err != nil {
-			return store.Child{}, err
-		}
+	// User cannot update child daycare for the moment
+	if request.DaycareId != "" && child.DaycareId.String != request.DaycareId {
+		return store.Child{}, ErrUpdateDaycare
 	}
+
 	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
 	if err != nil {
 		return store.Child{}, errors.Wrap(err, "failed to store image")
 	}
 
-	tx := c.Store.Tx()
-	if tx.Error != nil {
-		return store.Child{}, errors.Wrap(tx.Error, "failed to update child")
-	}
-
-	// allergies
-	if len(request.Allergies) > 1 {
-		if err := c.Store.RemoveAllergiesOfChild(tx, request.Id); err != nil {
-			tx.Rollback()
-			return store.Child{}, errors.Wrap(err, "failed to delete allergies")
-		}
-		for _, allergy := range request.Allergies {
-			if _, err := c.Store.AddAllergy(tx, store.Allergy{ChildId: request.Id, Allergy: allergy}); err != nil {
-				tx.Rollback()
-				return store.Child{}, errors.Wrap(ErrSetAllergy, "failed to set allergy. err: "+err.Error())
-			}
-		}
-	}
-
-	// special instructions
-	if len(request.SpecialInstructions) > 0 {
-		if err := c.Store.RemoveChildSpecialInstructions(tx, request.Id); err != nil {
-			tx.Rollback()
-			return store.Child{}, errors.Wrap(err, "failed to update child")
-		}
-		for _, specialInstruction := range request.SpecialInstructions {
-			instructionToCreate := store.SpecialInstruction{
-				Instruction: store.DbNullString(specialInstruction),
-				ChildId:     store.DbNullString(request.Id),
-			}
-			if err := c.Store.AddSpecialInstruction(tx, instructionToCreate); err != nil {
-				return store.Child{}, errors.Wrap(err, "failed to update child")
-			}
-		}
-	}
-
-	child, err := c.Store.UpdateChild(tx, store.Child{
-		BirthDate: t,
-		ImageUri:  store.DbNullString(request.ImageUri),
-		Gender:    store.DbNullString(request.Gender),
-		FirstName: store.DbNullString(request.FirstName),
-		LastName:  store.DbNullString(request.LastName),
-		ChildId:   store.DbNullString(request.Id),
-		Notes:     store.DbNullString(request.Notes),
-	})
+	childToUpdate, err := transportToStore(request, false)
 	if err != nil {
-		tx.Rollback()
-		return child, errors.Wrap(err, "failed to update child")
+		return store.Child{}, errors.Wrap(err, "failed to decode request")
 	}
 
-	tx.Commit()
-	c.setBucketUri(ctx, &child)
-	return child, nil
+	err = c.Store.UpdateChild(nil, childToUpdate)
+	if err != nil {
+		return store.Child{}, errors.Wrap(err, "failed to update child")
+	}
+
+	childToReturn, err := c.Store.GetChild(nil, childToUpdate.ChildId.String, store.SearchOptions{})
+	if err != nil {
+		return store.Child{}, err
+	}
+	c.setBucketUri(ctx, &childToReturn)
+	return childToReturn, nil
 }
 
 func (c *ChildService) setBucketUri(ctx context.Context, child *store.Child) {
@@ -329,15 +205,6 @@ func (c *ChildService) setBucketUri(ctx context.Context, child *store.Child) {
 		}
 		child.ImageUri = store.DbNullString(uri)
 	}
-}
-
-func (c *ChildService) FindAllergiesOfChild(ctx context.Context, childId string) ([]store.Allergy, error) {
-	allergies, err := c.Store.FindAllergiesOfChild(nil, childId)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to find allergies")
-	}
-
-	return allergies, nil
 }
 
 // ServiceMiddleware is a chainable behavior modifier for childService.
