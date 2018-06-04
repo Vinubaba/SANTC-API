@@ -15,7 +15,7 @@ import (
 
 type Authenticator struct {
 	FirebaseClient interface {
-		VerifyIDToken(idToken string) (*auth.Token, error)
+		VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error)
 		GetUser(ctx context.Context, uid string) (*auth.UserRecord, error)
 		SetCustomUserClaims(ctx context.Context, uid string, customClaims map[string]interface{}) error
 	} `inject:""`
@@ -61,7 +61,7 @@ func (f *Authenticator) Firebase(next http.Handler, excludePath []string) http.H
 			return
 		}
 
-		token, err := f.FirebaseClient.VerifyIDToken(bearerToken[1])
+		token, err := f.FirebaseClient.VerifyIDToken(ctx, bearerToken[1])
 		if err != nil {
 			HttpError(w, NewError(fmt.Sprintf("invalid authorization token: %s", err.Error())), http.StatusBadRequest)
 			return

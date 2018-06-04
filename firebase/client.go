@@ -19,8 +19,8 @@ func (c *Client) DeleteUserByEmail(ctx context.Context, email string) error {
 	return c.FirebaseClient.DeleteUser(ctx, user.UID)
 }
 
-func (c *Client) VerifyIDToken(idToken string) (*auth.Token, error) {
-	return c.FirebaseClient.VerifyIDToken(idToken)
+func (c *Client) VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error) {
+	return c.FirebaseClient.VerifyIDToken(ctx, idToken)
 }
 
 func (c *Client) GetUser(ctx context.Context, uid string) (*auth.UserRecord, error) {
