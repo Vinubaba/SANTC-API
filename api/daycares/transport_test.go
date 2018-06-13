@@ -10,12 +10,14 @@ import (
 
 	"github.com/Vinubaba/SANTC-API/api/authentication"
 	. "github.com/Vinubaba/SANTC-API/api/daycares"
-	. "github.com/Vinubaba/SANTC-API/api/firebase/mocks"
 	"github.com/Vinubaba/SANTC-API/api/shared"
 	. "github.com/Vinubaba/SANTC-API/api/shared/mocks"
-	"github.com/Vinubaba/SANTC-API/api/store"
 	"github.com/Vinubaba/SANTC-API/api/users"
+	. "github.com/Vinubaba/SANTC-API/common/firebase/mocks"
+	"github.com/Vinubaba/SANTC-API/common/store"
 
+	"github.com/Vinubaba/SANTC-API/common/log"
+	"github.com/Vinubaba/SANTC-API/common/roles"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -114,7 +116,7 @@ var _ = Describe("Transport", func() {
 			FirebaseClient: mockFirebaseClient,
 			Store:          concreteStore,
 		}
-		logger := shared.NewLogger("teddycare")
+		logger := log.NewLogger("teddycare")
 
 		authenticator = &authentication.Authenticator{
 			UserService: userService,
@@ -140,11 +142,11 @@ var _ = Describe("Transport", func() {
 			Service: daycareService,
 		}
 
-		router.Handle("/daycares", authenticator.Roles(handlerFactory.Add(opts), shared.ROLE_ADMIN)).Methods(http.MethodPost)
-		router.Handle("/daycares", authenticator.Roles(handlerFactory.List(opts), shared.ROLE_ADMIN)).Methods(http.MethodGet)
-		router.Handle("/daycares/{daycareId}", authenticator.Roles(handlerFactory.Get(opts), shared.ROLE_ADMIN)).Methods(http.MethodGet)
-		router.Handle("/daycares/{daycareId}", authenticator.Roles(handlerFactory.Update(opts), shared.ROLE_ADMIN)).Methods(http.MethodPatch)
-		router.Handle("/daycares/{daycareId}", authenticator.Roles(handlerFactory.Delete(opts), shared.ROLE_ADMIN)).Methods(http.MethodDelete)
+		router.Handle("/daycares", authenticator.Roles(handlerFactory.Add(opts), roles.ROLE_ADMIN)).Methods(http.MethodPost)
+		router.Handle("/daycares", authenticator.Roles(handlerFactory.List(opts), roles.ROLE_ADMIN)).Methods(http.MethodGet)
+		router.Handle("/daycares/{daycareId}", authenticator.Roles(handlerFactory.Get(opts), roles.ROLE_ADMIN)).Methods(http.MethodGet)
+		router.Handle("/daycares/{daycareId}", authenticator.Roles(handlerFactory.Update(opts), roles.ROLE_ADMIN)).Methods(http.MethodPatch)
+		router.Handle("/daycares/{daycareId}", authenticator.Roles(handlerFactory.Delete(opts), roles.ROLE_ADMIN)).Methods(http.MethodDelete)
 
 		recorder = httptest.NewRecorder()
 
@@ -157,12 +159,12 @@ var _ = Describe("Transport", func() {
 
 	BeforeEach(func() {
 		claims = map[string]interface{}{
-			"userId":                   "",
-			"daycareId":                "peyredragon",
-			shared.ROLE_TEACHER:        false,
-			shared.ROLE_OFFICE_MANAGER: false,
-			shared.ROLE_ADULT:          false,
-			shared.ROLE_ADMIN:          false,
+			"userId":                  "",
+			"daycareId":               "peyredragon",
+			roles.ROLE_TEACHER:        false,
+			roles.ROLE_OFFICE_MANAGER: false,
+			roles.ROLE_ADULT:          false,
+			roles.ROLE_ADMIN:          false,
 		}
 	})
 
@@ -182,14 +184,14 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedDaycareWithIds("namek", "peyredragon")
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims[roles.ROLE_OFFICE_MANAGER] = true
 					claims["daycareId"] = "namek"
 				})
 				assertReturnedNoPayload()
@@ -197,20 +199,20 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[roles.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to list daycares: sql: database is closed"}`)
@@ -239,32 +241,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleDaycare(jsonDaycareRef)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[roles.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to get daycare: sql: database is closed"}`)
@@ -273,7 +275,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the daycare does not exists", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					httpEndpointToUse = "/daycares/foo"
 				})
 				assertJsonResponse(`{"error":"failed to get daycare: daycare not found"}`)
@@ -290,32 +292,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertJsonResponse(`{"error": "not implemented yet"}`)
 				assertHttpCode(http.StatusNotImplemented)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[roles.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error": "not implemented yet"}`)
@@ -324,7 +326,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the daycare does not exists", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					httpEndpointToUse = "/daycares/foo"
 				})
 				assertJsonResponse(`{"error": "not implemented yet"}`)
@@ -361,32 +363,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleDaycare(jsonUpdatedDaycare)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[roles.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to update daycare: sql: database is closed"}`)
@@ -395,7 +397,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the daycare does not exists", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					httpEndpointToUse = "/daycares/foo"
 				})
 				assertJsonResponse(`{"error":"failed to update daycare: daycare not found"}`)
@@ -425,32 +427,32 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleDaycare(jsonCreatedDaycare)
 				assertHttpCode(http.StatusCreated)
 			})
 
 			Context("When user is an office manager", func() {
-				BeforeEach(func() { claims[shared.ROLE_OFFICE_MANAGER] = true })
+				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[roles.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to add daycare: sql: database is closed"}`)

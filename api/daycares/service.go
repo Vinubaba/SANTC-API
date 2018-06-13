@@ -3,10 +3,10 @@ package daycares
 import (
 	"context"
 
-	"github.com/Vinubaba/SANTC-API/api/shared"
-	"github.com/Vinubaba/SANTC-API/api/store"
+	"github.com/Vinubaba/SANTC-API/common/log"
+	"github.com/Vinubaba/SANTC-API/common/store"
 
-	"github.com/Vinubaba/SANTC-API/api/claims"
+	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -33,7 +33,7 @@ type DaycareService struct {
 		ListDaycare(tx *gorm.DB, options store.SearchOptions) ([]store.Daycare, error)
 		DeleteDaycare(tx *gorm.DB, daycareId string) error
 	} `inject:""`
-	Logger *shared.Logger `inject:""`
+	Logger *log.Logger `inject:""`
 }
 
 func (c *DaycareService) transportToStore(request DaycareTransport) store.Daycare {

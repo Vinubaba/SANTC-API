@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/Vinubaba/SANTC-API/api/shared"
-	"github.com/Vinubaba/SANTC-API/api/store"
+	"github.com/Vinubaba/SANTC-API/common/store"
 
 	"github.com/araddon/dateparse"
 	"github.com/go-kit/kit/endpoint"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"github.com/Vinubaba/SANTC-API/common/api"
 )
 
 var (
@@ -98,6 +99,15 @@ func (h *HandlerFactory) List(opts []kithttp.ServerOption) *kithttp.Server {
 	)
 }
 
+func (h *HandlerFactory) AddPhoto(opts []kithttp.ServerOption) *kithttp.Server {
+	return kithttp.NewServer(
+		makeAddPhotoEndpoint(h.Service),
+		decodePhotoRequest,
+		shared.EncodeResponse200,
+		opts...,
+	)
+}
+
 func makeAddEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(ChildTransport)
@@ -159,6 +169,18 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 	}
 }
 
+func makeAddPhotoEndpoint(svc Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(ChildTransport)
+		child, err := svc.AddChild(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+
+		return storeToTransport(child), nil
+	}
+}
+
 func decodeChildTransport(_ context.Context, r *http.Request) (interface{}, error) {
 	var request ChildTransport
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -192,6 +214,22 @@ func decodeUpdateChildRequest(_ context.Context, r *http.Request) (interface{}, 
 	return request, nil
 }
 
+func decodePhotoRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	// get id from url
+	vars := mux.Vars(r)
+	childId, ok := vars["childId"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+	// get informations from payload
+	var request api.PhotoRequestTransport
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		return nil, err
+	}
+	request.ChildId = childId
+	return request, nil
+}
+
 func ignorePayload(_ context.Context, r *http.Request) (interface{}, error) {
 	return nil, nil
 }
@@ -216,7 +254,7 @@ func storeToTransport(child store.Child) ChildTransport {
 	ret := ChildTransport{
 		Id:            child.ChildId.String,
 		DaycareId:     child.DaycareId.String,
-		ClassId: child.ClassId.String,
+		ClassId:       child.ClassId.String,
 		LastName:      child.LastName.String,
 		FirstName:     child.FirstName.String,
 		BirthDate:     child.BirthDate.UTC().String(),
@@ -268,7 +306,7 @@ func transportToStore(request ChildTransport, strict bool) (store.Child, error) 
 	child := store.Child{
 		ChildId:       store.DbNullString(request.Id),
 		DaycareId:     store.DbNullString(request.DaycareId),
-		ClassId: store.DbNullString(request.ClassId),
+		ClassId:       store.DbNullString(request.ClassId),
 		BirthDate:     birthDate,
 		FirstName:     store.DbNullString(request.FirstName),
 		LastName:      store.DbNullString(request.LastName),

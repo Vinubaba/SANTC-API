@@ -9,7 +9,8 @@ import (
 
 	"github.com/Vinubaba/SANTC-API/api/shared"
 
-	"github.com/Vinubaba/SANTC-API/api/store"
+	"github.com/Vinubaba/SANTC-API/common/roles"
+	"github.com/Vinubaba/SANTC-API/common/store"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/pkg/errors"
 )
@@ -59,7 +60,7 @@ func (h *HandlerFactory) Me(opts []kithttp.ServerOption) *kithttp.Server {
 
 func (h *HandlerFactory) CreateAdult(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeAddEndpoint(h.Service, shared.ROLE_ADULT),
+		makeAddEndpoint(h.Service, roles.ROLE_ADULT),
 		decodeUserRequest,
 		shared.EncodeResponse201,
 		opts...,
@@ -68,7 +69,7 @@ func (h *HandlerFactory) CreateAdult(opts []kithttp.ServerOption) *kithttp.Serve
 
 func (h *HandlerFactory) ListAdult(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeListEndpoint(h.Service, shared.ROLE_ADULT),
+		makeListEndpoint(h.Service, roles.ROLE_ADULT),
 		ignorePayload,
 		shared.EncodeResponse200,
 		opts...,
@@ -77,7 +78,7 @@ func (h *HandlerFactory) ListAdult(opts []kithttp.ServerOption) *kithttp.Server 
 
 func (h *HandlerFactory) GetAdult(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeGetEndpoint(h.Service, shared.ROLE_ADULT),
+		makeGetEndpoint(h.Service, roles.ROLE_ADULT),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -86,7 +87,7 @@ func (h *HandlerFactory) GetAdult(opts []kithttp.ServerOption) *kithttp.Server {
 
 func (h *HandlerFactory) DeleteAdult(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeDeleteEndpoint(h.Service, shared.ROLE_ADULT),
+		makeDeleteEndpoint(h.Service, roles.ROLE_ADULT),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse204,
 		opts...,
@@ -95,7 +96,7 @@ func (h *HandlerFactory) DeleteAdult(opts []kithttp.ServerOption) *kithttp.Serve
 
 func (h *HandlerFactory) UpdateAdult(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeUpdateEndpoint(h.Service, shared.ROLE_ADULT),
+		makeUpdateEndpoint(h.Service, roles.ROLE_ADULT),
 		decodeUpdateUserRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -106,7 +107,7 @@ func (h *HandlerFactory) UpdateAdult(opts []kithttp.ServerOption) *kithttp.Serve
 
 func (h *HandlerFactory) ListOfficeManager(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeListEndpoint(h.Service, shared.ROLE_OFFICE_MANAGER),
+		makeListEndpoint(h.Service, roles.ROLE_OFFICE_MANAGER),
 		ignorePayload,
 		shared.EncodeResponse200,
 		opts...,
@@ -115,7 +116,7 @@ func (h *HandlerFactory) ListOfficeManager(opts []kithttp.ServerOption) *kithttp
 
 func (h *HandlerFactory) GetOfficeManager(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeGetEndpoint(h.Service, shared.ROLE_OFFICE_MANAGER),
+		makeGetEndpoint(h.Service, roles.ROLE_OFFICE_MANAGER),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -124,7 +125,7 @@ func (h *HandlerFactory) GetOfficeManager(opts []kithttp.ServerOption) *kithttp.
 
 func (h *HandlerFactory) DeleteOfficeManager(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeDeleteEndpoint(h.Service, shared.ROLE_OFFICE_MANAGER),
+		makeDeleteEndpoint(h.Service, roles.ROLE_OFFICE_MANAGER),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse204,
 		opts...,
@@ -133,7 +134,7 @@ func (h *HandlerFactory) DeleteOfficeManager(opts []kithttp.ServerOption) *kitht
 
 func (h *HandlerFactory) UpdateOfficeManager(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeUpdateEndpoint(h.Service, shared.ROLE_OFFICE_MANAGER),
+		makeUpdateEndpoint(h.Service, roles.ROLE_OFFICE_MANAGER),
 		decodeUpdateUserRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -144,7 +145,7 @@ func (h *HandlerFactory) UpdateOfficeManager(opts []kithttp.ServerOption) *kitht
 
 func (h *HandlerFactory) CreateTeacher(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeAddEndpoint(h.Service, shared.ROLE_TEACHER),
+		makeAddEndpoint(h.Service, roles.ROLE_TEACHER),
 		decodeUserRequest,
 		shared.EncodeResponse201,
 		opts...,
@@ -153,7 +154,7 @@ func (h *HandlerFactory) CreateTeacher(opts []kithttp.ServerOption) *kithttp.Ser
 
 func (h *HandlerFactory) ListTeacher(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeListEndpoint(h.Service, shared.ROLE_TEACHER),
+		makeListEndpoint(h.Service, roles.ROLE_TEACHER),
 		ignorePayload,
 		shared.EncodeResponse200,
 		opts...,
@@ -162,7 +163,7 @@ func (h *HandlerFactory) ListTeacher(opts []kithttp.ServerOption) *kithttp.Serve
 
 func (h *HandlerFactory) GetTeacher(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeGetEndpoint(h.Service, shared.ROLE_TEACHER),
+		makeGetEndpoint(h.Service, roles.ROLE_TEACHER),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -171,7 +172,7 @@ func (h *HandlerFactory) GetTeacher(opts []kithttp.ServerOption) *kithttp.Server
 
 func (h *HandlerFactory) UpdateTeacher(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeUpdateEndpoint(h.Service, shared.ROLE_TEACHER),
+		makeUpdateEndpoint(h.Service, roles.ROLE_TEACHER),
 		decodeUpdateUserRequest,
 		shared.EncodeResponse200,
 		opts...,
@@ -180,7 +181,7 @@ func (h *HandlerFactory) UpdateTeacher(opts []kithttp.ServerOption) *kithttp.Ser
 
 func (h *HandlerFactory) DeleteTeacher(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
-		makeDeleteEndpoint(h.Service, shared.ROLE_TEACHER),
+		makeDeleteEndpoint(h.Service, roles.ROLE_TEACHER),
 		decodeGetOrDeleteRequest,
 		shared.EncodeResponse204,
 		opts...,

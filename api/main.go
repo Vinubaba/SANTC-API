@@ -7,20 +7,23 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Vinubaba/SANTC-API/api/ageranges"
+	"github.com/Vinubaba/SANTC-API/api/authentication"
 	"github.com/Vinubaba/SANTC-API/api/children"
 	"github.com/Vinubaba/SANTC-API/api/classes"
-	teddyFirebase "github.com/Vinubaba/SANTC-API/api/firebase"
+	"github.com/Vinubaba/SANTC-API/api/daycares"
 	. "github.com/Vinubaba/SANTC-API/api/shared"
-	"github.com/Vinubaba/SANTC-API/api/storage"
-	. "github.com/Vinubaba/SANTC-API/api/store"
 	"github.com/Vinubaba/SANTC-API/api/users"
+	teddyFirebase "github.com/Vinubaba/SANTC-API/common/firebase"
+	"github.com/Vinubaba/SANTC-API/common/log"
+	. "github.com/Vinubaba/SANTC-API/common/roles"
+	"github.com/Vinubaba/SANTC-API/common/storage"
+	. "github.com/Vinubaba/SANTC-API/common/store"
+	"github.com/Vinubaba/SANTC-API/common/store/migrations"
 
 	"firebase.google.com/go"
 	"firebase.google.com/go/auth"
-	"github.com/Vinubaba/SANTC-API/api/ageranges"
-	"github.com/Vinubaba/SANTC-API/api/authentication"
-	"github.com/Vinubaba/SANTC-API/api/daycares"
-	"github.com/Vinubaba/SANTC-API/api/store/migrations"
+	"github.com/Vinubaba/SANTC-API/common/generator"
 	"github.com/facebookgo/inject"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
@@ -33,10 +36,10 @@ import (
 var (
 	ctx             = context.Background()
 	swagger         []byte
-	logger          = NewLogger("teddycare")
+	logger          = log.NewLogger("teddycare")
 	config          *AppConfig
 	db              *gorm.DB
-	stringGenerator = &StringGenerator{}
+	stringGenerator = &generator.StringGenerator{}
 
 	daycareService  = &daycares.DaycareService{}
 	childService    = &children.ChildService{}
@@ -52,7 +55,7 @@ var (
 	teddyFirebaseClient     = &teddyFirebase.Client{}
 
 	dbStore    = &Store{}
-	gcsStorage = &storage.GoogleStorage{}
+	gcsStorage *storage.GoogleStorage
 
 	firebaseClient *auth.Client
 	authenticator  = &authentication.Authenticator{}
@@ -60,6 +63,7 @@ var (
 
 func init() {
 	checkErrAndExit(initAppConfiguration())
+	checkErrAndExit(initStorage())
 	checkErrAndExit(initPostgresConnection())
 	checkErrAndExit(initFirebase())
 	checkErrAndExit(initApplicationGraph())
@@ -68,6 +72,14 @@ func init() {
 
 func initAppConfiguration() (err error) {
 	config, err = InitAppConfiguration()
+	return
+}
+
+func initStorage() (err error) {
+	gcsStorage, err = storage.New(ctx, storage.Options{
+		BucketName:      config.BucketImagesName,
+		CredentialsFile: config.BucketServiceAccount,
+	})
 	return
 }
 
@@ -239,6 +251,7 @@ func startHttpServer(ctx context.Context) {
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Get(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN, ROLE_TEACHER)).Methods(http.MethodGet)
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Update(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN)).Methods(http.MethodPatch)
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Delete(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodDelete)
+	apiRouterV1.Handle("/children/{childId}/photos", childrenHandlerFactory.Delete(childrenOpts)).Methods(http.MethodPost)
 
 	apiRouterV1.Handle("/age-ranges", authenticator.Roles(ageRangesHandlerFactory.Add(ageRangesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPost)
 	apiRouterV1.Handle("/age-ranges", authenticator.Roles(ageRangesHandlerFactory.List(ageRangesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodGet)

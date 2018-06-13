@@ -3,10 +3,10 @@ package ageranges
 import (
 	"context"
 
-	"github.com/Vinubaba/SANTC-API/api/shared"
-	"github.com/Vinubaba/SANTC-API/api/store"
+	"github.com/Vinubaba/SANTC-API/common/store"
 
-	"github.com/Vinubaba/SANTC-API/api/claims"
+	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
+	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -33,7 +33,7 @@ type AgeRangeService struct {
 		ListAgeRange(tx *gorm.DB, options store.SearchOptions) ([]store.AgeRange, error)
 		DeleteAgeRange(tx *gorm.DB, ageRangeId string) error
 	} `inject:""`
-	Logger *shared.Logger `inject:""`
+	Logger *log.Logger `inject:""`
 }
 
 func (c *AgeRangeService) transportToStore(request AgeRangeTransport) store.AgeRange {

@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	. "github.com/Vinubaba/SANTC-API/api/shared"
-	"github.com/Vinubaba/SANTC-API/api/store"
 	"github.com/Vinubaba/SANTC-API/api/users"
+	"github.com/Vinubaba/SANTC-API/common/store"
 
 	"firebase.google.com/go/auth"
+	"github.com/Vinubaba/SANTC-API/common/log"
+	"github.com/Vinubaba/SANTC-API/common/roles"
 )
 
 type Authenticator struct {
@@ -22,7 +24,7 @@ type Authenticator struct {
 	UserService interface {
 		GetUserByEmail(ctx context.Context, request users.UserTransport) (store.User, error)
 	} `inject:""`
-	Logger *Logger `inject:""`
+	Logger *log.Logger `inject:""`
 }
 
 func (f *Authenticator) Roles(next http.Handler, roles ...string) http.Handler {
@@ -83,12 +85,12 @@ func (f *Authenticator) Firebase(next http.Handler, excludePath []string) http.H
 			}
 
 			claims := map[string]interface{}{
-				"userId":            user.UserId.String,
-				"daycareId":         user.DaycareId.String,
-				ROLE_TEACHER:        false,
-				ROLE_OFFICE_MANAGER: false,
-				ROLE_ADULT:          false,
-				ROLE_ADMIN:          false,
+				"userId":                  user.UserId.String,
+				"daycareId":               user.DaycareId.String,
+				roles.ROLE_TEACHER:        false,
+				roles.ROLE_OFFICE_MANAGER: false,
+				roles.ROLE_ADULT:          false,
+				roles.ROLE_ADMIN:          false,
 			}
 			for _, role := range user.Roles.ToList() {
 				claims[role] = true
@@ -108,16 +110,16 @@ func (f *Authenticator) Firebase(next http.Handler, excludePath []string) http.H
 }
 
 func (f *Authenticator) hasAtLeastOneRoleInCustomClaim(claims map[string]interface{}) bool {
-	if isAdult, ok := claims[ROLE_ADULT]; ok && isAdult.(bool) {
+	if isAdult, ok := claims[roles.ROLE_ADULT]; ok && isAdult.(bool) {
 		return true
 	}
-	if isOfficeManager, ok := claims[ROLE_OFFICE_MANAGER]; ok && isOfficeManager.(bool) {
+	if isOfficeManager, ok := claims[roles.ROLE_OFFICE_MANAGER]; ok && isOfficeManager.(bool) {
 		return true
 	}
-	if isAdmin, ok := claims[ROLE_ADMIN]; ok && isAdmin.(bool) {
+	if isAdmin, ok := claims[roles.ROLE_ADMIN]; ok && isAdmin.(bool) {
 		return true
 	}
-	if isTeacher, ok := claims[ROLE_TEACHER]; ok && isTeacher.(bool) {
+	if isTeacher, ok := claims[roles.ROLE_TEACHER]; ok && isTeacher.(bool) {
 		return true
 	}
 	return false
