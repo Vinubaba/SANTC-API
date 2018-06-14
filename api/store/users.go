@@ -5,6 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+	"github.com/Vinubaba/SANTC-API/api/shared"
 )
 
 var (
@@ -160,10 +161,9 @@ func (s *Store) DeleteUser(tx *gorm.DB, userId string) (err error) {
 	return nil
 }
 
-func (s *Store) ListDaycareUsers(tx *gorm.DB, roleConstraint string, daycareId string) ([]User, error) {
+func (s *Store) ListDaycareUsers(tx *gorm.DB, roleConstraint string, options SearchOptions) ([]User, error) {
 	db := s.dbOrTx(tx)
-
-	query := db.Table("users").
+	query := db.Table("users, children, teacher_classes, roles").
 		Select("users.user_id, " +
 			"users.email, " +
 			"users.first_name," +
@@ -178,11 +178,21 @@ func (s *Store) ListDaycareUsers(tx *gorm.DB, roleConstraint string, daycareId s
 			"users.image_uri," +
 			"string_agg(roles.role, ',')," +
 			"users.daycare_id")
-	if daycareId != "" {
-		query = query.Where("users.daycare_id = ?", daycareId)
+	if options.DaycareId != "" {
+		query = query.Where("users.daycare_id = ?", options.DaycareId)
 	}
-	query = query.Joins("left join roles ON roles.user_id = users.user_id").
-		Group("users.user_id")
+	if len(options.ChildrenId) > 0 {
+		if roleConstraint == shared.ROLE_TEACHER {
+			for _, childId := range options.ChildrenId {
+				query = query.Where("children.child_id = ?", childId)
+			}
+			query = query.Where("children.class_id = teacher_classes.class_id")
+			query = query.Where("users.user_id = teacher_classes.teacher_id")
+		}
+	}
+	query = query.Where("roles.user_id = users.user_id").Group("users.user_id")
+	/*query = query.Joins("left join roles ON roles.user_id = users.user_id").
+		Group("users.user_id")*/
 
 	if roleConstraint != "" {
 		query = query.Having("string_agg(roles.role, ',') LIKE '%" + roleConstraint + "%'")

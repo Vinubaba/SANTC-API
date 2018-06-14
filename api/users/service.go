@@ -34,7 +34,7 @@ type UserService struct {
 	Store interface {
 		// User methods
 		AddUser(tx *gorm.DB, user store.User) (store.User, error)
-		ListDaycareUsers(tx *gorm.DB, roleConstraint string, daycareId string) ([]store.User, error)
+		ListDaycareUsers(tx *gorm.DB, roleConstraint string, searchOptions store.SearchOptions) ([]store.User, error)
 		UpdateUser(tx *gorm.DB, user store.User) (store.User, error)
 		DeleteUser(tx *gorm.DB, userId string) (err error)
 		GetUser(tx *gorm.DB, userId string, searchOptions store.SearchOptions) (store.User, error)
@@ -43,6 +43,8 @@ type UserService struct {
 		// Teacher specific method
 		SetTeacherClass(tx *gorm.DB, teacherClass store.TeacherClass) error
 		GetClass(tx *gorm.DB, classId string, options store.SearchOptions) (store.Class, error)
+
+		ListChildren(tx *gorm.DB, options store.SearchOptions) ([]store.Child, error)
 
 		AddRole(tx *gorm.DB, role store.Role) (store.Role, error)
 		Tx() *gorm.DB
@@ -247,13 +249,19 @@ func (c *UserService) DeleteUserByRoles(ctx context.Context, request UserTranspo
 }
 
 func (c *UserService) ListUsersByRole(ctx context.Context, roleConstraint string) ([]store.User, error) {
-	claims := ctx.Value("claims").(map[string]interface{})
-	daycareId := ""
-	if !claims[shared.ROLE_ADMIN].(bool) {
-		daycareId = claims["daycareId"].(string)
+	options := claims.GetDefaultSearchOptions(ctx)
+
+	if claims.IsAdult(ctx) {
+		children, err := c.Store.ListChildren(nil, options)
+		if err != nil {
+			return make([]store.User, 0), errors.Wrap(err, "failed to list " + roleConstraint)
+		}
+		for _, child := range children {
+			options.ChildrenId = append(options.ChildrenId, child.ChildId.String)
+		}
 	}
 
-	users, err := c.Store.ListDaycareUsers(nil, roleConstraint, daycareId)
+	users, err := c.Store.ListDaycareUsers(nil, roleConstraint, options)
 	if err != nil {
 		return make([]store.User, 0), err
 	}

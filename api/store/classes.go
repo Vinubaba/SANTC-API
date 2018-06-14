@@ -123,6 +123,9 @@ func (s *Store) ListClasses(tx *gorm.DB, options SearchOptions) ([]Class, error)
 	if options.DaycareId != "" {
 		query = query.Where("classes.daycare_id = ?", options.DaycareId)
 	}
+	if options.DaycareId != "" {
+
+	}
 
 	rows, err := query.Rows()
 	if err != nil {

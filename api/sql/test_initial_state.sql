@@ -37,15 +37,17 @@ INSERT INTO "age_ranges" ("age_range_id","daycare_id","stage","min","min_unit","
 INSERT INTO "age_ranges" ("age_range_id","daycare_id","stage","min","min_unit","max","max_unit") VALUES ('agerangeid-3','namek','infant 2','4','M','13','M');
 INSERT INTO "classes" ("class_id","daycare_id","age_range_id","name","description","image_uri") VALUES ('classid-1', 'namek', 'agerangeid-1', 'infant class','infant description','gs://foo/bar.jpg');
 INSERT INTO "classes" ("class_id","daycare_id","age_range_id","name","description","image_uri") VALUES ('classid-2', 'peyredragon', 'agerangeid-2', 'toddlers class','toddlers description','gs://foo/bar.jpg');
+INSERT INTO "teacher_classes" ("teacher_id","class_id") VALUES ('id4', 'classid-2');
+INSERT INTO "teacher_classes" ("teacher_id","class_id") VALUES ('id9', 'classid-1');
 
-INSERT INTO "children" ("child_id","first_name","last_name","birth_date","start_date","gender","image_uri","notes","daycare_id") VALUES ('childid-1','Goten','Goten','1992-10-13T00:00:00Z','2018-03-28T00:00:00Z','M','gs://foo/bar.jpg', 'some special notes','namek');
-INSERT INTO "children" ("child_id","first_name","last_name","birth_date","start_date","gender","image_uri","notes","daycare_id") VALUES ('childid-2','Trunk','Trunk','1992-10-13T00:00:00Z','2018-03-28T00:00:00Z','M','gs://foo/bar.jpg', 'some special notes','namek');
+INSERT INTO "children" ("child_id","first_name","last_name","birth_date","start_date","gender","image_uri","notes","daycare_id","class_id") VALUES ('childid-1','Goten','Goten','1992-10-13T00:00:00Z','2018-03-28T00:00:00Z','M','gs://foo/bar.jpg', 'some special notes','namek','classid-1');
+INSERT INTO "children" ("child_id","first_name","last_name","birth_date","start_date","gender","image_uri","notes","daycare_id","class_id") VALUES ('childid-2','Trunk','Trunk','1992-10-13T00:00:00Z','2018-03-28T00:00:00Z','M','gs://foo/bar.jpg', 'some special notes','namek','classid-1');
 INSERT INTO "allergies" ("allergy_id","child_id","allergy","instruction") VALUES ('allergyid-1','childid-1','tomato','call the doctor');
 INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('id6','childid-1','father');
 INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('id7','childid-2','father');
 INSERT INTO "special_instructions" ("special_instruction_id","child_id","instruction") VALUES ('specialinstruction-1','childid-1','this boy always sleeps please keep him awaken');
 
-INSERT INTO "children" ("child_id","first_name","last_name","birth_date","start_date","gender","image_uri","notes","daycare_id") VALUES ('childid-3','Arya','Stark','1992-10-13T00:00:00Z','2018-03-28T00:00:00Z','M','gs://foo/bar.jpg', 'some special notes','peyredragon');
-INSERT INTO "children" ("child_id","first_name","last_name","birth_date","start_date","gender","image_uri","notes","daycare_id") VALUES ('childid-4','Joffrey','Baratheon','1992-10-13T00:00:00Z','2018-03-28T00:00:00Z','M','gs://foo/bar.jpg', 'some special notes','peyredragon');
+INSERT INTO "children" ("child_id","first_name","last_name","birth_date","start_date","gender","image_uri","notes","daycare_id","class_id") VALUES ('childid-3','Arya','Stark','1992-10-13T00:00:00Z','2018-03-28T00:00:00Z','M','gs://foo/bar.jpg', 'some special notes','peyredragon','classid-2');
+INSERT INTO "children" ("child_id","first_name","last_name","birth_date","start_date","gender","image_uri","notes","daycare_id","class_id") VALUES ('childid-4','Joffrey','Baratheon','1992-10-13T00:00:00Z','2018-03-28T00:00:00Z','M','gs://foo/bar.jpg', 'some special notes','peyredragon','classid-2');
 INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('id4','childid-3','mother');
 INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('id3','childid-4','father');

@@ -23,6 +23,7 @@ var (
 type ChildTransport struct {
 	Id                  string                        `json:"id"`
 	DaycareId           string                        `json:"daycareId"`
+	ClassId             string                        `json:"classId"`
 	FirstName           string                        `json:"firstName"`
 	LastName            string                        `json:"lastName"`
 	BirthDate           string                        `json:"birthDate"` // dd/mm/yyyy
@@ -199,7 +200,7 @@ func ignorePayload(_ context.Context, r *http.Request) (interface{}, error) {
 func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	switch errors.Cause(err) {
-	case ErrNoParent, store.ErrSetResponsible, ErrUpdateDaycare:
+	case ErrNoParent, store.ErrSetResponsible, ErrUpdateDaycare, store.ErrClassNotFound:
 		w.WriteHeader(http.StatusBadRequest)
 	case store.ErrUserNotFound, store.ErrChildNotFound:
 		w.WriteHeader(http.StatusNotFound)
@@ -215,6 +216,7 @@ func storeToTransport(child store.Child) ChildTransport {
 	ret := ChildTransport{
 		Id:            child.ChildId.String,
 		DaycareId:     child.DaycareId.String,
+		ClassId: child.ClassId.String,
 		LastName:      child.LastName.String,
 		FirstName:     child.FirstName.String,
 		BirthDate:     child.BirthDate.UTC().String(),
@@ -266,6 +268,7 @@ func transportToStore(request ChildTransport, strict bool) (store.Child, error) 
 	child := store.Child{
 		ChildId:       store.DbNullString(request.Id),
 		DaycareId:     store.DbNullString(request.DaycareId),
+		ClassId: store.DbNullString(request.ClassId),
 		BirthDate:     birthDate,
 		FirstName:     store.DbNullString(request.FirstName),
 		LastName:      store.DbNullString(request.LastName),

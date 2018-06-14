@@ -44,4 +44,5 @@ type SearchOptions struct {
 	DaycareId     string
 	TeacherId     string
 	ResponsibleId string
+	ChildrenId []string
 }
