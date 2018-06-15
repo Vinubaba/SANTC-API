@@ -61,6 +61,9 @@ func (s *GoogleStorage) validate64EncodedPhoto(photo string) (encoded string, er
 
 // returns signedUrls
 func (s *GoogleStorage) Get(ctx context.Context, fileName string) (string, error) {
+	if fileName == "" {
+		return "", nil
+	}
 	url, err := storage.SignedURL(s.Config.BucketImagesName, fileName, &storage.SignedURLOptions{
 		GoogleAccessID: s.Config.BucketServiceAccountDetails.ClientEmail,
 		PrivateKey:     []byte(s.Config.BucketServiceAccountDetails.PrivateKey),
