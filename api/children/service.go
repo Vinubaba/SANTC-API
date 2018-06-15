@@ -37,6 +37,8 @@ type ChildService struct {
 		GetChild(tx *gorm.DB, childId string, options store.SearchOptions) (store.Child, error)
 		ListChildren(tx *gorm.DB, options store.SearchOptions) ([]store.Child, error)
 		DeleteChild(tx *gorm.DB, childId string) error
+
+		GetClass(tx *gorm.DB, classId string, options store.SearchOptions) (store.Class, error)
 	} `inject:""`
 	Storage storage.Storage `inject:""`
 	Logger  *shared.Logger  `inject:""`
@@ -75,6 +77,14 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 	if err != nil {
 		tx.Rollback()
 		return store.Child{}, errors.Wrap(err, "failed to decode request")
+	}
+
+	if childToCreate.ClassId.String != "" {
+		_, err := c.Store.GetClass(nil, childToCreate.ClassId.String, store.SearchOptions{DaycareId: childToCreate.DaycareId.String})
+		if err != nil {
+			tx.Rollback()
+			return store.Child{}, errors.Wrap(err, "failed to add child")
+		}
 	}
 
 	child, err := c.Store.AddChild(tx, childToCreate)

@@ -159,7 +159,7 @@ var _ = Describe("Transport", func() {
 		router.Handle("/office-managers/{id}", authenticator.Roles(handlerFactory.UpdateOfficeManager(opts), shared.ROLE_ADMIN)).Methods(http.MethodPatch)
 
 		router.Handle("/teachers", authenticator.Roles(handlerFactory.CreateTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodPost)
-		router.Handle("/teachers", authenticator.Roles(handlerFactory.ListTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
+		router.Handle("/teachers", authenticator.Roles(handlerFactory.ListTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER, shared.ROLE_ADULT)).Methods(http.MethodGet)
 		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.GetTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
 		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.DeleteTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
 		router.Handle("/teachers/{id}", authenticator.Roles(handlerFactory.UpdateTeacher(opts), shared.ROLE_ADMIN, shared.ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
@@ -706,9 +706,13 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
-				assertReturnedNoPayload()
-				assertHttpCode(http.StatusUnauthorized)
+				BeforeEach(func() {
+					claims[shared.ROLE_ADULT] = true
+					claims["userId"] = "id4"
+				})
+				// Should list teacher of childs
+				assertReturnedUsersWithIds("id4")
+				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When database is closed", func() {

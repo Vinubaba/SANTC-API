@@ -16,6 +16,7 @@ var (
 type Child struct {
 	ChildId             sql.NullString
 	DaycareId           sql.NullString
+	ClassId             sql.NullString
 	FirstName           sql.NullString
 	LastName            sql.NullString
 	BirthDate           time.Time
@@ -90,6 +91,7 @@ func (s *Store) baseChildQuery(tx *gorm.DB) *gorm.DB {
 	query := db.Table("children").Select(
 		"children.child_id," +
 			"children.daycare_id," +
+			"children.class_id," +
 			"children.first_name," +
 			"children.last_name," +
 			"children.gender," +
@@ -147,6 +149,7 @@ func (s *Store) scanChildRows(rows *sql.Rows) ([]Child, error) {
 		specialInstruction := SpecialInstruction{}
 		if err := rows.Scan(&currentChild.ChildId,
 			&currentChild.DaycareId,
+			&currentChild.ClassId,
 			&currentChild.FirstName,
 			&currentChild.LastName,
 			&currentChild.Gender,
