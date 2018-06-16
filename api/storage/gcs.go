@@ -77,6 +77,9 @@ func (s *GoogleStorage) Get(ctx context.Context, fileName string) (string, error
 }
 
 func (s *GoogleStorage) Delete(ctx context.Context, fileName string) error {
+	if fileName == "" {
+		return nil
+	}
 	client, err := storage.NewClient(ctx, option.WithCredentialsFile(s.Config.BucketServiceAccount))
 	if err != nil {
 		return fmt.Errorf("failed to create client: %v", err)
