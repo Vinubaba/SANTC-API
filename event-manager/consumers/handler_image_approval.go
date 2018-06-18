@@ -30,6 +30,15 @@ func (h *ImageApprovalHandler) Name() string {
 }
 
 func (h *ImageApprovalHandler) Handle(ctx context.Context, event Event) error {
+	if event.ImageApproval == nil {
+		return errors.New("image approval is empty")
+	}
+	if event.ImageApproval.ChildId == "" {
+		return errors.New("childId is mandatory")
+	}
+	if event.ImageApproval.Image == "" {
+		return errors.New("image is empty")
+	}
 	filename, err := h.Storage.Store(ctx, event.Image)
 	if err != nil {
 		return errors.Wrap(err, "failed to store image")
