@@ -4,11 +4,11 @@ import (
 	"context"
 	"strings"
 
-	"github.com/Vinubaba/SANTC-API/api/claims"
-	"github.com/Vinubaba/SANTC-API/api/shared"
-	"github.com/Vinubaba/SANTC-API/api/storage"
-	"github.com/Vinubaba/SANTC-API/api/store"
+	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
+	"github.com/Vinubaba/SANTC-API/common/storage"
+	"github.com/Vinubaba/SANTC-API/common/store"
 
+	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -41,7 +41,7 @@ type ChildService struct {
 		GetClass(tx *gorm.DB, classId string, options store.SearchOptions) (store.Class, error)
 	} `inject:""`
 	Storage storage.Storage `inject:""`
-	Logger  *shared.Logger  `inject:""`
+	Logger  *log.Logger     `inject:""`
 }
 
 func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (store.Child, error) {

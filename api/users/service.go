@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"github.com/Vinubaba/SANTC-API/api/shared"
-	"github.com/Vinubaba/SANTC-API/api/storage"
-	"github.com/Vinubaba/SANTC-API/api/store"
+	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
+	"github.com/Vinubaba/SANTC-API/common/log"
+	"github.com/Vinubaba/SANTC-API/common/storage"
+	"github.com/Vinubaba/SANTC-API/common/store"
 
-	"github.com/Vinubaba/SANTC-API/api/claims"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -54,22 +55,19 @@ type UserService struct {
 	} `inject:"teddyFirebaseClient"`
 	Storage storage.Storage   `inject:""`
 	Config  *shared.AppConfig `inject:""`
-	Logger  *shared.Logger    `inject:""`
+	Logger  *log.Logger       `inject:""`
 }
 
 func (c *UserService) validateDaycareRequest(ctx context.Context, request *UserTransport) error {
-	claims := ctx.Value("claims").(map[string]interface{})
-
-	if claims[shared.ROLE_ADMIN].(bool) && request.DaycareId == "" {
+	if claims.IsAdmin(ctx) && request.DaycareId == "" {
 		return errors.New("as an admin, you must specify the user daycare")
 	}
 
 	// default to requester daycare (e.g office manager)
 	if request.DaycareId == "" {
-		request.DaycareId = claims["daycareId"].(string)
+		request.DaycareId = claims.GetDaycareId(ctx)
 	}
-
-	if claims["daycareId"].(string) != request.DaycareId {
+	if claims.GetDaycareId(ctx) != request.DaycareId {
 		return ErrCreateDifferentDaycare
 	}
 
@@ -254,7 +252,7 @@ func (c *UserService) ListUsersByRole(ctx context.Context, roleConstraint string
 	if claims.IsAdult(ctx) {
 		children, err := c.Store.ListChildren(nil, options)
 		if err != nil {
-			return make([]store.User, 0), errors.Wrap(err, "failed to list " + roleConstraint)
+			return make([]store.User, 0), errors.Wrap(err, "failed to list "+roleConstraint)
 		}
 		for _, child := range children {
 			options.ChildrenId = append(options.ChildrenId, child.ChildId.String)

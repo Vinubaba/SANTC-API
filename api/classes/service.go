@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"github.com/Vinubaba/SANTC-API/api/ageranges"
-	"github.com/Vinubaba/SANTC-API/api/claims"
-	"github.com/Vinubaba/SANTC-API/api/shared"
-	"github.com/Vinubaba/SANTC-API/api/storage"
-	"github.com/Vinubaba/SANTC-API/api/store"
+	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
+	"github.com/Vinubaba/SANTC-API/common/storage"
+	"github.com/Vinubaba/SANTC-API/common/store"
 
+	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -42,7 +42,7 @@ type ClassService struct {
 		GetAgeRange(tx *gorm.DB, ageRangeId string, options store.SearchOptions) (store.AgeRange, error)
 	} `inject:""`
 	Storage storage.Storage `inject:""`
-	Logger  *shared.Logger  `inject:""`
+	Logger  *log.Logger     `inject:""`
 }
 
 func (c *ClassService) AddClass(ctx context.Context, request ClassTransport) (store.Class, error) {

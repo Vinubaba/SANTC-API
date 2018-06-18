@@ -10,12 +10,14 @@ import (
 
 	. "github.com/Vinubaba/SANTC-API/api/ageranges"
 	"github.com/Vinubaba/SANTC-API/api/authentication"
-	. "github.com/Vinubaba/SANTC-API/api/firebase/mocks"
 	"github.com/Vinubaba/SANTC-API/api/shared"
 	. "github.com/Vinubaba/SANTC-API/api/shared/mocks"
-	"github.com/Vinubaba/SANTC-API/api/store"
 	"github.com/Vinubaba/SANTC-API/api/users"
+	. "github.com/Vinubaba/SANTC-API/common/firebase/mocks"
+	"github.com/Vinubaba/SANTC-API/common/store"
 
+	"github.com/Vinubaba/SANTC-API/common/log"
+	"github.com/Vinubaba/SANTC-API/common/roles"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -114,7 +116,7 @@ var _ = Describe("Transport", func() {
 			FirebaseClient: mockFirebaseClient,
 			Store:          concreteStore,
 		}
-		logger := shared.NewLogger("teddycare")
+		logger := log.NewLogger("teddycare")
 
 		authenticator = &authentication.Authenticator{
 			UserService: userService,
@@ -140,11 +142,11 @@ var _ = Describe("Transport", func() {
 			Service: ageRangeService,
 		}
 
-		router.Handle("/age-ranges", authenticator.Roles(handlerFactory.Add(opts), shared.ROLE_OFFICE_MANAGER, shared.ROLE_ADMIN)).Methods(http.MethodPost)
-		router.Handle("/age-ranges", authenticator.Roles(handlerFactory.List(opts), shared.ROLE_OFFICE_MANAGER, shared.ROLE_ADMIN)).Methods(http.MethodGet)
-		router.Handle("/age-ranges/{ageRangeId}", authenticator.Roles(handlerFactory.Get(opts), shared.ROLE_OFFICE_MANAGER, shared.ROLE_ADMIN)).Methods(http.MethodGet)
-		router.Handle("/age-ranges/{ageRangeId}", authenticator.Roles(handlerFactory.Update(opts), shared.ROLE_OFFICE_MANAGER, shared.ROLE_ADMIN)).Methods(http.MethodPatch)
-		router.Handle("/age-ranges/{ageRangeId}", authenticator.Roles(handlerFactory.Delete(opts), shared.ROLE_OFFICE_MANAGER, shared.ROLE_ADMIN)).Methods(http.MethodDelete)
+		router.Handle("/age-ranges", authenticator.Roles(handlerFactory.Add(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodPost)
+		router.Handle("/age-ranges", authenticator.Roles(handlerFactory.List(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodGet)
+		router.Handle("/age-ranges/{ageRangeId}", authenticator.Roles(handlerFactory.Get(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodGet)
+		router.Handle("/age-ranges/{ageRangeId}", authenticator.Roles(handlerFactory.Update(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodPatch)
+		router.Handle("/age-ranges/{ageRangeId}", authenticator.Roles(handlerFactory.Delete(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodDelete)
 
 		recorder = httptest.NewRecorder()
 
@@ -157,12 +159,12 @@ var _ = Describe("Transport", func() {
 
 	BeforeEach(func() {
 		claims = map[string]interface{}{
-			"userId":                   "",
-			"daycareId":                "peyredragon",
-			shared.ROLE_TEACHER:        false,
-			shared.ROLE_OFFICE_MANAGER: false,
-			shared.ROLE_ADULT:          false,
-			shared.ROLE_ADMIN:          false,
+			"userId":                  "",
+			"daycareId":               "peyredragon",
+			roles.ROLE_TEACHER:        false,
+			roles.ROLE_OFFICE_MANAGER: false,
+			roles.ROLE_ADULT:          false,
+			roles.ROLE_ADMIN:          false,
 		}
 	})
 
@@ -182,14 +184,14 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedAgeRangeWithIds("agerangeid-1", "agerangeid-2", "agerangeid-3")
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager from namek", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims[roles.ROLE_OFFICE_MANAGER] = true
 					claims["daycareId"] = "namek"
 				})
 				assertReturnedAgeRangeWithIds("agerangeid-1", "agerangeid-3")
@@ -197,20 +199,20 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[roles.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to list age ranges: sql: database is closed"}`)
@@ -239,14 +241,14 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleAgeRange(jsonClassRef)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager from peydragon", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims[roles.ROLE_OFFICE_MANAGER] = true
 					claims["daycareId"] = "peyredragon"
 				})
 				assertReturnedSingleAgeRange(`{"error": "failed to get age range: age range not found"}`)
@@ -255,7 +257,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an office manager from namek", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims[roles.ROLE_OFFICE_MANAGER] = true
 					claims["daycareId"] = "namek"
 				})
 				assertReturnedSingleAgeRange(jsonClassRef)
@@ -263,20 +265,20 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[roles.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to get age range: sql: database is closed"}`)
@@ -285,7 +287,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the ageRange does not exists", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					httpEndpointToUse = "/age-ranges/foo"
 				})
 				assertJsonResponse(`{"error":"failed to get age range: age range not found"}`)
@@ -302,14 +304,14 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusNoContent)
 			})
 
 			Context("When user is an office manager from peyredragon", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims[roles.ROLE_OFFICE_MANAGER] = true
 					claims["daycareId"] = "peyredragon"
 				})
 				assertJsonResponse(`{"error": "failed to delete age range: age range not found"}`)
@@ -318,7 +320,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an office manager from namek", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims[roles.ROLE_OFFICE_MANAGER] = true
 					claims["daycareId"] = "namek"
 				})
 				assertReturnedNoPayload()
@@ -326,20 +328,20 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[roles.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to delete age range: sql: database is closed"}`)
@@ -348,7 +350,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the age range does not exists", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					httpEndpointToUse = "/age-ranges/foo"
 				})
 				assertJsonResponse(`{"error":"failed to delete age range: age range not found"}`)
@@ -378,14 +380,14 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleAgeRange(jsonUpdatedAgeRange)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager from peydredragon", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims[roles.ROLE_OFFICE_MANAGER] = true
 					claims["daycareId"] = "peyredragon"
 				})
 				assertJsonResponse(`{"error": "failed to update age range: age range not found"}`)
@@ -394,7 +396,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an office manager from namek", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims[roles.ROLE_OFFICE_MANAGER] = true
 					claims["daycareId"] = "namek"
 				})
 				assertReturnedSingleAgeRange(jsonUpdatedAgeRange)
@@ -402,20 +404,20 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[roles.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to update age range: sql: database is closed"}`)
@@ -424,7 +426,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When the ageRange does not exists", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					httpEndpointToUse = "/age-ranges/foo"
 				})
 				assertJsonResponse(`{"error":"failed to update age range: age range not found"}`)
@@ -454,14 +456,14 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is an admin", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADMIN] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleAgeRange(jsonCreatedAgeRange)
 				assertHttpCode(http.StatusCreated)
 			})
 
 			Context("When user is an office manager and daycareId is not specified", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_OFFICE_MANAGER] = true
+					claims[roles.ROLE_OFFICE_MANAGER] = true
 					claims["daycareId"] = "namek"
 					httpBodyToUse = `{"stage": "created infant","min": 2,"minUnit": "Y","max": 3,"maxUnit": "Y"}`
 				})
@@ -470,20 +472,20 @@ var _ = Describe("Transport", func() {
 			})
 
 			Context("When user is a teacher", func() {
-				BeforeEach(func() { claims[shared.ROLE_TEACHER] = true })
+				BeforeEach(func() { claims[roles.ROLE_TEACHER] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When user is an adult", func() {
-				BeforeEach(func() { claims[shared.ROLE_ADULT] = true })
+				BeforeEach(func() { claims[roles.ROLE_ADULT] = true })
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
 			})
 
 			Context("When database is closed", func() {
 				BeforeEach(func() {
-					claims[shared.ROLE_ADMIN] = true
+					claims[roles.ROLE_ADMIN] = true
 					concreteDb.Close()
 				})
 				assertJsonResponse(`{"error":"failed to add age range: sql: database is closed"}`)
