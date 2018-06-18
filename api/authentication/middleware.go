@@ -30,7 +30,7 @@ type Authenticator struct {
 func (f *Authenticator) Roles(next http.Handler, roles ...string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		claims := req.Context().Value("claims").(map[string]interface{})
-		if !f.hasRole(roles, claims) {
+		if !f.isService(roles, req) && !f.hasRole(roles, claims) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -125,10 +125,21 @@ func (f *Authenticator) hasAtLeastOneRoleInCustomClaim(claims map[string]interfa
 	return false
 }
 
-func (f *Authenticator) hasRole(roles []string, customClaim map[string]interface{}) bool {
-	for _, role := range roles {
+func (f *Authenticator) hasRole(listRoles []string, customClaim map[string]interface{}) bool {
+	for _, role := range listRoles {
 		if r, ok := customClaim[role]; ok {
 			if r.(bool) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (f *Authenticator) isService(listRoles []string, r *http.Request) bool {
+	for _, role := range listRoles {
+		if role == roles.ROLE_SERVICE {
+			if r.Header.Get(roles.ROLE_REQUEST_HEADER) == roles.ROLE_SERVICE {
 				return true
 			}
 		}

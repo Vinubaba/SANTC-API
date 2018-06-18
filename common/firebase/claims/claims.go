@@ -9,27 +9,39 @@ import (
 
 func IsAdmin(ctx context.Context) bool {
 	claims := ctx.Value("claims").(map[string]interface{})
-	return claims[roles.ROLE_ADMIN].(bool)
+	if claims != nil && claims[roles.ROLE_ADMIN] != nil {
+		return claims[roles.ROLE_ADMIN].(bool)
+	}
+	return false
 }
 
 func IsOfficeManager(ctx context.Context) bool {
 	claims := ctx.Value("claims").(map[string]interface{})
-	return claims[roles.ROLE_OFFICE_MANAGER].(bool)
+	if claims != nil && claims[roles.ROLE_OFFICE_MANAGER] != nil {
+		return claims[roles.ROLE_OFFICE_MANAGER].(bool)
+	}
+	return false
 }
 
 func IsTeacher(ctx context.Context) bool {
 	claims := ctx.Value("claims").(map[string]interface{})
-	return claims[roles.ROLE_TEACHER].(bool)
+	if claims != nil && claims[roles.ROLE_TEACHER] != nil {
+		return claims[roles.ROLE_TEACHER].(bool)
+	}
+	return false
 }
 
 func IsAdult(ctx context.Context) bool {
 	claims := ctx.Value("claims").(map[string]interface{})
-	return claims[roles.ROLE_ADULT].(bool)
+	if claims != nil && claims[roles.ROLE_ADULT] != nil {
+		return claims[roles.ROLE_ADULT].(bool)
+	}
+	return false
 }
 
 func GetDaycareId(ctx context.Context) string {
 	claims := ctx.Value("claims").(map[string]interface{})
-	if claims["daycareId"] != nil {
+	if claims != nil && claims["daycareId"] != nil {
 		return claims["daycareId"].(string)
 	}
 	return ""
@@ -37,7 +49,7 @@ func GetDaycareId(ctx context.Context) string {
 
 func GetUserId(ctx context.Context) string {
 	claims := ctx.Value("claims").(map[string]interface{})
-	if claims["userId"] != nil {
+	if claims != nil && claims["userId"] != nil {
 		return claims["userId"].(string)
 	}
 	return ""

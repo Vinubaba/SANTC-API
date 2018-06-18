@@ -8,17 +8,18 @@ import (
 	"github.com/Vinubaba/SANTC-API/common/storage"
 	"github.com/Vinubaba/SANTC-API/common/store"
 
+	"github.com/Vinubaba/SANTC-API/common/api"
 	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
 var (
-	ErrNoParent               = errors.New("responsibleId is mandatory")
-	ErrEmptyChild             = errors.New("childId cannot be empty")
-	ErrInvalidImage           = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
-	ErrCreateDifferentDaycare = errors.New("you can't add a child to a different daycare of you")
-	ErrUpdateDaycare          = errors.New("you can't update a child daycare")
+	ErrNoParent         = errors.New("responsibleId is mandatory")
+	ErrEmptyChild       = errors.New("childId cannot be empty")
+	ErrInvalidImage     = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
+	ErrDifferentDaycare = errors.New("child does not belong to this daycare")
+	ErrUpdateDaycare    = errors.New("you can't update a child daycare")
 )
 
 type Service interface {
@@ -27,6 +28,8 @@ type Service interface {
 	UpdateChild(ctx context.Context, request ChildTransport) (store.Child, error)
 	GetChild(ctx context.Context, request ChildTransport) (store.Child, error)
 	ListChildren(ctx context.Context) ([]store.Child, error)
+
+	AddPhoto(ctx context.Context, request api.PhotoRequestTransport) error
 }
 
 type ChildService struct {
@@ -38,7 +41,10 @@ type ChildService struct {
 		ListChildren(tx *gorm.DB, options store.SearchOptions) ([]store.Child, error)
 		DeleteChild(tx *gorm.DB, childId string) error
 
+		AddChildPhoto(tx *gorm.DB, childPhoto store.ChildPhoto) error
+
 		GetClass(tx *gorm.DB, classId string, options store.SearchOptions) (store.Class, error)
+		GetUser(tx *gorm.DB, userId string, searchOptions store.SearchOptions) (store.User, error)
 	} `inject:""`
 	Storage storage.Storage `inject:""`
 	Logger  *log.Logger     `inject:""`
@@ -58,7 +64,7 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		}
 
 		if claims.GetDaycareId(ctx) != request.DaycareId {
-			return store.Child{}, ErrCreateDifferentDaycare
+			return store.Child{}, ErrDifferentDaycare
 		}
 	}
 
@@ -103,7 +109,6 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 	tx.Commit()
 	return child, nil
 }
-
 func (c *ChildService) validate64EncodedPhoto(photo string) (encoded, mimeType string, err error) {
 	if strings.HasPrefix(photo, "data:image/jpeg;base64,") {
 		mimeType = "image/jpeg"
@@ -215,6 +220,28 @@ func (c *ChildService) setBucketUri(ctx context.Context, child *store.Child) {
 		}
 		child.ImageUri = store.DbNullString(uri)
 	}
+}
+
+func (c *ChildService) AddPhoto(ctx context.Context, request api.PhotoRequestTransport) error {
+	child, err := c.GetChild(ctx, ChildTransport{Id: request.ChildId})
+	if err != nil {
+		return err
+	}
+
+	requesterUser, err := c.Store.GetUser(nil, request.SenderId, store.SearchOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to get user")
+	}
+
+	if child.DaycareId.String != requesterUser.DaycareId.String {
+		return ErrDifferentDaycare
+	}
+
+	if err := c.Store.AddChildPhoto(nil, photoTransportToStore(request)); err != nil {
+		return errors.Wrap(err, "failed to store photo")
+	}
+
+	return nil
 }
 
 // ServiceMiddleware is a chainable behavior modifier for childService.

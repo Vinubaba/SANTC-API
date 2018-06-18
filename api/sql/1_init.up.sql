@@ -58,6 +58,16 @@ CREATE TABLE IF NOT EXISTS children (
   notes varchar
 );
 
+CREATE TABLE IF NOT EXISTS child_photos (
+  photo_id varchar UNIQUE NOT NULL PRIMARY KEY,
+  child_id varchar REFERENCES children (child_id) ON DELETE CASCADE,
+  published_by varchar REFERENCES users (user_id) ON DELETE SET NULL,
+  approved_by varchar REFERENCES users (user_id) ON DELETE SET NULL,
+  image_uri varchar NOT NULL,
+  approved boolean NOT NULL default false,
+  publication_date date NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS allergies (
   allergy_id varchar UNIQUE NOT NULL PRIMARY KEY,
   child_id varchar REFERENCES children (child_id) ON DELETE CASCADE,
