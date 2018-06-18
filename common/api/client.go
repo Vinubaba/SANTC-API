@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/Vinubaba/SANTC-API/common/roles"
 	"github.com/pkg/errors"
 )
 
@@ -38,13 +39,13 @@ func (c *DefaultClient) AddImageApprovalRequest(ctx context.Context, approval Ph
 		return errors.Wrap(err, "failed to json encode the request filter")
 	}
 
-	requestUrl := url.URL{Scheme: c.protocol, Host: c.hostname, Path: "/api/v1/children"+approval.ChildId+"/photos"}
+	requestUrl := url.URL{Scheme: c.protocol, Host: c.hostname, Path: "/api/v1/children" + approval.ChildId + "/photos"}
 	req, err := http.NewRequest(http.MethodPost, requestUrl.String(), bytes.NewReader(requestBody))
 	if err != nil {
 		return errors.Wrap(err, "failed to build associated data images search request")
 	}
 
-	_, err = c.performRequest(ctx, req)
+	_, err = c.performRequest(ctx, AsService(req))
 	if err != nil {
 		return errors.Wrap(err, "failed to perform request")
 	}
@@ -72,4 +73,9 @@ func (c *DefaultClient) performRequest(ctx context.Context, r *http.Request) (*h
 
 	b, _ := ioutil.ReadAll(resp.Body)
 	return nil, errors.Wrapf(err, "server responded with status code %v, body: %s", resp.StatusCode, b)
+}
+
+func AsService(r *http.Request) *http.Request {
+	r.Header.Set(roles.ROLE_REQUEST_HEADER, roles.ROLE_SERVICE)
+	return r
 }

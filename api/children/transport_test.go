@@ -44,6 +44,7 @@ var _ = Describe("Transport", func() {
 
 		claims                                            map[string]interface{}
 		reqToUse                                          *http.Request
+		headersToUse                                      http.Header
 		httpMethodToUse, httpEndpointToUse, httpBodyToUse string
 
 		mockImageUriName = "bar.jpg"
@@ -103,7 +104,7 @@ var _ = Describe("Transport", func() {
 
 	BeforeEach(func() {
 		concreteDb = shared.NewDbInstance(false)
-
+		concreteDb.LogMode(true)
 		mockStringGenerator = &MockStringGenerator{}
 		mockStringGenerator.On("GenerateUuid").Return("aaa").Once()
 		mockStringGenerator.On("GenerateUuid").Return("bbb").Once()
@@ -143,7 +144,7 @@ var _ = Describe("Transport", func() {
 		httpMethodToUse = ""
 		httpEndpointToUse = ""
 		httpBodyToUse = ""
-
+		headersToUse = http.Header{}
 		router = mux.NewRouter()
 		opts := []kithttp.ServerOption{
 			kithttp.ServerErrorLogger(logger),
@@ -159,7 +160,7 @@ var _ = Describe("Transport", func() {
 		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Get(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADULT, roles.ROLE_ADMIN, roles.ROLE_TEACHER)).Methods(http.MethodGet)
 		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Update(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADULT, roles.ROLE_ADMIN)).Methods(http.MethodPatch)
 		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Delete(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodDelete)
-
+		router.Handle("/children/{childId}/photos", authenticator.Roles(handlerFactory.AddPhoto(opts), roles.ROLE_SERVICE)).Methods(http.MethodPost)
 		recorder = httptest.NewRecorder()
 
 		shared.SetDbInitialState()
@@ -183,6 +184,7 @@ var _ = Describe("Transport", func() {
 	JustBeforeEach(func() {
 		reqToUse, _ = http.NewRequest(httpMethodToUse, httpEndpointToUse, strings.NewReader(httpBodyToUse))
 		reqToUse = reqToUse.WithContext(context.WithValue(context.Background(), "claims", claims))
+		reqToUse.Header = headersToUse
 		router.ServeHTTP(recorder, reqToUse)
 	})
 
@@ -625,6 +627,58 @@ var _ = Describe("Transport", func() {
 				})
 				assertJsonResponse(`{"error": "failed to add child: class not found"}`)
 				assertHttpCode(http.StatusBadRequest)
+			})
+
+		})
+
+		FDescribe("ADD PHOTO", func() {
+
+			BeforeEach(func() {
+				httpMethodToUse = http.MethodPost
+				httpEndpointToUse = "/children/childid-1/photos"
+				httpBodyToUse = `{"filename": "abcd-efgh.jpg", "childId": "childid-1", "senderId": "id6", "bucket": "photo-approvals"}`
+				headersToUse.Set(roles.ROLE_REQUEST_HEADER, roles.ROLE_SERVICE)
+				claims = map[string]interface{}{}
+			})
+			Context("Default", func() {
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusCreated)
+			})
+
+			Context("When database is closed", func() {
+				BeforeEach(func() {
+					concreteDb.Close()
+				})
+				assertJsonResponse(`{"error":"failed to get child: sql: database is closed"}`)
+				assertHttpCode(http.StatusInternalServerError)
+			})
+
+			Context("When the childId does not belong to the same daycare as senderId", func() {
+				BeforeEach(func() {
+					httpBodyToUse = `{"filename": "abcd-efgh.jpg", "senderId": "id2", "bucket": "photo-approvals"}`
+				})
+				assertJsonResponse(`{"error":"child does not belong to this daycare"}`)
+				assertHttpCode(http.StatusBadRequest)
+			})
+
+			Context("When the childId does not exist", func() {
+				BeforeEach(func() {
+					httpBodyToUse = `{"filename": "abcd-efgh.jpg", "senderId": "id6", "bucket": "photo-approvals"}`
+					httpEndpointToUse = "/children/foobar/photos"
+
+				})
+				assertJsonResponse(`{"error":"failed to get child: child not found"}`)
+				assertHttpCode(http.StatusNotFound)
+			})
+
+			Context("When the request does not come from a service", func() {
+				BeforeEach(func() {
+					httpBodyToUse = `{"filename": "abcd-efgh.jpg", "senderId": "id6", "bucket": "photo-approvals"}`
+					httpEndpointToUse = "/children/foobar/photos"
+					headersToUse = http.Header{}
+				})
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusUnauthorized)
 			})
 
 		})

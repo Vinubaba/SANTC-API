@@ -9,12 +9,12 @@ import (
 	"github.com/Vinubaba/SANTC-API/api/shared"
 	"github.com/Vinubaba/SANTC-API/common/store"
 
+	"github.com/Vinubaba/SANTC-API/common/api"
 	"github.com/araddon/dateparse"
 	"github.com/go-kit/kit/endpoint"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"github.com/Vinubaba/SANTC-API/common/api"
 )
 
 var (
@@ -103,7 +103,7 @@ func (h *HandlerFactory) AddPhoto(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
 		makeAddPhotoEndpoint(h.Service),
 		decodePhotoRequest,
-		shared.EncodeResponse200,
+		shared.EncodeResponse201,
 		opts...,
 	)
 }
@@ -171,13 +171,12 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 
 func makeAddPhotoEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(ChildTransport)
-		child, err := svc.AddChild(ctx, req)
-		if err != nil {
+		req := request.(api.PhotoRequestTransport)
+		if err := svc.AddPhoto(ctx, req); err != nil {
 			return nil, err
 		}
 
-		return storeToTransport(child), nil
+		return nil, nil
 	}
 }
 
@@ -238,7 +237,7 @@ func ignorePayload(_ context.Context, r *http.Request) (interface{}, error) {
 func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	switch errors.Cause(err) {
-	case ErrNoParent, store.ErrSetResponsible, ErrUpdateDaycare, store.ErrClassNotFound:
+	case ErrNoParent, store.ErrSetResponsible, ErrUpdateDaycare, store.ErrClassNotFound, ErrDifferentDaycare:
 		w.WriteHeader(http.StatusBadRequest)
 	case store.ErrUserNotFound, store.ErrChildNotFound:
 		w.WriteHeader(http.StatusNotFound)
@@ -326,4 +325,15 @@ func transportToStore(request ChildTransport, strict bool) (store.Child, error) 
 		child.Allergies = append(child.Allergies, allergyToCreate)
 	}
 	return child, nil
+}
+
+func photoTransportToStore(request api.PhotoRequestTransport) store.ChildPhoto {
+	childPhoto := store.ChildPhoto{
+		ChildId:         store.DbNullString(request.ChildId),
+		ImageUri:        store.DbNullString(request.Filename),
+		Approved:        false,
+		PublishedBy:     store.DbNullString(request.SenderId),
+		PublicationDate: time.Now(),
+	}
+	return childPhoto
 }

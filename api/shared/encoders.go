@@ -18,9 +18,12 @@ func EncodeResponse200(_ context.Context, w http.ResponseWriter, response interf
 
 func EncodeResponse201(_ context.Context, w http.ResponseWriter, response interface{}) error {
 	w.WriteHeader(http.StatusCreated)
-	encoder := json.NewEncoder(w)
-	encoder.SetEscapeHTML(false)
-	return encoder.Encode(response)
+	if response != nil {
+		encoder := json.NewEncoder(w)
+		encoder.SetEscapeHTML(false)
+		return encoder.Encode(response)
+	}
+	return nil
 }
 
 func EncodeResponse204(_ context.Context, w http.ResponseWriter, response interface{}) error {
