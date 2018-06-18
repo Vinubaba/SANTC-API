@@ -1,0 +1,19 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-f', 'Dockerfile-api', '-t', 'eu.gcr.io/$PROJECT_ID/teddycare:$COMMIT_SHA', '.']
+  waitFor: ['-']
+  id: 'build-api'
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-f', 'Dockerfile-event-manager', '-t', 'eu.gcr.io/$PROJECT_ID/event-manager:$COMMIT_SHA', '.']
+  waitFor: ['-']
+  id: 'build-event-manager'
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'eu.gcr.io/$PROJECT_ID/teddycare:$COMMIT_SHA']
+  waitFor: ['build-api', 'build-event-manager']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'eu.gcr.io/$PROJECT_ID/event-manager:$COMMIT_SHA']
+  waitFor: ['build-api', 'build-event-manager']
+
