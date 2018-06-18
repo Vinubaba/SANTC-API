@@ -9,3 +9,4 @@ gcloud auth activate-service-account --key-file /tmp/kubernetes-service-account-
 gcloud config set project $GCP_PROJECT
 gcloud container clusters get-credentials $KUBERNETES_CLUSTER_NAME --zone $KUBERNETES_CLUSTER_ZONE --project $GCP_PROJECT
 kubectl set image deployment/teddycare teddycare=eu.gcr.io/teddy-care/teddycare:$TRAVIS_COMMIT
+kubectl set image deployment/event-manager event-manager=eu.gcr.io/teddy-care/event-manager:$TRAVIS_COMMIT
