@@ -29,18 +29,39 @@ type Authenticator struct {
 
 func (f *Authenticator) Roles(next http.Handler, roles ...string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if f.isService(req) {
+			next.ServeHTTP(w, req)
+			return
+		}
 		claims := req.Context().Value("claims").(map[string]interface{})
-		if !f.isService(roles, req) && !f.hasRole(roles, claims) {
+		if !f.hasRole(roles, claims) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-
 		next.ServeHTTP(w, req)
 	})
 }
 
 func (f *Authenticator) Firebase(next http.Handler, excludePath []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// Allow internal requests
+		if req.Header.Get("X-Forwarded-For") == "" {
+			ctx := req.Context()
+			claims := map[string]interface{}{
+				"userId":                  "",
+				"daycareId":               "",
+				roles.ROLE_TEACHER:        false,
+				roles.ROLE_OFFICE_MANAGER: false,
+				roles.ROLE_ADULT:          false,
+				roles.ROLE_ADMIN:          false,
+				roles.ROLE_SERVICE:        true,
+			}
+			ctx = context.WithValue(ctx, "claims", claims)
+			req = req.WithContext(context.WithValue(ctx, "claims", claims))
+			next.ServeHTTP(w, req)
+			return
+		}
+
 		// Some route are public (users does not need to be authenticated)
 		for _, path := range excludePath {
 			if req.RequestURI == path {
@@ -136,13 +157,12 @@ func (f *Authenticator) hasRole(listRoles []string, customClaim map[string]inter
 	return false
 }
 
-func (f *Authenticator) isService(listRoles []string, r *http.Request) bool {
-	for _, role := range listRoles {
-		if role == roles.ROLE_SERVICE {
-			if r.Header.Get(roles.ROLE_REQUEST_HEADER) == roles.ROLE_SERVICE {
-				return true
-			}
-		}
+func (f *Authenticator) isService(r *http.Request) bool {
+	if strings.ToLower(r.Header.Get(roles.ROLE_REQUEST_HEADER)) == roles.ROLE_SERVICE {
+		f.Logger.Info(context.Background(), "r is service")
+		return true
 	}
+
+	f.Logger.Info(context.Background(), "r is not service")
 	return false
 }
