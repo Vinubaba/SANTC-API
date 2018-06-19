@@ -104,7 +104,7 @@ var _ = Describe("Transport", func() {
 
 	BeforeEach(func() {
 		concreteDb = shared.NewDbInstance(false)
-		concreteDb.LogMode(true)
+		concreteDb.LogMode(false)
 		mockStringGenerator = &MockStringGenerator{}
 		mockStringGenerator.On("GenerateUuid").Return("aaa").Once()
 		mockStringGenerator.On("GenerateUuid").Return("bbb").Once()
