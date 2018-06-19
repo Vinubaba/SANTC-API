@@ -631,7 +631,7 @@ var _ = Describe("Transport", func() {
 
 		})
 
-		FDescribe("ADD PHOTO", func() {
+		Describe("ADD PHOTO", func() {
 
 			BeforeEach(func() {
 				httpMethodToUse = http.MethodPost
