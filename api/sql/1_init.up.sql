@@ -42,7 +42,13 @@ CREATE TABLE IF NOT EXISTS users (
   zip varchar,
   gender varchar,
   image_uri varchar,
-  daycare_id varchar REFERENCES daycares (daycare_id) ON DELETE SET NULL
+  daycare_id varchar REFERENCES daycares (daycare_id) ON DELETE SET NULL,
+  work_address_1 varchar,
+  work_address_2 varchar,
+  work_city varchar,
+  work_state varchar,
+  work_zip varchar,
+  work_phone varchar
 );
 
 CREATE TABLE IF NOT EXISTS children (

@@ -13,20 +13,26 @@ var (
 )
 
 type User struct {
-	UserId    sql.NullString
-	Email     sql.NullString
-	FirstName sql.NullString
-	LastName  sql.NullString
-	Phone     sql.NullString
-	Address_1 sql.NullString
-	Address_2 sql.NullString
-	City      sql.NullString
-	State     sql.NullString
-	Zip       sql.NullString
-	Gender    sql.NullString
-	ImageUri  sql.NullString
-	Roles     Roles `sql:"-"`
-	DaycareId sql.NullString
+	UserId        sql.NullString
+	Email         sql.NullString
+	FirstName     sql.NullString
+	LastName      sql.NullString
+	Phone         sql.NullString
+	Address_1     sql.NullString
+	Address_2     sql.NullString
+	City          sql.NullString
+	State         sql.NullString
+	Zip           sql.NullString
+	Gender        sql.NullString
+	ImageUri      sql.NullString
+	Roles         Roles `sql:"-"`
+	DaycareId     sql.NullString
+	WorkAddress_1 sql.NullString
+	WorkAddress_2 sql.NullString
+	WorkCity      sql.NullString
+	WorkState     sql.NullString
+	WorkZip       sql.NullString
+	WorkPhone     sql.NullString
 }
 
 type TeacherClass struct {
@@ -71,9 +77,14 @@ func (s *Store) GetUser(tx *gorm.DB, userId string, searchOptions SearchOptions)
 			"users.zip," +
 			"users.gender," +
 			"users.image_uri," +
+			"users.work_address_1," +
+			"users.work_address_2," +
+			"users.work_city," +
+			"users.work_state," +
+			"users.work_zip," +
+			"users.work_phone," +
 			"string_agg(roles.role, ',')").
 		Joins("left join roles ON roles.user_id = users.user_id")
-
 	if searchOptions.DaycareId != "" {
 		query = query.Where("users.daycare_id = ?", searchOptions.DaycareId)
 	}
@@ -110,6 +121,12 @@ func (s *Store) GetUserByEmail(tx *gorm.DB, email string) (User, error) {
 			"users.zip,"+
 			"users.gender,"+
 			"users.image_uri,"+
+			"users.work_address_1,"+
+			"users.work_address_2,"+
+			"users.work_city,"+
+			"users.work_state,"+
+			"users.work_zip,"+
+			"users.work_phone,"+
 			"string_agg(roles.role, ',')").
 		Joins("left join roles ON roles.user_id = users.user_id").
 		Where("users.email = ?", email).
@@ -176,6 +193,12 @@ func (s *Store) ListDaycareUsers(tx *gorm.DB, roleConstraint string, options Sea
 			"users.zip," +
 			"users.gender," +
 			"users.image_uri," +
+			"users.work_address_1," +
+			"users.work_address_2," +
+			"users.work_city," +
+			"users.work_state," +
+			"users.work_zip," +
+			"users.work_phone," +
 			"string_agg(roles.role, ',')," +
 			"users.daycare_id")
 	if options.DaycareId != "" {
@@ -191,8 +214,6 @@ func (s *Store) ListDaycareUsers(tx *gorm.DB, roleConstraint string, options Sea
 		}
 	}
 	query = query.Where("roles.user_id = users.user_id").Group("users.user_id")
-	/*query = query.Joins("left join roles ON roles.user_id = users.user_id").
-	Group("users.user_id")*/
 
 	if roleConstraint != "" {
 		query = query.Having("string_agg(roles.role, ',') LIKE '%" + roleConstraint + "%'")
@@ -222,6 +243,12 @@ func (s *Store) scanUserRows(rows *sql.Rows) ([]User, error) {
 			&currentUser.Zip,
 			&currentUser.Gender,
 			&currentUser.ImageUri,
+			&currentUser.WorkAddress_1,
+			&currentUser.WorkAddress_2,
+			&currentUser.WorkCity,
+			&currentUser.WorkState,
+			&currentUser.WorkZip,
+			&currentUser.WorkPhone,
 			&currentUser.Roles); err != nil {
 			return []User{}, err
 		}
@@ -230,7 +257,6 @@ func (s *Store) scanUserRows(rows *sql.Rows) ([]User, error) {
 		}
 		users = append(users, currentUser)
 	}
-
 	return users, nil
 }
 
