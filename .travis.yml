@@ -17,8 +17,6 @@ env:
     BUCKET_SERVICE_ACCOUNT_PATH=/tmp/bucket-service-account-key.json
 
 install:
-  - go get -u github.com/golang/dep/cmd/dep
-  - dep ensure
   - go get github.com/onsi/gomega
   - go get github.com/onsi/ginkgo/ginkgo
   - echo $BUCKET_SERVICE_ACCOUNT > /tmp/bucket-service-account-key.json
