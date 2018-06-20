@@ -13,12 +13,17 @@ import (
 	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+	"path"
 )
 
 var (
 	ErrEmptyClass             = errors.New("classId cannot be empty")
 	ErrEmptyAgeRange          = errors.New("please specify an age range")
 	ErrCreateDifferentDaycare = errors.New("you can't add a class to a different daycare of you")
+)
+
+const (
+	classImageFolder = "classes"
 )
 
 type Service interface {
@@ -77,7 +82,7 @@ func (c *ClassService) AddClass(ctx context.Context, request ClassTransport) (st
 		}
 	}
 
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
+	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(request.DaycareId))
 	if err != nil {
 		return store.Class{}, errors.Wrap(err, "failed to store image")
 	}
@@ -94,6 +99,10 @@ func (c *ClassService) AddClass(ctx context.Context, request ClassTransport) (st
 	class.ImageUri = store.DbNullString(uri)
 
 	return class, nil
+}
+
+func (c *ClassService) storageFolder(daycareId string) string {
+	return path.Join("daycares", daycareId, "classes")
 }
 
 func (c *ClassService) GetClass(ctx context.Context, request ClassTransport) (store.Class, error) {
@@ -155,7 +164,7 @@ func (c *ClassService) UpdateClass(ctx context.Context, request ClassTransport) 
 	}
 
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	_, err = c.Store.GetClass(nil, request.Id, searchOptions)
+	class, err := c.Store.GetClass(nil, request.Id, searchOptions)
 	if err != nil {
 		return store.Class{}, errors.Wrap(err, "failed to update class")
 	}
@@ -167,12 +176,12 @@ func (c *ClassService) UpdateClass(ctx context.Context, request ClassTransport) 
 		}
 	}
 
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
+	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(class.DaycareId.String))
 	if err != nil {
 		return store.Class{}, errors.Wrap(err, "failed to store image")
 	}
 
-	class, err := c.Store.UpdateClass(nil, transportToStore(request))
+	class, err = c.Store.UpdateClass(nil, transportToStore(request))
 	if err != nil {
 		return class, errors.Wrap(err, "failed to update class")
 	}

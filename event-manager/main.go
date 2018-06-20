@@ -71,7 +71,7 @@ func initConsumerStarter() (err error) {
 
 func initStorage() (err error) {
 	gcsStorage, err = storage.New(ctx, storage.Options{
-		BucketName:      config.BucketApprovalsName,
+		BucketName:      config.BucketName,
 		CredentialsFile: config.ServiceAccount,
 	})
 	return

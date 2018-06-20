@@ -54,7 +54,7 @@ var _ = Describe("LocalFilesystem", func() {
 		JustBeforeEach(func() {
 			image, _ := ioutil.ReadFile("test_data/DSCF6458.JPG")
 			encodedImage = b64.RawStdEncoding.EncodeToString(image)
-			uri, returnedError = storage.Store(ctx, encodedImage, "image/jpeg")
+			uri, returnedError = storage.Store(ctx, encodedImage, "image/jpeg", "")
 		})
 
 		It("should not return an error", func() {

@@ -8,10 +8,11 @@ import (
 	"github.com/Vinubaba/SANTC-API/common/storage"
 	"github.com/Vinubaba/SANTC-API/common/store"
 
-	"github.com/Vinubaba/SANTC-API/common/api"
+	. "github.com/Vinubaba/SANTC-API/common/api"
 	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+	"path"
 )
 
 var (
@@ -29,7 +30,7 @@ type Service interface {
 	GetChild(ctx context.Context, request ChildTransport) (store.Child, error)
 	ListChildren(ctx context.Context) ([]store.Child, error)
 
-	AddPhoto(ctx context.Context, request api.PhotoRequestTransport) error
+	AddPhoto(ctx context.Context, request PhotoRequestTransport) error
 }
 
 type ChildService struct {
@@ -69,7 +70,7 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 	}
 
 	var err error
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
+	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(request.DaycareId))
 	if err != nil {
 		return store.Child{}, errors.Wrap(err, "failed to store image")
 	}
@@ -169,6 +170,10 @@ func (c *ChildService) ListChildren(ctx context.Context) ([]store.Child, error) 
 	return children, nil
 }
 
+func (c *ChildService) storageFolder(daycareId string) string {
+	return path.Join("daycares", daycareId, "children")
+}
+
 func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) (store.Child, error) {
 	var err error
 
@@ -186,7 +191,7 @@ func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) 
 		return store.Child{}, ErrUpdateDaycare
 	}
 
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
+	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(child.DaycareId.String))
 	if err != nil {
 		return store.Child{}, errors.Wrap(err, "failed to store image")
 	}
@@ -222,7 +227,7 @@ func (c *ChildService) setBucketUri(ctx context.Context, child *store.Child) {
 	}
 }
 
-func (c *ChildService) AddPhoto(ctx context.Context, request api.PhotoRequestTransport) error {
+func (c *ChildService) AddPhoto(ctx context.Context, request PhotoRequestTransport) error {
 	child, err := c.GetChild(ctx, ChildTransport{Id: request.ChildId})
 	if err != nil {
 		return err

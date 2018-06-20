@@ -36,7 +36,7 @@ var _ = Describe("Transport", func() {
 		concreteStore       *store.Store
 		concreteDb          *gorm.DB
 		mockStringGenerator *MockStringGenerator
-		mockStorage         *mocks.MockGcs
+		mockStorage         = &mocks.MockGcs{}
 		mockFirebaseClient  *MockClient
 		config              *shared.AppConfig
 
@@ -110,7 +110,6 @@ var _ = Describe("Transport", func() {
 		mockStringGenerator = &MockStringGenerator{}
 		mockStringGenerator.On("GenerateUuid").Return("aaa").Once()
 
-		mockStorage = &mocks.MockGcs{}
 		mockStorage.On("Get", mock.Anything, mock.Anything).Return("gs://foo/"+mockImageUriName, nil)
 		mockStorage.On("Delete", mock.Anything, mock.Anything).Return(nil)
 
@@ -179,6 +178,7 @@ var _ = Describe("Transport", func() {
 
 	AfterEach(func() {
 		concreteDb.Close()
+		mockStorage.Reset()
 	})
 
 	BeforeEach(func() {
@@ -357,12 +357,14 @@ var _ = Describe("Transport", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleUser(`{"daycareId":"peyredragon","id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"]}`)
 				assertHttpCode(http.StatusOK)
+				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleUser(`{"daycareId":"peyredragon","id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"]}`)
 				assertHttpCode(http.StatusOK)
+				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is a teacher", func() {
@@ -424,12 +426,14 @@ var _ = Describe("Transport", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleUser(`{"daycareId":"peyredragon","id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"], "daycareId": "peyredragon"}`)
 				assertHttpCode(http.StatusCreated)
+				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleUser(`{"daycareId":"peyredragon","id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"], "daycareId": "peyredragon"}`)
 				assertHttpCode(http.StatusCreated)
+				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is an office manager and tries to create adult for another daycare", func() {
@@ -639,6 +643,7 @@ var _ = Describe("Transport", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleUser(`{"daycareId": "peyredragon", "id": "id2","firstName": "John","lastName": "Snow","gender": "M","email": "john.snow@got.com","phone": "+3365651","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "Peyredragon","state": "WESTEROS","zip": "31400","imageUri": "gs://foo/bar.jpg","roles": ["officemanager"]}`)
 				assertHttpCode(http.StatusOK)
+				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is an office manager", func() {
@@ -844,12 +849,14 @@ var _ = Describe("Transport", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleUser(`{"daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"]}`)
 				assertHttpCode(http.StatusOK)
+				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleUser(`{"daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"]}`)
 				assertHttpCode(http.StatusOK)
+				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is a teacher", func() {
@@ -911,12 +918,14 @@ var _ = Describe("Transport", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleUser(`{"id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["teacher"], "daycareId": "peyredragon"}`)
 				assertHttpCode(http.StatusCreated)
+				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleUser(`{"id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["teacher"], "daycareId": "peyredragon"}`)
 				assertHttpCode(http.StatusCreated)
+				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is an office manager and tries to create teacher for another daycare", func() {

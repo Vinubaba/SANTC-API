@@ -49,7 +49,7 @@ type GoogleStorage struct {
 	} `inject:""`
 }
 
-func (s *GoogleStorage) Store(ctx context.Context, b64image string) (string, error) {
+func (s *GoogleStorage) Store(ctx context.Context, b64image string, folder string) (string, error) {
 	if b64image == "" {
 		return "", nil
 	}
@@ -64,6 +64,9 @@ func (s *GoogleStorage) Store(ctx context.Context, b64image string) (string, err
 	}
 
 	fileName := s.StringGenerator.GenerateUuid() + ".jpg"
+	if folder != "" {
+		fileName = folder + "/" + fileName
+	}
 	w := s.client.Bucket(s.bucket).Object(fileName).NewWriter(ctx)
 
 	if _, err = w.Write(decoded); err != nil {

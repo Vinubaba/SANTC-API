@@ -16,6 +16,7 @@ import (
 	"github.com/Vinubaba/SANTC-API/common/store"
 
 	"github.com/Vinubaba/SANTC-API/api/shared"
+	. "github.com/Vinubaba/SANTC-API/common/api"
 	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/Vinubaba/SANTC-API/common/roles"
 	"github.com/Vinubaba/SANTC-API/common/storage/mocks"
@@ -37,7 +38,7 @@ var _ = Describe("Transport", func() {
 		concreteStore       *store.Store
 		concreteDb          *gorm.DB
 		mockStringGenerator *MockStringGenerator
-		mockStorage         *mocks.MockGcs
+		mockStorage         = &mocks.MockGcs{}
 		mockFirebaseClient  *MockClient
 
 		authenticator *authentication.Authenticator
@@ -112,7 +113,6 @@ var _ = Describe("Transport", func() {
 		mockStringGenerator.On("GenerateUuid").Return("ccc").Once()
 		mockStringGenerator.On("GenerateUuid").Return("ddd").Once()
 
-		mockStorage = &mocks.MockGcs{}
 		mockStorage.On("Get", mock.Anything, mock.Anything).Return("gs://foo/"+mockImageUriName, nil)
 		mockStorage.On("Delete", mock.Anything, mock.Anything).Return(nil)
 
@@ -169,6 +169,7 @@ var _ = Describe("Transport", func() {
 
 	AfterEach(func() {
 		concreteDb.Close()
+		mockStorage.Reset()
 	})
 
 	BeforeEach(func() {
@@ -462,6 +463,7 @@ var _ = Describe("Transport", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleChild(jsonUpdatedChild)
 				assertHttpCode(http.StatusOK)
+				mockStorage.AssertStoredImage("daycares/namek/children")
 			})
 
 			Context("When user is an admin and tries to set responsible from another daycare", func() {
@@ -491,6 +493,7 @@ var _ = Describe("Transport", func() {
 
 				assertReturnedSingleChild(jsonUpdatedChild)
 				assertHttpCode(http.StatusOK)
+				mockStorage.AssertStoredImage("daycares/namek/children")
 			})
 
 			Context("When user is a teacher", func() {
@@ -583,12 +586,14 @@ var _ = Describe("Transport", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
 				assertReturnedSingleChild(jsonCreatedChild)
 				assertHttpCode(http.StatusCreated)
+				mockStorage.AssertStoredImage("daycares/peyredragon/children")
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleChild(jsonCreatedChild)
 				assertHttpCode(http.StatusCreated)
+				mockStorage.AssertStoredImage("daycares/peyredragon/children")
 			})
 
 			Context("When user is a teacher", func() {

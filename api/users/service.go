@@ -12,6 +12,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+	"path"
 )
 
 var (
@@ -74,6 +75,9 @@ func (c *UserService) validateDaycareRequest(ctx context.Context, request *UserT
 	return nil
 }
 
+func (c *UserService) storageFolder(daycareId string) string {
+	return path.Join("daycares", daycareId, "users")
+}
 func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
 	var err error
 	if err = c.validateDaycareRequest(ctx, &request); err != nil {
@@ -85,7 +89,7 @@ func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport,
 		return store.User{}, errors.Wrap(tx.Error, "failed to create user")
 	}
 
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
+	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(request.DaycareId))
 	if err != nil {
 		return store.User{}, err
 	}
@@ -147,7 +151,7 @@ func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTranspo
 		}
 	}
 
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri)
+	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(user.DaycareId.String))
 	if err != nil {
 		return store.User{}, err
 	}

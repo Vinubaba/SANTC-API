@@ -20,7 +20,7 @@ var (
 )
 
 type Storage interface {
-	Store(ctx context.Context, b64image string) (string, error)
+	Store(ctx context.Context, b64image string, folder string) (string, error)
 	Get(ctx context.Context, filename string) (string, error)
 	Delete(ctx context.Context, filename string) error
 }
@@ -32,7 +32,7 @@ type LocalStorage struct {
 	} `inject:""`
 }
 
-func (s *LocalStorage) Store(ctx context.Context, encodedImage, mimeType string) (string, error) {
+func (s *LocalStorage) Store(ctx context.Context, encodedImage, mimeType string, folder string) (string, error) {
 	if mimeType != jpegMimetype {
 		return "", ErrUnsupportedFileFormat
 	}
@@ -43,10 +43,14 @@ func (s *LocalStorage) Store(ctx context.Context, encodedImage, mimeType string)
 	}
 
 	id := s.StringGenerator.GenerateUuid()
+	var fileName string
+	if folder != "" {
+		fileName = path.Clean(s.Config.LocalStoragePath + "/" + folder + "/" + id + ".jpg")
+	} else {
+		fileName = path.Clean(s.Config.LocalStoragePath + "/" + id + ".jpg")
+	}
 
-	filePath := path.Clean(s.Config.LocalStoragePath + "/" + id + ".jpg")
-
-	file, err := os.Create(filePath)
+	file, err := os.Create(fileName)
 	if err != nil {
 		return "", err
 	}
@@ -58,7 +62,7 @@ func (s *LocalStorage) Store(ctx context.Context, encodedImage, mimeType string)
 	}
 	file.Sync()
 
-	return filePath, nil
+	return fileName, nil
 }
 
 func (s *LocalStorage) Get(ctx context.Context, filePath string) (string, error) {
