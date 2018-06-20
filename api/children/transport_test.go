@@ -97,6 +97,7 @@ var _ = Describe("Transport", func() {
 
 		assertJsonResponse = func(response string) {
 			It("should respond with json response", func() {
+				Expect(recorder.Header().Get("Content-Type")).To(ContainSubstring("application/json"))
 				Expect(recorder.Body.String()).To(MatchJSON(response))
 			})
 		}

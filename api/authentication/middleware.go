@@ -159,10 +159,8 @@ func (f *Authenticator) hasRole(listRoles []string, customClaim map[string]inter
 
 func (f *Authenticator) isService(r *http.Request) bool {
 	if strings.ToLower(r.Header.Get(roles.ROLE_REQUEST_HEADER)) == roles.ROLE_SERVICE {
-		f.Logger.Info(context.Background(), "r is service")
 		return true
 	}
 
-	f.Logger.Info(context.Background(), "r is not service")
 	return false
 }
