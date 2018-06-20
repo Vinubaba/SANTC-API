@@ -37,7 +37,7 @@ var _ = Describe("Transport", func() {
 		concreteStore       *store.Store
 		concreteDb          *gorm.DB
 		mockStringGenerator *MockStringGenerator
-		mockStorage         *MockGcs
+		mockStorage         = &MockGcs{}
 		mockFirebaseClient  *MockClient
 
 		authenticator *authentication.Authenticator
@@ -109,7 +109,6 @@ var _ = Describe("Transport", func() {
 		mockStringGenerator.On("GenerateUuid").Return("aaa").Once()
 		mockStringGenerator.On("GenerateUuid").Return("bbb").Once()
 
-		mockStorage = &MockGcs{}
 		mockStorage.On("Get", mock.Anything, mock.Anything).Return("gs://foo/"+mockImageUriName, nil)
 		mockStorage.On("Delete", mock.Anything, mock.Anything).Return(nil)
 
@@ -166,6 +165,7 @@ var _ = Describe("Transport", func() {
 
 	AfterEach(func() {
 		concreteDb.Close()
+		mockStorage.Reset()
 	})
 
 	BeforeEach(func() {
@@ -418,6 +418,7 @@ var _ = Describe("Transport", func() {
 
 					assertReturnedSingleClass(jsonUpdatedClass)
 					assertHttpCode(http.StatusOK)
+					mockStorage.AssertStoredImage("daycares/namek/classes")
 				})
 
 				Context("when updating age range with an existing age range", func() {
@@ -538,6 +539,7 @@ var _ = Describe("Transport", func() {
 				Context("when age range has to be created", func() {
 					assertReturnedSingleClass(jsonCreatedClass)
 					assertHttpCode(http.StatusCreated)
+					mockStorage.AssertStoredImage("daycares/peyredragon/classes")
 				})
 
 				Context("when specifying an existing age range", func() {
@@ -561,6 +563,7 @@ var _ = Describe("Transport", func() {
 						}
 					}`)
 					assertHttpCode(http.StatusCreated)
+					mockStorage.AssertStoredImage("daycares/peyredragon/classes")
 				})
 			})
 
@@ -568,6 +571,7 @@ var _ = Describe("Transport", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
 				assertReturnedSingleClass(jsonCreatedClass)
 				assertHttpCode(http.StatusCreated)
+				mockStorage.AssertStoredImage("daycares/peyredragon/classes")
 			})
 
 			Context("When user is a teacher", func() {

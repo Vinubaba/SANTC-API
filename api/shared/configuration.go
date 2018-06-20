@@ -18,7 +18,7 @@ type AppConfig struct {
 	GcpProjectID           string `split_words:"true" default:"teddy-care"`
 	LocalStoragePath       string `split_words:"true"`
 
-	BucketImagesName     string `split_words:"true" default:"teddycare-profiles"`
+	BucketName           string `split_words:"true" default:"teddycare"`
 	BucketServiceAccount string `split_words:"true" default:"C:\\Users\\arthur\\code\\kubernetes-configuration\\bucket-sa.json"`
 
 	FirebaseServiceAccount string `split_words:"true" default:"C:\\Users\\arthur\\code\\kubernetes-configuration\\firebase-sa.json"`

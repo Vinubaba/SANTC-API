@@ -20,6 +20,7 @@ var (
 
 type Client interface {
 	AddImageApprovalRequest(ctx context.Context, approval PhotoRequestTransport) error
+	GetChild(ctx context.Context, childId string) (ChildTransport, error)
 }
 
 type DefaultClient struct {
@@ -50,6 +51,24 @@ func (c *DefaultClient) AddImageApprovalRequest(ctx context.Context, approval Ph
 		return errors.Wrap(err, "failed to perform request")
 	}
 	return nil
+}
+
+func (c *DefaultClient) GetChild(ctx context.Context, childId string) (ChildTransport, error) {
+	childTransport := ChildTransport{}
+	requestUrl := url.URL{Scheme: c.protocol, Host: c.hostname, Path: "/api/v1/children/" + childId}
+	req, err := http.NewRequest(http.MethodPost, requestUrl.String(), nil)
+	if err != nil {
+		return childTransport, errors.Wrap(err, "failed to build request")
+	}
+
+	resp, err := c.performRequest(ctx, AsService(req))
+	if err != nil {
+		return childTransport, errors.Wrap(err, "failed to perform request")
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&childTransport); err != nil {
+		return childTransport, errors.Wrap(err, "failed to decode json response")
+	}
+	return childTransport, nil
 }
 
 func (c *DefaultClient) performRequest(ctx context.Context, r *http.Request) (*http.Response, error) {

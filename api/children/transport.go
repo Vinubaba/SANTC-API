@@ -9,7 +9,7 @@ import (
 	"github.com/Vinubaba/SANTC-API/api/shared"
 	"github.com/Vinubaba/SANTC-API/common/store"
 
-	"github.com/Vinubaba/SANTC-API/common/api"
+	. "github.com/Vinubaba/SANTC-API/common/api"
 	"github.com/araddon/dateparse"
 	"github.com/go-kit/kit/endpoint"
 	kithttp "github.com/go-kit/kit/transport/http"
@@ -20,35 +20,6 @@ import (
 var (
 	ErrBadRouting = errors.New("inconsistent mapping between route and handler (programmer error)")
 )
-
-type ChildTransport struct {
-	Id                  string                        `json:"id"`
-	DaycareId           string                        `json:"daycareId"`
-	ClassId             string                        `json:"classId"`
-	FirstName           string                        `json:"firstName"`
-	LastName            string                        `json:"lastName"`
-	BirthDate           string                        `json:"birthDate"` // dd/mm/yyyy
-	Gender              string                        `json:"gender"`
-	ImageUri            string                        `json:"imageUri"`
-	StartDate           string                        `json:"startDate"` // dd/mm/yyyy
-	Notes               string                        `json:"notes"`
-	Allergies           []AllergyTransport            `json:"allergies"`
-	ResponsibleId       string                        `json:"responsibleId"`
-	Relationship        string                        `json:"relationship"`
-	SpecialInstructions []SpecialInstructionTransport `json:"specialInstructions"`
-}
-
-type AllergyTransport struct {
-	Id          string `json:"id"`
-	Allergy     string `json:"allergy"`
-	Instruction string `json:"instruction"`
-}
-
-type SpecialInstructionTransport struct {
-	Id          string `json:"id"`
-	ChildId     string `json:"childId"`
-	Instruction string `json:"instruction"`
-}
 
 type HandlerFactory struct {
 	Service Service `inject:""`
@@ -171,7 +142,7 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 
 func makeAddPhotoEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(api.PhotoRequestTransport)
+		req := request.(PhotoRequestTransport)
 		if err := svc.AddPhoto(ctx, req); err != nil {
 			return nil, err
 		}
@@ -221,7 +192,7 @@ func decodePhotoRequest(_ context.Context, r *http.Request) (interface{}, error)
 		return nil, ErrBadRouting
 	}
 	// get informations from payload
-	var request api.PhotoRequestTransport
+	var request PhotoRequestTransport
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
@@ -327,7 +298,7 @@ func transportToStore(request ChildTransport, strict bool) (store.Child, error) 
 	return child, nil
 }
 
-func photoTransportToStore(request api.PhotoRequestTransport) store.ChildPhoto {
+func photoTransportToStore(request PhotoRequestTransport) store.ChildPhoto {
 	childPhoto := store.ChildPhoto{
 		ChildId:         store.DbNullString(request.ChildId),
 		ImageUri:        store.DbNullString(request.Filename),

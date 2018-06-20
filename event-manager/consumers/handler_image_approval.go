@@ -2,11 +2,13 @@ package consumers
 
 import (
 	"context"
+	"path"
 
 	"github.com/Vinubaba/SANTC-API/common/api"
 	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/Vinubaba/SANTC-API/common/storage"
 	"github.com/Vinubaba/SANTC-API/event-manager/shared"
+
 	"github.com/pkg/errors"
 )
 
@@ -39,7 +41,13 @@ func (h *ImageApprovalHandler) Handle(ctx context.Context, event Event) error {
 	if event.ImageApproval.Image == "" {
 		return errors.New("image is empty")
 	}
-	filename, err := h.Storage.Store(ctx, event.Image)
+
+	child, err := h.ApiClient.GetChild(ctx, event.ImageApproval.ChildId)
+	if err != nil {
+		return errors.Wrap(err, "failed to get child")
+	}
+
+	filename, err := h.Storage.Store(ctx, event.Image, path.Join("daycares", child.DaycareId, "children", child.Id))
 	if err != nil {
 		return errors.Wrap(err, "failed to store image")
 	}
@@ -47,7 +55,6 @@ func (h *ImageApprovalHandler) Handle(ctx context.Context, event Event) error {
 	if err := h.ApiClient.AddImageApprovalRequest(ctx, api.PhotoRequestTransport{
 		ChildId:  event.ChildId,
 		SenderId: event.SenderId,
-		Bucket:   h.Config.BucketApprovalsName,
 		Filename: filename,
 	}); err != nil {
 		return errors.Wrap(err, "failed to perform AddImageApprovalRequest")

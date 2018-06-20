@@ -32,12 +32,12 @@ var _ = Describe("Gcs", func() {
 		}
 		config = &shared.AppConfig{
 			BucketServiceAccount: bucketSa,
-			BucketImagesName:     "teddycare-profiles",
+			BucketName:           "teddycare",
 		}
 		var err error
 		storage, err = New(ctx, Options{
 			CredentialsFile: bucketSa,
-			BucketName:      "teddycare-profiles",
+			BucketName:      "teddycare",
 		})
 		if err != nil {
 			panic(err)
@@ -62,7 +62,7 @@ var _ = Describe("Gcs", func() {
 			// First store
 			image, _ = ioutil.ReadFile("test_data/DSCF6458.JPG")
 			encodedImage = b64.RawStdEncoding.EncodeToString(image)
-			fileName, storeError = storage.Store(ctx, "data:image/jpeg;base64,"+encodedImage)
+			fileName, storeError = storage.Store(ctx, "data:image/jpeg;base64,"+encodedImage, "")
 
 			// Then get
 			uri, getError = storage.Get(ctx, fileName)

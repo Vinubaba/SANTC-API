@@ -22,7 +22,7 @@ type AppConfig struct {
 	GcpSubscription string `split_words:"true" default:"events"`
 	GcpTopic        string `split_words:"true" default:"events"`
 
-	BucketApprovalsName string `split_words:"true" default:"teddycare-approvals"`
+	BucketName string `split_words:"true" default:"teddycare"`
 
 	ServiceAccount string `split_words:"true" default:"C:\\Users\\arthur\\code\\kubernetes-configuration\\event-manager-sa.json"`
 
