@@ -2,7 +2,7 @@ package users
 
 import (
 	"context"
-	"strings"
+	"path"
 
 	"github.com/Vinubaba/SANTC-API/api/shared"
 	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
@@ -12,7 +12,6 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
-	"path"
 )
 
 var (
@@ -153,14 +152,12 @@ func (c *UserService) setBucketUri(ctx context.Context, user *store.User) {
 	if user.ImageUri.String == "" {
 		return
 	}
-	if !strings.Contains(user.ImageUri.String, "/") {
-		uri, err := c.Storage.Get(ctx, user.ImageUri.String)
-		if err != nil {
-			c.Logger.Warn(ctx, "failed to generate image uri", "err", err.Error())
-			user.ImageUri.Scan("")
-		}
-		user.ImageUri.Scan(uri)
+	uri, err := c.Storage.Get(ctx, user.ImageUri.String)
+	if err != nil {
+		c.Logger.Warn(ctx, "failed to generate image uri", "err", err.Error())
+		user.ImageUri.Scan("")
 	}
+	user.ImageUri.Scan(uri)
 }
 
 func (c *UserService) GetUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {

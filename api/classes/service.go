@@ -111,12 +111,7 @@ func (c *ClassService) GetClass(ctx context.Context, request ClassTransport) (st
 	if err != nil {
 		return class, errors.Wrap(err, "failed to get class")
 	}
-	uri, err := c.Storage.Get(ctx, class.ImageUri.String)
-	if err != nil {
-		return store.Class{}, errors.Wrap(err, "failed to generate image uri")
-	}
-	class.ImageUri = store.DbNullString(uri)
-
+	c.setBucketUri(ctx, &class)
 	return class, nil
 }
 
@@ -136,6 +131,17 @@ func (c *ClassService) DeleteClass(ctx context.Context, request ClassTransport) 
 	}
 
 	return nil
+}
+
+func (c *ClassService) setBucketUri(ctx context.Context, class *store.Class) {
+	if class.ImageUri.String == "" {
+		return
+	}
+	uri, err := c.Storage.Get(ctx, class.ImageUri.String)
+	if err != nil {
+		c.Logger.Warn(ctx, "failed to generate image uri", "imageUri", class.ImageUri, "err", err.Error())
+	}
+	class.ImageUri = store.DbNullString(uri)
 }
 
 func (c *ClassService) ListClasses(ctx context.Context) ([]store.Class, error) {
@@ -185,12 +191,7 @@ func (c *ClassService) UpdateClass(ctx context.Context, request ClassTransport) 
 	if err != nil {
 		return class, errors.Wrap(err, "failed to update class")
 	}
-
-	uri, err := c.Storage.Get(ctx, request.ImageUri)
-	if err != nil {
-		return store.Class{}, errors.Wrap(err, "failed to generate image uri")
-	}
-	class.ImageUri = store.DbNullString(uri)
+	c.setBucketUri(ctx, &class)
 	return class, nil
 }
 

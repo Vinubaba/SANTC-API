@@ -218,13 +218,11 @@ func (c *ChildService) setBucketUri(ctx context.Context, child *store.Child) {
 	if child.ImageUri.String == "" {
 		return
 	}
-	if !strings.Contains(child.ImageUri.String, "/") {
-		uri, err := c.Storage.Get(ctx, child.ImageUri.String)
-		if err != nil {
-			c.Logger.Warn(ctx, "failed to generate image uri", "imageUri", child.ImageUri, "err", err.Error())
-		}
-		child.ImageUri = store.DbNullString(uri)
+	uri, err := c.Storage.Get(ctx, child.ImageUri.String)
+	if err != nil {
+		c.Logger.Warn(ctx, "failed to generate image uri", "imageUri", child.ImageUri, "err", err.Error())
 	}
+	child.ImageUri = store.DbNullString(uri)
 }
 
 func (c *ChildService) AddPhoto(ctx context.Context, request PhotoRequestTransport) error {
