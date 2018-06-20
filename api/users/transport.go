@@ -20,20 +20,26 @@ var (
 )
 
 type UserTransport struct {
-	Id        string   `json:"id"`
-	FirstName string   `json:"firstName"`
-	LastName  string   `json:"lastName"`
-	Gender    string   `json:"gender"`
-	Email     string   `json:"email"`
-	Phone     string   `json:"phone"`
-	Address_1 string   `json:"address_1"`
-	Address_2 string   `json:"address_2"`
-	City      string   `json:"city"`
-	State     string   `json:"state"`
-	Zip       string   `json:"zip"`
-	ImageUri  string   `json:"imageUri"`
-	Roles     []string `json:"roles"`
-	DaycareId string   `json:"daycareId"`
+	Id            string   `json:"id"`
+	FirstName     string   `json:"firstName"`
+	LastName      string   `json:"lastName"`
+	Gender        string   `json:"gender"`
+	Email         string   `json:"email"`
+	Phone         string   `json:"phone"`
+	Address_1     string   `json:"address_1"`
+	Address_2     string   `json:"address_2"`
+	City          string   `json:"city"`
+	State         string   `json:"state"`
+	Zip           string   `json:"zip"`
+	ImageUri      string   `json:"imageUri"`
+	Roles         []string `json:"roles"`
+	DaycareId     string   `json:"daycareId"`
+	WorkAddress_1 string   `json:"workAddress_1"`
+	WorkAddress_2 string   `json:"workAddress_2"`
+	WorkCity      string   `json:"workCity"`
+	WorkState     string   `json:"workState"`
+	WorkZip       string   `json:"workZip"`
+	WorkPhone     string   `json:"workPhone"`
 }
 
 type TeacherClassTransport struct {
@@ -206,22 +212,7 @@ func makeAddEndpoint(svc Service, role string) endpoint.Endpoint {
 			return nil, err
 		}
 
-		return UserTransport{
-			Id:        createdUser.UserId.String,
-			FirstName: createdUser.FirstName.String,
-			LastName:  createdUser.LastName.String,
-			Email:     createdUser.Email.String,
-			Gender:    createdUser.Gender.String,
-			Address_1: createdUser.Address_1.String,
-			Address_2: createdUser.Address_2.String,
-			City:      createdUser.City.String,
-			Phone:     createdUser.Phone.String,
-			State:     createdUser.State.String,
-			Zip:       createdUser.Zip.String,
-			ImageUri:  createdUser.ImageUri.String,
-			Roles:     createdUser.Roles.ToList(),
-			DaycareId: createdUser.DaycareId.String,
-		}, nil
+		return dbToTransport(createdUser), nil
 	}
 }
 
@@ -234,22 +225,7 @@ func makeUpdateEndpoint(svc Service, role string) endpoint.Endpoint {
 			return nil, err
 		}
 
-		return UserTransport{
-			Id:        user.UserId.String,
-			FirstName: user.FirstName.String,
-			LastName:  user.LastName.String,
-			Email:     user.Email.String,
-			Gender:    user.Gender.String,
-			Address_1: user.Address_1.String,
-			Address_2: user.Address_2.String,
-			City:      user.City.String,
-			Phone:     user.Phone.String,
-			State:     user.State.String,
-			Zip:       user.Zip.String,
-			ImageUri:  user.ImageUri.String,
-			Roles:     user.Roles.ToList(),
-			DaycareId: user.DaycareId.String,
-		}, nil
+		return dbToTransport(user), nil
 	}
 }
 
@@ -274,22 +250,7 @@ func makeGetEndpoint(svc Service, role string) endpoint.Endpoint {
 			return nil, err
 		}
 
-		return UserTransport{
-			Id:        user.UserId.String,
-			FirstName: user.FirstName.String,
-			LastName:  user.LastName.String,
-			Email:     user.Email.String,
-			Gender:    user.Gender.String,
-			Address_1: user.Address_1.String,
-			Address_2: user.Address_2.String,
-			City:      user.City.String,
-			Phone:     user.Phone.String,
-			State:     user.State.String,
-			Zip:       user.Zip.String,
-			ImageUri:  user.ImageUri.String,
-			Roles:     user.Roles.ToList(),
-			DaycareId: user.DaycareId.String,
-		}, nil
+		return dbToTransport(user), nil
 	}
 }
 
@@ -308,22 +269,7 @@ func makeMeEndpoint(svc Service) endpoint.Endpoint {
 			return nil, err
 		}
 
-		return UserTransport{
-			Id:        user.UserId.String,
-			FirstName: user.FirstName.String,
-			LastName:  user.LastName.String,
-			Email:     user.Email.String,
-			Gender:    user.Gender.String,
-			Address_1: user.Address_1.String,
-			Address_2: user.Address_2.String,
-			City:      user.City.String,
-			Phone:     user.Phone.String,
-			State:     user.State.String,
-			Zip:       user.Zip.String,
-			ImageUri:  user.ImageUri.String,
-			Roles:     user.Roles.ToList(),
-			DaycareId: user.DaycareId.String,
-		}, nil
+		return dbToTransport(user), nil
 	}
 }
 
@@ -336,22 +282,7 @@ func makeListEndpoint(svc Service, roleConstraint string) endpoint.Endpoint {
 
 		allUsers := []UserTransport{}
 		for _, user := range users {
-			allUsers = append(allUsers, UserTransport{
-				Id:        user.UserId.String,
-				Gender:    user.Gender.String,
-				LastName:  user.LastName.String,
-				FirstName: user.FirstName.String,
-				Email:     user.Email.String,
-				ImageUri:  user.ImageUri.String,
-				Phone:     user.Phone.String,
-				Zip:       user.Zip.String,
-				State:     user.State.String,
-				City:      user.City.String,
-				Address_1: user.Address_1.String,
-				Address_2: user.Address_2.String,
-				Roles:     user.Roles.ToList(),
-				DaycareId: user.DaycareId.String,
-			})
+			allUsers = append(allUsers, dbToTransport(user))
 		}
 		return allUsers, nil
 	}
@@ -436,4 +367,29 @@ func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"error": err.Error(),
 	})
+}
+
+func dbToTransport(user store.User) UserTransport {
+	return UserTransport{
+		Id:            user.UserId.String,
+		FirstName:     user.FirstName.String,
+		LastName:      user.LastName.String,
+		Email:         user.Email.String,
+		Gender:        user.Gender.String,
+		Address_1:     user.Address_1.String,
+		Address_2:     user.Address_2.String,
+		City:          user.City.String,
+		Phone:         user.Phone.String,
+		State:         user.State.String,
+		Zip:           user.Zip.String,
+		ImageUri:      user.ImageUri.String,
+		Roles:         user.Roles.ToList(),
+		DaycareId:     user.DaycareId.String,
+		WorkAddress_1: user.WorkAddress_1.String,
+		WorkAddress_2: user.WorkAddress_2.String,
+		WorkCity:      user.WorkCity.String,
+		WorkState:     user.WorkState.String,
+		WorkZip:       user.WorkZip.String,
+		WorkPhone:     user.WorkPhone.String,
+	}
 }

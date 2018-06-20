@@ -19,7 +19,6 @@ var (
 	ErrInvalidEmail           = errors.New("invalid email")
 	ErrInvalidPasswordFormat  = errors.New("password must be at least 6 characters long")
 	ErrCreateDifferentDaycare = errors.New("cannot create user for another daycare")
-	ErrUserNotOfficeManager   = errors.New("you must be an office manager to perform this operation")
 )
 
 type Service interface {
@@ -98,21 +97,7 @@ func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport,
 		request.DaycareId = c.Config.PublicDaycareId
 	}
 
-	createdUser, err := c.Store.AddUser(tx, store.User{
-		Email:     store.DbNullString(request.Email),
-		FirstName: store.DbNullString(request.FirstName),
-		LastName:  store.DbNullString(request.LastName),
-		Gender:    store.DbNullString(request.Gender),
-		Zip:       store.DbNullString(request.Zip),
-		State:     store.DbNullString(request.State),
-		Phone:     store.DbNullString(request.Phone),
-		City:      store.DbNullString(request.City),
-		Address_1: store.DbNullString(request.Address_1),
-		Address_2: store.DbNullString(request.Address_2),
-		UserId:    store.DbNullString(request.Id),
-		ImageUri:  store.DbNullString(request.ImageUri),
-		DaycareId: store.DbNullString(request.DaycareId),
-	})
+	createdUser, err := c.Store.AddUser(tx, transportToDb(request))
 	if err != nil {
 		tx.Rollback()
 		return store.User{}, errors.Wrap(err, "failed to create user")
@@ -155,21 +140,7 @@ func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTranspo
 	if err != nil {
 		return store.User{}, err
 	}
-	user, err = c.Store.UpdateUser(nil, store.User{
-		UserId:    store.DbNullString(request.Id),
-		Email:     store.DbNullString(request.Email),
-		Address_1: store.DbNullString(request.Address_1),
-		Address_2: store.DbNullString(request.Address_2),
-		City:      store.DbNullString(request.City),
-		State:     store.DbNullString(request.State),
-		Zip:       store.DbNullString(request.Zip),
-		Phone:     store.DbNullString(request.Phone),
-		Gender:    store.DbNullString(request.Gender),
-		LastName:  store.DbNullString(request.LastName),
-		FirstName: store.DbNullString(request.FirstName),
-		ImageUri:  store.DbNullString(request.ImageUri),
-		DaycareId: store.DbNullString(request.DaycareId),
-	})
+	user, err = c.Store.UpdateUser(nil, transportToDb(request))
 	if err != nil {
 		return store.User{}, err
 	}
@@ -295,3 +266,27 @@ func (c *UserService) SetTeacherClass(ctx context.Context, teacherId, classId st
 
 // ServiceMiddleware is a chainable behavior modifier for adultResponsibleService.
 type ServiceMiddleware func(UserService) UserService
+
+func transportToDb(user UserTransport) store.User {
+	return store.User{
+		UserId:        store.DbNullString(user.Id),
+		Email:         store.DbNullString(user.Email),
+		Address_1:     store.DbNullString(user.Address_1),
+		Address_2:     store.DbNullString(user.Address_2),
+		City:          store.DbNullString(user.City),
+		State:         store.DbNullString(user.State),
+		Zip:           store.DbNullString(user.Zip),
+		Phone:         store.DbNullString(user.Phone),
+		Gender:        store.DbNullString(user.Gender),
+		LastName:      store.DbNullString(user.LastName),
+		FirstName:     store.DbNullString(user.FirstName),
+		ImageUri:      store.DbNullString(user.ImageUri),
+		DaycareId:     store.DbNullString(user.DaycareId),
+		WorkAddress_1: store.DbNullString(user.WorkAddress_1),
+		WorkAddress_2: store.DbNullString(user.WorkAddress_2),
+		WorkCity:      store.DbNullString(user.WorkCity),
+		WorkState:     store.DbNullString(user.WorkState),
+		WorkZip:       store.DbNullString(user.WorkZip),
+		WorkPhone:     store.DbNullString(user.WorkPhone),
+	}
+}

@@ -960,6 +960,18 @@ definitions:
       imageUri:
         type: "string"
         format: "base64"
+      workAddress_1:
+        type: "string"
+      workAddress_2:
+        type: "string"
+      workCity:
+        type: "string"
+      workState:
+        type: "string"
+      workZip:
+        type: "string"
+      workPhone:
+        type: "string"
       roles:
         type: "array"
         items:
