@@ -56,7 +56,7 @@ func (c *DefaultClient) AddImageApprovalRequest(ctx context.Context, approval Ph
 func (c *DefaultClient) GetChild(ctx context.Context, childId string) (ChildTransport, error) {
 	childTransport := ChildTransport{}
 	requestUrl := url.URL{Scheme: c.protocol, Host: c.hostname, Path: "/api/v1/children/" + childId}
-	req, err := http.NewRequest(http.MethodPost, requestUrl.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, requestUrl.String(), nil)
 	if err != nil {
 		return childTransport, errors.Wrap(err, "failed to build request")
 	}
