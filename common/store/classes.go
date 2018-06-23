@@ -34,7 +34,7 @@ func (s *Store) AddClass(tx *gorm.DB, class Class) (Class, error) {
 		class.AgeRangeId = ageRange.AgeRangeId
 	}
 
-	class.ClassId = DbNullString(s.StringGenerator.GenerateUuid())
+	class.ClassId = s.newId()
 	if err := db.Create(&class).Error; err != nil {
 		if strings.Contains(err.Error(), "duplicate key value violates unique constraint \"classes_name_key\"") {
 			return Class{}, ErrClassNameAlreadyExists

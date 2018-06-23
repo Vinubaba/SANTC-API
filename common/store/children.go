@@ -17,6 +17,7 @@ type Child struct {
 	ChildId             sql.NullString
 	DaycareId           sql.NullString
 	ClassId             sql.NullString
+	ScheduleId          sql.NullString
 	FirstName           sql.NullString
 	LastName            sql.NullString
 	BirthDate           time.Time
@@ -28,12 +29,20 @@ type Child struct {
 	Allergies           Allergies           `sql:"-"`
 	ResponsibleId       sql.NullString      `sql:"-"`
 	Relationship        sql.NullString      `sql:"-"`
+	Schedule            Schedule            `sql:"-"`
 }
 
 func (s *Store) AddChild(tx *gorm.DB, child Child) (Child, error) {
 	db := s.dbOrTx(tx)
 
-	child.ChildId = DbNullString(s.StringGenerator.GenerateUuid())
+	schedule, err := s.AddSchedule(db, child.Schedule)
+	if err != nil {
+		return Child{}, err
+	}
+	child.ScheduleId = schedule.ScheduleId
+	child.Schedule = schedule
+
+	child.ChildId = s.newId()
 	if err := db.Create(&child).Error; err != nil {
 		return Child{}, err
 	}
@@ -92,6 +101,7 @@ func (s *Store) baseChildQuery(tx *gorm.DB) *gorm.DB {
 		"children.child_id," +
 			"children.daycare_id," +
 			"children.class_id," +
+			"children.schedule_id," +
 			"children.first_name," +
 			"children.last_name," +
 			"children.gender," +
@@ -107,10 +117,27 @@ func (s *Store) baseChildQuery(tx *gorm.DB) *gorm.DB {
 			"responsible_of.relationship," +
 			"special_instructions.special_instruction_id," +
 			"special_instructions.child_id," +
-			"special_instructions.instruction")
+			"special_instructions.instruction," +
+			"schedules.schedule_id," +
+			"schedules.walk_in," +
+			"schedules.monday_start," +
+			"schedules.monday_end," +
+			"schedules.tuesday_start," +
+			"schedules.tuesday_end," +
+			"schedules.wednesday_start," +
+			"schedules.wednesday_end," +
+			"schedules.thursday_start," +
+			"schedules.thursday_end," +
+			"schedules.friday_start," +
+			"schedules.friday_end," +
+			"schedules.saturday_start," +
+			"schedules.saturday_end," +
+			"schedules.sunday_start," +
+			"schedules.sunday_end")
 	query = query.Joins("left join allergies ON allergies.child_id = children.child_id")
 	query = query.Joins("left join special_instructions ON special_instructions.child_id = children.child_id")
 	query = query.Joins("left join responsible_of ON responsible_of.child_id = children.child_id")
+	query = query.Joins("left join schedules ON schedules.schedule_id = children.schedule_id")
 	return query
 }
 
@@ -142,14 +169,16 @@ func (s *Store) GetChild(tx *gorm.DB, childId string, options SearchOptions) (Ch
 }
 
 func (s *Store) scanChildRows(rows *sql.Rows) ([]Child, error) {
-	children := []Child{}
+	children := make([]Child, 0)
 	for rows.Next() {
 		currentChild := Child{}
 		allergy := Allergy{}
 		specialInstruction := SpecialInstruction{}
+		schedule := Schedule{}
 		if err := rows.Scan(&currentChild.ChildId,
 			&currentChild.DaycareId,
 			&currentChild.ClassId,
+			&currentChild.ScheduleId,
 			&currentChild.FirstName,
 			&currentChild.LastName,
 			&currentChild.Gender,
@@ -165,7 +194,24 @@ func (s *Store) scanChildRows(rows *sql.Rows) ([]Child, error) {
 			&currentChild.Relationship,
 			&specialInstruction.SpecialInstructionId,
 			&specialInstruction.ChildId,
-			&specialInstruction.Instruction); err != nil {
+			&specialInstruction.Instruction,
+			&schedule.ScheduleId,
+			&schedule.WalkIn,
+			&schedule.MondayStart,
+			&schedule.MondayEnd,
+			&schedule.TuesdayStart,
+			&schedule.TuesdayEnd,
+			&schedule.WednesdayStart,
+			&schedule.WednesdayEnd,
+			&schedule.ThursdayStart,
+			&schedule.ThursdayEnd,
+			&schedule.FridayStart,
+			&schedule.FridayEnd,
+			&schedule.SaturdayStart,
+			&schedule.SaturdayEnd,
+			&schedule.SundayStart,
+			&schedule.SundayEnd,
+		); err != nil {
 			return []Child{}, err
 		}
 		if s.childAlreadyScanned(children, currentChild) {
@@ -178,6 +224,7 @@ func (s *Store) scanChildRows(rows *sql.Rows) ([]Child, error) {
 		} else {
 			currentChild.Allergies.add(allergy)
 			currentChild.SpecialInstructions.add(specialInstruction)
+			currentChild.Schedule = schedule
 			children = append(children, currentChild)
 		}
 	}

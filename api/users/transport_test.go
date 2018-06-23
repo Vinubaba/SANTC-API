@@ -67,7 +67,7 @@ var _ = Describe("Transport", func() {
 
 				returnedId := func(id string, response []UserTransport) bool {
 					for _, r := range response {
-						if r.Id == id {
+						if *r.Id == id {
 							return true
 						}
 					}
@@ -251,13 +251,13 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"],"daycareId":"peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"id":"id5","scheduleId": "","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"],"daycareId":"peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"],"daycareId":"peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"id":"id5","scheduleId": "","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"],"daycareId":"peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -355,14 +355,14 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"daycareId":"peyredragon","id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","daycareId":"peyredragon","id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusOK)
 				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"daycareId":"peyredragon","id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","daycareId":"peyredragon","id":"id5","firstName":"Sansa","lastName":"Stark","gender":"F","email":"sansa.stark@got.com","phone":"+3365651","address_1": "8 RUE PIERRE DELDI", "address_2": "VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["adult"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusOK)
 				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
@@ -430,14 +430,14 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"daycareId":"peyredragon","id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"], "daycareId": "peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","daycareId":"peyredragon","id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"], "daycareId": "peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusCreated)
 				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"daycareId":"peyredragon","id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"], "daycareId": "peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","daycareId":"peyredragon","id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["adult"], "daycareId": "peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusCreated)
 				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
@@ -549,7 +549,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"daycareId":"peyredragon","id":"id2","firstName":"John","lastName":"Snow","gender":"M","email":"john.snow@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["officemanager"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","daycareId":"peyredragon","id":"id2","firstName":"John","lastName":"Snow","gender":"M","email":"john.snow@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["officemanager"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -653,7 +653,7 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"daycareId": "peyredragon", "id": "id2","firstName": "John","lastName": "Snow","gender": "M","email": "john.snow@got.com","phone": "+3365651","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "Peyredragon","state": "WESTEROS","zip": "31400","imageUri": "gs://foo/bar.jpg","roles": ["officemanager"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","daycareId": "peyredragon", "id": "id2","firstName": "John","lastName": "Snow","gender": "M","email": "john.snow@got.com","phone": "+3365651","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "Peyredragon","state": "WESTEROS","zip": "31400","imageUri": "gs://foo/bar.jpg","roles": ["officemanager"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusOK)
 				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
@@ -755,13 +755,13 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"address","address_2":"floor","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusOK)
 			})
 
@@ -859,14 +859,14 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusOK)
 				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","daycareId": "peyredragon","id":"id4","firstName":"Caitlyn","lastName":"Stark","gender":"F","email":"caitlyn.stark@got.com","phone":"+3365651","address_1":"8 RUE PIERRE DELDI","address_2":"VILLA 13","city":"Peyredragon","state":"WESTEROS","zip":"31400","imageUri":"gs://foo/bar.jpg","roles":["teacher"],"workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusOK)
 				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
@@ -934,14 +934,14 @@ var _ = Describe("Transport", func() {
 
 			Context("When user is an admin", func() {
 				BeforeEach(func() { claims[roles.ROLE_ADMIN] = true })
-				assertReturnedSingleUser(`{"id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["teacher"], "daycareId": "peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["teacher"], "daycareId": "peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusCreated)
 				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})
 
 			Context("When user is an office manager", func() {
 				BeforeEach(func() { claims[roles.ROLE_OFFICE_MANAGER] = true })
-				assertReturnedSingleUser(`{"id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["teacher"], "daycareId": "peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
+				assertReturnedSingleUser(`{"scheduleId": "","id": "aaa","firstName": "Elaria","lastName": "Sand","gender": "M","email": "saint.sulp.la.pointe@gmail.com","phone": "0633326825","address_1": "8 RUE PIERRE DELDI","address_2": "VILLA 13","city": "TOULOUSE","state": "France","zip": "31100","imageUri": "gs://foo/bar.jpg","roles": ["teacher"], "daycareId": "peyredragon","workAddress_1": "work_address_1","workAddress_2": "work_address_2","workCity": "work_city","workState": "work_state","workZip": "work_zip","workPhone": "work_phone"}`)
 				assertHttpCode(http.StatusCreated)
 				mockStorage.AssertStoredImage("daycares/peyredragon/users")
 			})

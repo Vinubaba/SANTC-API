@@ -63,7 +63,7 @@ var _ = Describe("Transport", func() {
 
 				returnedId := func(id string, response []DaycareTransport) bool {
 					for _, r := range response {
-						if r.Id == id {
+						if *r.Id == id {
 							return true
 						}
 					}

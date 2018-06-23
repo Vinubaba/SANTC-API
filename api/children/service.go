@@ -2,7 +2,7 @@ package children
 
 import (
 	"context"
-	"strings"
+	"path"
 
 	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
 	"github.com/Vinubaba/SANTC-API/common/storage"
@@ -10,15 +10,15 @@ import (
 
 	. "github.com/Vinubaba/SANTC-API/common/api"
 	"github.com/Vinubaba/SANTC-API/common/log"
+	"github.com/araddon/dateparse"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
-	"path"
+	"time"
 )
 
 var (
 	ErrNoParent         = errors.New("responsibleId is mandatory")
 	ErrEmptyChild       = errors.New("childId cannot be empty")
-	ErrInvalidImage     = errors.New("for now, only jpeg is supported. the image must have the following pattern: 'data:image/jpeg;base64,[big 64encoded image string]'")
 	ErrDifferentDaycare = errors.New("child does not belong to this daycare")
 	ErrUpdateDaycare    = errors.New("you can't update a child daycare")
 )
@@ -52,27 +52,30 @@ type ChildService struct {
 }
 
 func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (store.Child, error) {
-	if request.ResponsibleId == "" {
+	if IsNilOrEmpty(request.ResponsibleId) {
 		return store.Child{}, ErrNoParent
 	}
 
-	if claims.IsAdmin(ctx) && request.DaycareId == "" {
+	if claims.IsAdmin(ctx) && IsNilOrEmpty(request.DaycareId) {
 		return store.Child{}, errors.New("as an admin, you must specify the user daycare")
 	} else {
 		// default to requester daycare (e.g office manager)
-		if request.DaycareId == "" {
-			request.DaycareId = claims.GetDaycareId(ctx)
+		daycareId := claims.GetDaycareId(ctx)
+		if IsNilOrEmpty(request.DaycareId) {
+			request.DaycareId = &daycareId
 		}
 
-		if claims.GetDaycareId(ctx) != request.DaycareId {
+		if daycareId != *request.DaycareId {
 			return store.Child{}, ErrDifferentDaycare
 		}
 	}
 
-	var err error
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(request.DaycareId))
-	if err != nil {
-		return store.Child{}, errors.Wrap(err, "failed to store image")
+	if !IsNilOrEmpty(request.ImageUri) {
+		imageUri, err := c.Storage.Store(ctx, *request.ImageUri, c.storageFolder(*request.DaycareId))
+		if err != nil {
+			return store.Child{}, errors.Wrap(err, "failed to store image")
+		}
+		request.ImageUri = &imageUri
 	}
 
 	tx := c.Store.Tx()
@@ -100,28 +103,23 @@ func (c *ChildService) AddChild(ctx context.Context, request ChildTransport) (st
 		return store.Child{}, errors.Wrap(err, "failed to add child")
 	}
 
-	uri, err := c.Storage.Get(ctx, request.ImageUri)
+	uri, err := c.Storage.Get(ctx, *request.ImageUri)
 	if err != nil {
 		tx.Rollback()
 		return store.Child{}, errors.Wrap(err, "failed to generate image uri")
 	}
-	child.ImageUri = store.DbNullString(uri)
+	child.ImageUri = store.DbNullString(&uri)
 
 	tx.Commit()
 	return child, nil
 }
-func (c *ChildService) validate64EncodedPhoto(photo string) (encoded, mimeType string, err error) {
-	if strings.HasPrefix(photo, "data:image/jpeg;base64,") {
-		mimeType = "image/jpeg"
-		encoded = strings.TrimPrefix(photo, "data:image/jpeg;base64,")
-	} else {
-		err = ErrInvalidImage
-	}
-	return
-}
 
 func (c *ChildService) GetChild(ctx context.Context, request ChildTransport) (store.Child, error) {
-	child, err := c.Store.GetChild(nil, request.Id, claims.GetDefaultSearchOptions(ctx))
+	if IsNilOrEmpty(request.Id) {
+		return store.Child{}, ErrEmptyChild
+	}
+
+	child, err := c.Store.GetChild(nil, *request.Id, claims.GetDefaultSearchOptions(ctx))
 	if err != nil {
 		return child, errors.Wrap(err, "failed to get child")
 	}
@@ -130,18 +128,21 @@ func (c *ChildService) GetChild(ctx context.Context, request ChildTransport) (st
 	if err != nil {
 		return store.Child{}, errors.Wrap(err, "failed to generate image uri")
 	}
-	child.ImageUri = store.DbNullString(uri)
+	child.ImageUri = store.DbNullString(&uri)
 
 	return child, nil
 }
 
 func (c *ChildService) DeleteChild(ctx context.Context, request ChildTransport) error {
-	child, err := c.Store.GetChild(nil, request.Id, claims.GetDefaultSearchOptions(ctx))
+	if IsNilOrEmpty(request.Id) {
+		return ErrEmptyChild
+	}
+	child, err := c.Store.GetChild(nil, *request.Id, claims.GetDefaultSearchOptions(ctx))
 	if err != nil {
 		return errors.Wrap(err, "failed to delete child")
 	}
 
-	if err := c.Store.DeleteChild(nil, request.Id); err != nil {
+	if err := c.Store.DeleteChild(nil, *request.Id); err != nil {
 		return errors.Wrap(err, "failed to delete child")
 	}
 
@@ -164,7 +165,7 @@ func (c *ChildService) ListChildren(ctx context.Context) ([]store.Child, error) 
 			return []store.Child{}, errors.Wrap(err, "failed to generate image uri")
 		}
 		// When adding a child, the json response will contains a temporary uri, so the frontend can do whatever it wants with it
-		children[i].ImageUri = store.DbNullString(uri)
+		children[i].ImageUri = store.DbNullString(&uri)
 	}
 
 	return children, nil
@@ -175,25 +176,26 @@ func (c *ChildService) storageFolder(daycareId string) string {
 }
 
 func (c *ChildService) UpdateChild(ctx context.Context, request ChildTransport) (store.Child, error) {
-	var err error
-
-	if request.Id == "" {
+	if IsNilOrEmpty(request.Id) {
 		return store.Child{}, ErrEmptyChild
 	}
 
-	child, err := c.Store.GetChild(nil, request.Id, claims.GetDefaultSearchOptions(ctx))
+	child, err := c.Store.GetChild(nil, *request.Id, claims.GetDefaultSearchOptions(ctx))
 	if err != nil {
 		return store.Child{}, errors.Wrap(err, "failed to update child")
 	}
 
 	// User cannot update child daycare for the moment
-	if request.DaycareId != "" && child.DaycareId.String != request.DaycareId {
+	if !IsNilOrEmpty(request.DaycareId) && child.DaycareId.String != *request.DaycareId {
 		return store.Child{}, ErrUpdateDaycare
 	}
 
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(child.DaycareId.String))
-	if err != nil {
-		return store.Child{}, errors.Wrap(err, "failed to store image")
+	if !IsNilOrEmpty(request.ImageUri) {
+		imageUri, err := c.Storage.Store(ctx, *request.ImageUri, c.storageFolder(child.DaycareId.String))
+		if err != nil {
+			return store.Child{}, errors.Wrap(err, "failed to store image")
+		}
+		request.ImageUri = &imageUri
 	}
 
 	childToUpdate, err := transportToStore(request, false)
@@ -222,7 +224,7 @@ func (c *ChildService) setBucketUri(ctx context.Context, child *store.Child) {
 	if err != nil {
 		c.Logger.Warn(ctx, "failed to generate image uri", "imageUri", child.ImageUri, "err", err.Error())
 	}
-	child.ImageUri = store.DbNullString(uri)
+	child.ImageUri = store.DbNullString(&uri)
 }
 
 func (c *ChildService) AddPhoto(ctx context.Context, request PhotoRequestTransport) error {
@@ -231,7 +233,7 @@ func (c *ChildService) AddPhoto(ctx context.Context, request PhotoRequestTranspo
 		return err
 	}
 
-	requesterUser, err := c.Store.GetUser(nil, request.SenderId, store.SearchOptions{})
+	requesterUser, err := c.Store.GetUser(nil, *request.SenderId, store.SearchOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to get user")
 	}
@@ -245,6 +247,80 @@ func (c *ChildService) AddPhoto(ctx context.Context, request PhotoRequestTranspo
 	}
 
 	return nil
+}
+
+func transportToStore(request ChildTransport, strict bool) (store.Child, error) {
+	var birthDate, startDate time.Time
+	var err error
+
+	// In case of AddChild, dates are mandatory while in case of update they are not
+	if strict || (!strict && !IsNilOrEmpty(request.BirthDate)) {
+		birthDate, err = dateparse.ParseIn(*request.BirthDate, time.UTC)
+		if err != nil {
+			return store.Child{}, err
+		}
+	}
+
+	if strict || (!strict && !IsNilOrEmpty(request.StartDate)) {
+		startDate, err = dateparse.ParseIn(*request.StartDate, time.UTC)
+		if err != nil {
+			return store.Child{}, err
+		}
+	}
+
+	child := store.Child{
+		ChildId:       store.DbNullString(request.Id),
+		DaycareId:     store.DbNullString(request.DaycareId),
+		ClassId:       store.DbNullString(request.ClassId),
+		ScheduleId:    store.DbNullString(request.Schedule.Id),
+		BirthDate:     birthDate,
+		FirstName:     store.DbNullString(request.FirstName),
+		LastName:      store.DbNullString(request.LastName),
+		Gender:        store.DbNullString(request.Gender),
+		ImageUri:      store.DbNullString(request.ImageUri),
+		Notes:         store.DbNullString(request.Notes),
+		StartDate:     startDate,
+		ResponsibleId: store.DbNullString(request.ResponsibleId),
+		Relationship:  store.DbNullString(request.Relationship),
+		Schedule: store.Schedule{
+			ScheduleId:     store.DbNullString(request.Schedule.Id),
+			WalkIn:         store.DbNullBool(request.Schedule.WalkIn),
+			MondayStart:    store.DbNullString(request.Schedule.MondayStart),
+			MondayEnd:      store.DbNullString(request.Schedule.MondayEnd),
+			TuesdayStart:   store.DbNullString(request.Schedule.TuesdayStart),
+			TuesdayEnd:     store.DbNullString(request.Schedule.TuesdayEnd),
+			WednesdayStart: store.DbNullString(request.Schedule.WednesdayStart),
+			WednesdayEnd:   store.DbNullString(request.Schedule.WednesdayEnd),
+			ThursdayStart:  store.DbNullString(request.Schedule.ThursdayStart),
+			ThursdayEnd:    store.DbNullString(request.Schedule.ThursdayEnd),
+			FridayStart:    store.DbNullString(request.Schedule.FridayStart),
+			FridayEnd:      store.DbNullString(request.Schedule.FridayEnd),
+			SaturdayStart:  store.DbNullString(request.Schedule.SaturdayStart),
+			SaturdayEnd:    store.DbNullString(request.Schedule.SaturdayEnd),
+			SundayStart:    store.DbNullString(request.Schedule.SundayStart),
+			SundayEnd:      store.DbNullString(request.Schedule.SundayEnd),
+		},
+	}
+	for _, specialInstruction := range request.SpecialInstructions {
+		instructionToCreate := store.SpecialInstruction{Instruction: store.DbNullString(specialInstruction.Instruction)}
+		child.SpecialInstructions = append(child.SpecialInstructions, instructionToCreate)
+	}
+	for _, allergy := range request.Allergies {
+		allergyToCreate := store.Allergy{Allergy: store.DbNullString(allergy.Allergy), Instruction: store.DbNullString(allergy.Instruction)}
+		child.Allergies = append(child.Allergies, allergyToCreate)
+	}
+	return child, nil
+}
+
+func photoTransportToStore(request PhotoRequestTransport) store.ChildPhoto {
+	childPhoto := store.ChildPhoto{
+		ChildId:         store.DbNullString(request.ChildId),
+		ImageUri:        store.DbNullString(request.Filename),
+		Approved:        false,
+		PublishedBy:     store.DbNullString(request.SenderId),
+		PublicationDate: time.Now(),
+	}
+	return childPhoto
 }
 
 // ServiceMiddleware is a chainable behavior modifier for childService.

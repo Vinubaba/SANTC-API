@@ -40,7 +40,11 @@ func (c *DefaultClient) AddImageApprovalRequest(ctx context.Context, approval Ph
 		return errors.Wrap(err, "failed to json encode the request filter")
 	}
 
-	requestUrl := url.URL{Scheme: c.protocol, Host: c.hostname, Path: "/api/v1/children/" + approval.ChildId + "/photos"}
+	if IsNilOrEmpty(approval.ChildId) {
+		return errors.New("childId is nil or empty")
+	}
+
+	requestUrl := url.URL{Scheme: c.protocol, Host: c.hostname, Path: "/api/v1/children/" + *approval.ChildId + "/photos"}
 	req, err := http.NewRequest(http.MethodPost, requestUrl.String(), bytes.NewReader(requestBody))
 	if err != nil {
 		return errors.Wrap(err, "failed to build request")

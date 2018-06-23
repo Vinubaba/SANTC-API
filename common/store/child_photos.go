@@ -20,7 +20,7 @@ type ChildPhoto struct {
 func (s *Store) AddChildPhoto(tx *gorm.DB, childPhoto ChildPhoto) error {
 	db := s.dbOrTx(tx)
 
-	childPhoto.PhotoId = DbNullString(s.StringGenerator.GenerateUuid())
+	childPhoto.PhotoId = s.newId()
 	if err := db.Create(&childPhoto).Error; err != nil {
 		return err
 	}

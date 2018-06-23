@@ -27,17 +27,51 @@ func (s *Store) dbOrTx(tx *gorm.DB) *gorm.DB {
 	return s.Db
 }
 
-func DbNullString(value string) sql.NullString {
-	if value != "" {
+func DbNullString(value *string) sql.NullString {
+	// will update value in db
+	if value != nil {
 		return sql.NullString{
-			String: value,
+			String: *value,
 			Valid:  true,
 		}
 	}
+	// will ignore this value
 	return sql.NullString{
-		String: "",
-		Valid:  false,
+		Valid: false,
 	}
+}
+
+func DbNullBool(value *bool) sql.NullBool {
+	// will update value in db
+	if value != nil {
+		return sql.NullBool{
+			Bool:  *value,
+			Valid: true,
+		}
+	}
+	// will ignore this value
+	return sql.NullBool{
+		Valid: false,
+	}
+}
+
+func DbNullInt64(value *int64) sql.NullInt64 {
+	// will update value in db
+	if value != nil {
+		return sql.NullInt64{
+			Int64: *value,
+			Valid: true,
+		}
+	}
+	// will ignore this value
+	return sql.NullInt64{
+		Valid: false,
+	}
+}
+
+func (s *Store) newId() sql.NullString {
+	id := s.StringGenerator.GenerateUuid()
+	return DbNullString(&id)
 }
 
 type SearchOptions struct {

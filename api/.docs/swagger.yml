@@ -326,6 +326,157 @@ paths:
           description: "teacher not found"
         500:
           description: "server error"
+  /api/v1/teachers/{id}/schedules:
+    post:
+      tags:
+        - "teachers"
+      summary: "Create a teacher schedule"
+      description: ""
+      operationId: "createTeacherSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of teacher"
+        required: true
+        type: "string"
+        format: "uid"
+      - in: body
+        name: user
+        description: The schedule to create.
+        schema:
+          $ref: "#/definitions/Schedule"
+      responses:
+        201:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Schedule"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin or office manager"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "teacher not found"
+        500:
+          description: "server error"
+  /api/v1/teachers/{id}/schedules/{scheduleId}:
+    get:
+      tags:
+        - "teachers"
+      summary: "Get a teacher schedule"
+      description: ""
+      operationId: "getTeacherSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of teacher"
+        required: true
+        type: "string"
+        format: "uid"
+      - name: "scheduleId"
+        in: "path"
+        description: "ID of schedule"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Schedule"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin or office manager"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "teacher or schedule not found"
+        500:
+          description: "server error"
+    patch:
+      tags:
+        - "teachers"
+      summary: "Update a teacher schedule"
+      description: ""
+      operationId: "updateTeacherSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of teacher"
+        required: true
+        type: "string"
+        format: "uid"
+      - name: "scheduleId"
+        in: "path"
+        description: "ID of schedule"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Schedule"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin or office manager"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "teacher or schedule not found"
+        500:
+          description: "server error"
+    delete:
+      tags:
+        - "teachers"
+      summary: "Delete a teacher schedule"
+      description: ""
+      operationId: "deleteTeacherSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of teacher"
+        required: true
+        type: "string"
+        format: "uid"
+      - name: "scheduleId"
+        in: "path"
+        description: "ID of schedule"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        204:
+          description: "success"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin or office manager"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "teacher or schedule not found"
+        500:
+          description: "server error"
   /api/v1/adults:
     get:
       tags:
@@ -524,8 +675,6 @@ paths:
           description: "when user requester is not admin"
         403:
           description: "when user requester is not registered"
-        404:
-          description: "office manager not found"
         500:
           description: "server error"
   /api/v1/children/{id}:
@@ -558,7 +707,7 @@ paths:
         403:
           description: "when user requester is not registered"
         404:
-          description: "office manager not found"
+          description: "child not found"
         500:
           description: "server error"
     delete:
@@ -588,7 +737,7 @@ paths:
         403:
           description: "when user requester is not registered"
         404:
-          description: "office manager not found"
+          description: "child not found"
         500:
           description: "server error"
     patch:
@@ -625,7 +774,158 @@ paths:
         403:
           description: "when user requester is not registered"
         404:
-          description: "office manager not found"
+          description: "child not found"
+        500:
+          description: "server error"
+  /api/v1/children/{id}/schedules:
+    post:
+      tags:
+        - "children"
+      summary: "Create a child schedule"
+      description: ""
+      operationId: "createChildSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of child"
+        required: true
+        type: "string"
+        format: "uid"
+      - in: body
+        name: user
+        description: The schedule to create.
+        schema:
+          $ref: "#/definitions/Schedule"
+      responses:
+        201:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Schedule"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin or office manager"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "child not found"
+        500:
+          description: "server error"
+  /api/v1/children/{id}/schedules/{scheduleId}:
+    get:
+      tags:
+        - "children"
+      summary: "Get a child schedule"
+      description: ""
+      operationId: "getChildSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of child"
+        required: true
+        type: "string"
+        format: "uid"
+      - name: "scheduleId"
+        in: "path"
+        description: "ID of schedule"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Schedule"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin or office manager"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "child or schedule not found"
+        500:
+          description: "server error"
+    patch:
+      tags:
+        - "children"
+      summary: "Update a child schedule"
+      description: ""
+      operationId: "updateChildSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of child"
+        required: true
+        type: "string"
+        format: "uid"
+      - name: "scheduleId"
+        in: "path"
+        description: "ID of schedule"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Schedule"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin or office manager"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "child or schedule not found"
+        500:
+          description: "server error"
+    delete:
+      tags:
+        - "children"
+      summary: "Delete a child schedule"
+      description: ""
+      operationId: "deleteChildSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "ID of child"
+        required: true
+        type: "string"
+        format: "uid"
+      - name: "scheduleId"
+        in: "path"
+        description: "ID of schedule"
+        required: true
+        type: "string"
+        format: "uid"
+      responses:
+        204:
+          description: "success"
+        400:
+          description: "invalid token"
+        401:
+          description: "when user requester is not admin or office manager"
+        403:
+          description: "when user requester is not registered"
+        404:
+          description: "child or schedule not found"
         500:
           description: "server error"
   /api/v1/age-ranges:
@@ -1072,6 +1372,52 @@ definitions:
         format: "base64"
       ageRange:
         $ref: "#/definitions/AgeRange"
+  Schedule:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uid"
+      teacherId:
+        type: "string"
+        format: "uid"
+      childId:
+        type: "string"
+        format: "uid"
+      walkIn:
+        type: "boolean"
+      mondayStart:
+        $ref: "#/definitions/ScheduleTime"
+      mondayEnd:
+        $ref: "#/definitions/ScheduleTime"
+      tuesdayStart:
+        $ref: "#/definitions/ScheduleTime"
+      tuesdayEnd:
+        $ref: "#/definitions/ScheduleTime"
+      wednesdayStart:
+        $ref: "#/definitions/ScheduleTime"
+      wednesdayEnd:
+        $ref: "#/definitions/ScheduleTime"
+      thursdayStart:
+        $ref: "#/definitions/ScheduleTime"
+      thursdayEnd:
+        $ref: "#/definitions/ScheduleTime"
+      fridayStart:
+        $ref: "#/definitions/ScheduleTime"
+      fridayEnd:
+        $ref: "#/definitions/ScheduleTime"
+      saturdayStart:
+        $ref: "#/definitions/ScheduleTime"
+      saturdayEnd:
+        $ref: "#/definitions/ScheduleTime"
+      sundayStart:
+        $ref: "#/definitions/ScheduleTime"
+      sundayEnd:
+        $ref: "#/definitions/ScheduleTime"
+  ScheduleTime:
+    type: "string"
+    pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+    example: "8:30 AM"
   TeacherClass:
     type: "object"
     properties:

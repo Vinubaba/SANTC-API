@@ -47,15 +47,15 @@ func (h *ImageApprovalHandler) Handle(ctx context.Context, event Event) error {
 		return errors.Wrap(err, "failed to get child")
 	}
 
-	filename, err := h.Storage.Store(ctx, event.Image, path.Join("daycares", child.DaycareId, "children", child.Id))
+	filename, err := h.Storage.Store(ctx, event.Image, path.Join("daycares", *child.DaycareId, "children", *child.Id))
 	if err != nil {
 		return errors.Wrap(err, "failed to store image")
 	}
 
 	if err := h.ApiClient.AddImageApprovalRequest(ctx, api.PhotoRequestTransport{
-		ChildId:  event.ChildId,
-		SenderId: event.SenderId,
-		Filename: filename,
+		ChildId:  &event.ChildId,
+		SenderId: &event.SenderId,
+		Filename: &filename,
 	}); err != nil {
 		return errors.Wrap(err, "failed to perform AddImageApprovalRequest")
 	}

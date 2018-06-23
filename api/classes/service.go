@@ -3,27 +3,24 @@ package classes
 import (
 	"context"
 	"database/sql"
+	"path"
 	"strings"
 
 	"github.com/Vinubaba/SANTC-API/api/ageranges"
+	. "github.com/Vinubaba/SANTC-API/common/api"
 	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
+	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/Vinubaba/SANTC-API/common/storage"
 	"github.com/Vinubaba/SANTC-API/common/store"
 
-	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
-	"path"
 )
 
 var (
 	ErrEmptyClass             = errors.New("classId cannot be empty")
 	ErrEmptyAgeRange          = errors.New("please specify an age range")
 	ErrCreateDifferentDaycare = errors.New("you can't add a class to a different daycare of you")
-)
-
-const (
-	classImageFolder = "classes"
 )
 
 type Service interface {
@@ -51,15 +48,16 @@ type ClassService struct {
 }
 
 func (c *ClassService) AddClass(ctx context.Context, request ClassTransport) (store.Class, error) {
-	if claims.IsAdmin(ctx) && request.DaycareId == "" {
+	if claims.IsAdmin(ctx) && IsNilOrEmpty(request.DaycareId) {
 		return store.Class{}, errors.New("as an admin, you must specify the a daycareId")
 	} else {
+		daycareId := claims.GetDaycareId(ctx)
 		// default to requester daycare (e.g office manager)
-		if request.DaycareId == "" {
-			request.DaycareId = claims.GetDaycareId(ctx)
+		if IsNilOrEmpty(request.DaycareId) {
+			request.DaycareId = &daycareId
 		}
 
-		if claims.GetDaycareId(ctx) != request.DaycareId {
+		if daycareId != *request.DaycareId {
 			return store.Class{}, ErrCreateDifferentDaycare
 		}
 	}
@@ -73,30 +71,31 @@ func (c *ClassService) AddClass(ctx context.Context, request ClassTransport) (st
 	request.AgeRange.DaycareId = request.DaycareId
 
 	// Ensure specified age range is part of the same daycare
-	if request.AgeRange.Id != "" {
+	if !IsNilOrEmpty(request.AgeRange.Id) {
 		searchOptions := claims.GetDefaultSearchOptions(ctx)
-		searchOptions.DaycareId = request.DaycareId
-		_, err = c.Store.GetAgeRange(nil, request.AgeRange.Id, searchOptions)
+		searchOptions.DaycareId = *request.DaycareId
+		_, err = c.Store.GetAgeRange(nil, *request.AgeRange.Id, searchOptions)
 		if err != nil {
 			return store.Class{}, errors.Wrap(err, "failed to add class")
 		}
 	}
 
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(request.DaycareId))
+	imageUri, err := c.Storage.Store(ctx, *request.ImageUri, c.storageFolder(*request.DaycareId))
 	if err != nil {
 		return store.Class{}, errors.Wrap(err, "failed to store image")
 	}
+	request.ImageUri = &imageUri
 
 	class, err := c.Store.AddClass(nil, transportToStore(request))
 	if err != nil {
 		return store.Class{}, errors.Wrap(err, "failed to add class")
 	}
 
-	uri, err := c.Storage.Get(ctx, request.ImageUri)
+	uri, err := c.Storage.Get(ctx, *request.ImageUri)
 	if err != nil {
 		return store.Class{}, errors.Wrap(err, "failed to generate image uri")
 	}
-	class.ImageUri = store.DbNullString(uri)
+	class.ImageUri = store.DbNullString(&uri)
 
 	return class, nil
 }
@@ -107,7 +106,7 @@ func (c *ClassService) storageFolder(daycareId string) string {
 
 func (c *ClassService) GetClass(ctx context.Context, request ClassTransport) (store.Class, error) {
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	class, err := c.Store.GetClass(nil, request.Id, searchOptions)
+	class, err := c.Store.GetClass(nil, *request.Id, searchOptions)
 	if err != nil {
 		return class, errors.Wrap(err, "failed to get class")
 	}
@@ -117,12 +116,12 @@ func (c *ClassService) GetClass(ctx context.Context, request ClassTransport) (st
 
 func (c *ClassService) DeleteClass(ctx context.Context, request ClassTransport) error {
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	class, err := c.Store.GetClass(nil, request.Id, searchOptions)
+	class, err := c.Store.GetClass(nil, *request.Id, searchOptions)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete class")
 	}
 
-	if err := c.Store.DeleteClass(nil, request.Id); err != nil {
+	if err := c.Store.DeleteClass(nil, *request.Id); err != nil {
 		return errors.Wrap(err, "failed to delete class")
 	}
 
@@ -141,7 +140,7 @@ func (c *ClassService) setBucketUri(ctx context.Context, class *store.Class) {
 	if err != nil {
 		c.Logger.Warn(ctx, "failed to generate image uri", "imageUri", class.ImageUri, "err", err.Error())
 	}
-	class.ImageUri = store.DbNullString(uri)
+	class.ImageUri = store.DbNullString(&uri)
 }
 
 func (c *ClassService) ListClasses(ctx context.Context) ([]store.Class, error) {
@@ -156,7 +155,7 @@ func (c *ClassService) ListClasses(ctx context.Context) ([]store.Class, error) {
 		if err != nil {
 			return []store.Class{}, errors.Wrap(err, "failed to generate image uri")
 		}
-		classes[i].ImageUri = store.DbNullString(uri)
+		classes[i].ImageUri = store.DbNullString(&uri)
 	}
 
 	return classes, nil
@@ -165,26 +164,29 @@ func (c *ClassService) ListClasses(ctx context.Context) ([]store.Class, error) {
 func (c *ClassService) UpdateClass(ctx context.Context, request ClassTransport) (store.Class, error) {
 	var err error
 
-	if request.Id == "" {
+	if IsNilOrEmpty(request.Id) {
 		return store.Class{}, ErrEmptyClass
 	}
 
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	class, err := c.Store.GetClass(nil, request.Id, searchOptions)
+	class, err := c.Store.GetClass(nil, *request.Id, searchOptions)
 	if err != nil {
 		return store.Class{}, errors.Wrap(err, "failed to update class")
 	}
 
-	if request.AgeRange.Id != "" {
-		_, err = c.Store.GetAgeRange(nil, request.AgeRange.Id, searchOptions)
+	if !IsNilOrEmpty(request.AgeRange.Id) {
+		_, err = c.Store.GetAgeRange(nil, *request.AgeRange.Id, searchOptions)
 		if err != nil {
 			return store.Class{}, errors.Wrap(err, "failed to update class")
 		}
 	}
 
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(class.DaycareId.String))
-	if err != nil {
-		return store.Class{}, errors.Wrap(err, "failed to store image")
+	if !IsNilOrEmpty(request.ImageUri) {
+		imageUri, err := c.Storage.Store(ctx, *request.ImageUri, c.storageFolder(class.DaycareId.String))
+		if err != nil {
+			return store.Class{}, errors.Wrap(err, "failed to store image")
+		}
+		request.ImageUri = &imageUri
 	}
 
 	class, err = c.Store.UpdateClass(nil, transportToStore(request))
@@ -206,7 +208,7 @@ func (c *ClassService) getBucketUri(ctx context.Context, imgPath string) sql.Nul
 	if err != nil {
 		c.Logger.Warn(ctx, "failed to generate image uri", "imageUri", imgPath, "err", err.Error())
 	}
-	return store.DbNullString(uri)
+	return store.DbNullString(&uri)
 }
 
 // ServiceMiddleware is a chainable behavior modifier for classService.

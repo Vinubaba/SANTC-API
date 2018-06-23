@@ -9,6 +9,7 @@ import (
 
 	"github.com/Vinubaba/SANTC-API/api/shared"
 
+	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
 	"github.com/Vinubaba/SANTC-API/common/roles"
 	"github.com/Vinubaba/SANTC-API/common/store"
 	kithttp "github.com/go-kit/kit/transport/http"
@@ -20,31 +21,32 @@ var (
 )
 
 type UserTransport struct {
-	Id            string   `json:"id"`
-	FirstName     string   `json:"firstName"`
-	LastName      string   `json:"lastName"`
-	Gender        string   `json:"gender"`
-	Email         string   `json:"email"`
-	Phone         string   `json:"phone"`
-	Address_1     string   `json:"address_1"`
-	Address_2     string   `json:"address_2"`
-	City          string   `json:"city"`
-	State         string   `json:"state"`
-	Zip           string   `json:"zip"`
-	ImageUri      string   `json:"imageUri"`
+	Id            *string  `json:"id"`
+	ScheduleId    *string  `json:"scheduleId"`
+	FirstName     *string  `json:"firstName"`
+	LastName      *string  `json:"lastName"`
+	Gender        *string  `json:"gender"`
+	Email         *string  `json:"email"`
+	Phone         *string  `json:"phone"`
+	Address_1     *string  `json:"address_1"`
+	Address_2     *string  `json:"address_2"`
+	City          *string  `json:"city"`
+	State         *string  `json:"state"`
+	Zip           *string  `json:"zip"`
+	ImageUri      *string  `json:"imageUri"`
 	Roles         []string `json:"roles"`
-	DaycareId     string   `json:"daycareId"`
-	WorkAddress_1 string   `json:"workAddress_1"`
-	WorkAddress_2 string   `json:"workAddress_2"`
-	WorkCity      string   `json:"workCity"`
-	WorkState     string   `json:"workState"`
-	WorkZip       string   `json:"workZip"`
-	WorkPhone     string   `json:"workPhone"`
+	DaycareId     *string  `json:"daycareId"`
+	WorkAddress_1 *string  `json:"workAddress_1"`
+	WorkAddress_2 *string  `json:"workAddress_2"`
+	WorkCity      *string  `json:"workCity"`
+	WorkState     *string  `json:"workState"`
+	WorkZip       *string  `json:"workZip"`
+	WorkPhone     *string  `json:"workPhone"`
 }
 
 type TeacherClassTransport struct {
-	TeacherId string `json:"teacherId"`
-	ClassId   string `json:"classId"`
+	TeacherId *string `json:"teacherId"`
+	ClassId   *string `json:"classId"`
 }
 
 type HandlerFactory struct {
@@ -256,14 +258,9 @@ func makeGetEndpoint(svc Service, role string) endpoint.Endpoint {
 
 func makeMeEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		claims := ctx.Value("claims").(map[string]interface{})
-		meId, ok := claims["userId"]
-		if !ok {
-			return UserTransport{}, errors.New("no id in decoded claim")
-		}
-
+		userId := claims.GetUserId(ctx)
 		user, err := svc.GetUserByRoles(ctx, UserTransport{
-			Id: meId.(string),
+			Id: &userId,
 		})
 		if err != nil {
 			return nil, err
@@ -291,7 +288,7 @@ func makeListEndpoint(svc Service, roleConstraint string) endpoint.Endpoint {
 func makeSetTeacherClassEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(TeacherClassTransport)
-		if err := svc.SetTeacherClass(ctx, req.TeacherId, req.ClassId); err != nil {
+		if err := svc.SetTeacherClass(ctx, *req.TeacherId, *req.ClassId); err != nil {
 			return nil, err
 		}
 
@@ -319,7 +316,7 @@ func decodeUpdateUserRequest(_ context.Context, r *http.Request) (interface{}, e
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
-	request.Id = id
+	request.Id = &id
 	return request, nil
 }
 
@@ -329,7 +326,7 @@ func decodeGetOrDeleteRequest(_ context.Context, r *http.Request) (interface{}, 
 	if !ok {
 		return nil, ErrBadRouting
 	}
-	return UserTransport{Id: id}, nil
+	return UserTransport{Id: &id}, nil
 }
 
 func decodeSetTeacherClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -342,7 +339,7 @@ func decodeSetTeacherClassRequest(_ context.Context, r *http.Request) (interface
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
-	request.TeacherId = teacherId
+	request.TeacherId = &teacherId
 	return request, nil
 }
 
@@ -371,25 +368,26 @@ func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 
 func dbToTransport(user store.User) UserTransport {
 	return UserTransport{
-		Id:            user.UserId.String,
-		FirstName:     user.FirstName.String,
-		LastName:      user.LastName.String,
-		Email:         user.Email.String,
-		Gender:        user.Gender.String,
-		Address_1:     user.Address_1.String,
-		Address_2:     user.Address_2.String,
-		City:          user.City.String,
-		Phone:         user.Phone.String,
-		State:         user.State.String,
-		Zip:           user.Zip.String,
-		ImageUri:      user.ImageUri.String,
+		Id:            &user.UserId.String,
+		ScheduleId:    &user.ScheduleId.String,
+		FirstName:     &user.FirstName.String,
+		LastName:      &user.LastName.String,
+		Email:         &user.Email.String,
+		Gender:        &user.Gender.String,
+		Address_1:     &user.Address_1.String,
+		Address_2:     &user.Address_2.String,
+		City:          &user.City.String,
+		Phone:         &user.Phone.String,
+		State:         &user.State.String,
+		Zip:           &user.Zip.String,
+		ImageUri:      &user.ImageUri.String,
 		Roles:         user.Roles.ToList(),
-		DaycareId:     user.DaycareId.String,
-		WorkAddress_1: user.WorkAddress_1.String,
-		WorkAddress_2: user.WorkAddress_2.String,
-		WorkCity:      user.WorkCity.String,
-		WorkState:     user.WorkState.String,
-		WorkZip:       user.WorkZip.String,
-		WorkPhone:     user.WorkPhone.String,
+		DaycareId:     &user.DaycareId.String,
+		WorkAddress_1: &user.WorkAddress_1.String,
+		WorkAddress_2: &user.WorkAddress_2.String,
+		WorkCity:      &user.WorkCity.String,
+		WorkState:     &user.WorkState.String,
+		WorkZip:       &user.WorkZip.String,
+		WorkPhone:     &user.WorkPhone.String,
 	}
 }
