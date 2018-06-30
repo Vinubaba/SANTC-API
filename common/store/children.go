@@ -18,6 +18,7 @@ type Child struct {
 	DaycareId           sql.NullString
 	ClassId             sql.NullString
 	ScheduleId          sql.NullString
+	AddressSameAs       sql.NullString
 	FirstName           sql.NullString
 	LastName            sql.NullString
 	BirthDate           time.Time
@@ -102,6 +103,7 @@ func (s *Store) baseChildQuery(tx *gorm.DB) *gorm.DB {
 			"children.daycare_id," +
 			"children.class_id," +
 			"children.schedule_id," +
+			"children.address_same_as," +
 			"children.first_name," +
 			"children.last_name," +
 			"children.gender," +
@@ -179,6 +181,7 @@ func (s *Store) scanChildRows(rows *sql.Rows) ([]Child, error) {
 			&currentChild.DaycareId,
 			&currentChild.ClassId,
 			&currentChild.ScheduleId,
+			&currentChild.AddressSameAs,
 			&currentChild.FirstName,
 			&currentChild.LastName,
 			&currentChild.Gender,

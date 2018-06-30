@@ -1287,6 +1287,10 @@ definitions:
         format: "uid"
       daycareId:
         type: "string"
+      classId:
+        type: "string"
+      addressSameAs:
+        type: "string"
       firstName:
         type: "string"
       lastName:
@@ -1315,6 +1319,9 @@ definitions:
         type: "array"
         items:
           $ref: "#/definitions/SpecialInstruction"
+      schedule:
+        $ref: "#/definitions/Schedule"
+
   SpecialInstruction:
     type: "object"
     properties:

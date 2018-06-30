@@ -10,6 +10,7 @@ type ChildTransport struct {
 	Id                  *string                       `json:"id"`
 	DaycareId           *string                       `json:"daycareId"`
 	ClassId             *string                       `json:"classId"`
+	AddressSameAs       *string                       `json:"addressSameAs"`
 	FirstName           *string                       `json:"firstName"`
 	LastName            *string                       `json:"lastName"`
 	BirthDate           *string                       `json:"birthDate"` // dd/mm/yyyy
