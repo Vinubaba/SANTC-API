@@ -126,10 +126,10 @@ CREATE TABLE IF NOT EXISTS teacher_classes (
 
 INSERT INTO daycares ("daycare_id", "name", "address_1", "address_2", "city", "state", "zip") VALUES ('PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC', 'PUBLIC');
 
-INSERT INTO users VALUES ('dd3a81f0-6432-4ddf-842a-b82a3911dadb', 'arthur.gustin@gmail.com', 'arthur', 'gustin', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
-INSERT INTO users VALUES ('7ab5b1ca-8dfa-4695-a05f-3fc860900449', 'vinu.singh@gmail.com', 'vinu', 'singh', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
-INSERT INTO users VALUES ('0f7892f6-dbd6-4c83-9bde-a35d0fd4b260', 'muneerkk66@gmail.com', 'muneer', 'kk', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
-INSERT INTO users VALUES ('0f7892f6-dbd6-4c83-9bde-a35d0fd4b261', 'muneerkk7066@gmail.com', 'muneer', 'kk', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
+INSERT INTO users VALUES ('dd3a81f0-6432-4ddf-842a-b82a3911dadb', NULL, 'arthur.gustin@gmail.com', 'arthur', 'gustin', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
+INSERT INTO users VALUES ('7ab5b1ca-8dfa-4695-a05f-3fc860900449', NULL, 'vinu.singh@gmail.com', 'vinu', 'singh', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
+INSERT INTO users VALUES ('0f7892f6-dbd6-4c83-9bde-a35d0fd4b260', NULL, 'muneerkk66@gmail.com', 'muneer', 'kk', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
+INSERT INTO users VALUES ('0f7892f6-dbd6-4c83-9bde-a35d0fd4b261', NULL, 'muneerkk7066@gmail.com', 'muneer', 'kk', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
 
 INSERT INTO roles VALUES ('dd3a81f0-6432-4ddf-842a-b82a3911dadb', 'admin');
 INSERT INTO roles VALUES ('7ab5b1ca-8dfa-4695-a05f-3fc860900449', 'officemanager');
