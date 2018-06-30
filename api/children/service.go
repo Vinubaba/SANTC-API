@@ -273,6 +273,7 @@ func transportToStore(request ChildTransport, strict bool) (store.Child, error) 
 		DaycareId:     store.DbNullString(request.DaycareId),
 		ClassId:       store.DbNullString(request.ClassId),
 		ScheduleId:    store.DbNullString(request.Schedule.Id),
+		AddressSameAs: store.DbNullString(request.AddressSameAs),
 		BirthDate:     birthDate,
 		FirstName:     store.DbNullString(request.FirstName),
 		LastName:      store.DbNullString(request.LastName),

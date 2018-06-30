@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS children (
   daycare_id varchar REFERENCES daycares (daycare_id) NOT NULL,
   class_id varchar REFERENCES classes (class_id) ON DELETE SET NULL,
   schedule_id varchar REFERENCES schedules (schedule_id) ON DELETE SET NULL,
+  address_same_as varchar REFERENCES users (user_id) ON DELETE SET NULL,
   first_name varchar NOT NULL,
   last_name varchar NOT NULL,
   gender varchar NOT NULL,

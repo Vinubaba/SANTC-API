@@ -234,6 +234,7 @@ func storeToTransport(child store.Child) ChildTransport {
 		Notes:         &child.Notes.String,
 		ResponsibleId: &child.ResponsibleId.String,
 		Relationship:  &child.Relationship.String,
+		AddressSameAs: &child.AddressSameAs.String,
 	}
 
 	for _, allergy := range child.Allergies {
