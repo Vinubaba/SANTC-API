@@ -3,10 +3,11 @@ package daycares
 import (
 	"context"
 
+	. "github.com/Vinubaba/SANTC-API/common/api"
+	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
 	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/Vinubaba/SANTC-API/common/store"
 
-	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -59,7 +60,7 @@ func (c *DaycareService) AddDaycare(ctx context.Context, request DaycareTranspor
 
 func (c *DaycareService) GetDaycare(ctx context.Context, request DaycareTransport) (store.Daycare, error) {
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	daycare, err := c.Store.GetDaycare(nil, request.Id, searchOptions)
+	daycare, err := c.Store.GetDaycare(nil, *request.Id, searchOptions)
 	if err != nil {
 		return daycare, errors.Wrap(err, "failed to get daycare")
 	}
@@ -69,12 +70,12 @@ func (c *DaycareService) GetDaycare(ctx context.Context, request DaycareTranspor
 
 func (c *DaycareService) DeleteDaycare(ctx context.Context, request DaycareTransport) error {
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	_, err := c.Store.GetDaycare(nil, request.Id, searchOptions)
+	_, err := c.Store.GetDaycare(nil, *request.Id, searchOptions)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete daycare")
 	}
 
-	if err := c.Store.DeleteDaycare(nil, request.Id); err != nil {
+	if err := c.Store.DeleteDaycare(nil, *request.Id); err != nil {
 		return errors.Wrap(err, "failed to delete daycare")
 	}
 
@@ -92,12 +93,12 @@ func (c *DaycareService) ListDaycare(ctx context.Context) ([]store.Daycare, erro
 }
 
 func (c *DaycareService) UpdateDaycare(ctx context.Context, request DaycareTransport) (store.Daycare, error) {
-	if request.Id == "" {
+	if IsNilOrEmpty(request.Id) {
 		return store.Daycare{}, ErrEmptyDaycare
 	}
 
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	_, err := c.Store.GetDaycare(nil, request.Id, searchOptions)
+	_, err := c.Store.GetDaycare(nil, *request.Id, searchOptions)
 	if err != nil {
 		return store.Daycare{}, errors.Wrap(err, "failed to update daycare")
 	}

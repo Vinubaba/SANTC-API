@@ -14,6 +14,7 @@ var (
 
 type User struct {
 	UserId        sql.NullString
+	ScheduleId    sql.NullString
 	Email         sql.NullString
 	FirstName     sql.NullString
 	LastName      sql.NullString
@@ -52,7 +53,7 @@ func (u *User) Is(role string) bool {
 func (s *Store) AddUser(tx *gorm.DB, user User) (User, error) {
 	db := s.dbOrTx(tx)
 
-	user.UserId = sql.NullString{String: s.StringGenerator.GenerateUuid(), Valid: true}
+	user.UserId = s.newId()
 	if err := db.Create(&user).Error; err != nil {
 		return User{}, err
 	}
@@ -65,7 +66,7 @@ func (s *Store) GetUser(tx *gorm.DB, userId string, searchOptions SearchOptions)
 
 	query := db.Table("users").
 		Select("users.user_id, " +
-			"users.daycare_id," +
+			"users.schedule_id," +
 			"users.email, " +
 			"users.first_name," +
 			"users.last_name," +
@@ -77,6 +78,7 @@ func (s *Store) GetUser(tx *gorm.DB, userId string, searchOptions SearchOptions)
 			"users.zip," +
 			"users.gender," +
 			"users.image_uri," +
+			"users.daycare_id," +
 			"users.work_address_1," +
 			"users.work_address_2," +
 			"users.work_city," +
@@ -109,7 +111,7 @@ func (s *Store) GetUserByEmail(tx *gorm.DB, email string) (User, error) {
 	db := s.dbOrTx(tx)
 	rows, err := db.Table("users").
 		Select("users.user_id, "+
-			"users.daycare_id,"+
+			"users.schedule_id,"+
 			"users.email, "+
 			"users.first_name,"+
 			"users.last_name,"+
@@ -121,6 +123,7 @@ func (s *Store) GetUserByEmail(tx *gorm.DB, email string) (User, error) {
 			"users.zip,"+
 			"users.gender,"+
 			"users.image_uri,"+
+			"users.daycare_id,"+
 			"users.work_address_1,"+
 			"users.work_address_2,"+
 			"users.work_city,"+
@@ -182,6 +185,7 @@ func (s *Store) ListDaycareUsers(tx *gorm.DB, roleConstraint string, options Sea
 	db := s.dbOrTx(tx)
 	query := db.Table("users, children, teacher_classes, roles").
 		Select("users.user_id, " +
+			"users.schedule_id, " +
 			"users.email, " +
 			"users.first_name," +
 			"users.last_name," +
@@ -193,14 +197,14 @@ func (s *Store) ListDaycareUsers(tx *gorm.DB, roleConstraint string, options Sea
 			"users.zip," +
 			"users.gender," +
 			"users.image_uri," +
+			"users.daycare_id," +
 			"users.work_address_1," +
 			"users.work_address_2," +
 			"users.work_city," +
 			"users.work_state," +
 			"users.work_zip," +
 			"users.work_phone," +
-			"string_agg(roles.role, ',')," +
-			"users.daycare_id")
+			"string_agg(roles.role, ',')")
 	if options.DaycareId != "" {
 		query = query.Where("users.daycare_id = ?", options.DaycareId)
 	}
@@ -231,7 +235,7 @@ func (s *Store) scanUserRows(rows *sql.Rows) ([]User, error) {
 	for rows.Next() {
 		currentUser := User{}
 		if err := rows.Scan(&currentUser.UserId,
-			&currentUser.DaycareId,
+			&currentUser.ScheduleId,
 			&currentUser.Email,
 			&currentUser.FirstName,
 			&currentUser.LastName,
@@ -243,6 +247,7 @@ func (s *Store) scanUserRows(rows *sql.Rows) ([]User, error) {
 			&currentUser.Zip,
 			&currentUser.Gender,
 			&currentUser.ImageUri,
+			&currentUser.DaycareId,
 			&currentUser.WorkAddress_1,
 			&currentUser.WorkAddress_2,
 			&currentUser.WorkCity,

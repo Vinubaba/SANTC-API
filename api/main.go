@@ -23,6 +23,7 @@ import (
 
 	"firebase.google.com/go"
 	"firebase.google.com/go/auth"
+	"github.com/Vinubaba/SANTC-API/api/schedules"
 	"github.com/Vinubaba/SANTC-API/common/generator"
 	"github.com/facebookgo/inject"
 	kithttp "github.com/go-kit/kit/transport/http"
@@ -46,13 +47,16 @@ var (
 	userService     = &users.UserService{}
 	classService    = &classes.ClassService{}
 	ageRangeService = &ageranges.AgeRangeService{}
+	scheduleService = &schedules.ScheduleService{}
 
 	daycareHandlerFactory   = &daycares.HandlerFactory{}
 	userHandlerFactory      = &users.HandlerFactory{}
 	childrenHandlerFactory  = &children.HandlerFactory{}
 	classesHandlerFactory   = &classes.HandlerFactory{}
 	ageRangesHandlerFactory = &ageranges.HandlerFactory{}
-	teddyFirebaseClient     = &teddyFirebase.Client{}
+	schedulesHandlerFactory = &schedules.HandlerFactory{}
+
+	teddyFirebaseClient = &teddyFirebase.Client{}
 
 	dbStore    = &Store{}
 	gcsStorage *storage.GoogleStorage
@@ -126,11 +130,13 @@ func initApplicationGraph() error {
 		&inject.Object{Value: userService},
 		&inject.Object{Value: classService},
 		&inject.Object{Value: ageRangeService},
+		&inject.Object{Value: scheduleService},
 		&inject.Object{Value: userHandlerFactory},
 		&inject.Object{Value: daycareHandlerFactory},
 		&inject.Object{Value: childrenHandlerFactory},
 		&inject.Object{Value: classesHandlerFactory},
 		&inject.Object{Value: ageRangesHandlerFactory},
+		&inject.Object{Value: schedulesHandlerFactory},
 		&inject.Object{Value: db},
 		&inject.Object{Value: stringGenerator},
 		&inject.Object{Value: dbStore},
@@ -198,6 +204,11 @@ func startHttpServer(ctx context.Context) {
 		kithttp.ServerErrorEncoder(ageranges.EncodeError),
 	}
 
+	schedulesOpts := []kithttp.ServerOption{
+		kithttp.ServerErrorLogger(logger),
+		kithttp.ServerErrorEncoder(schedules.EncodeError),
+	}
+
 	router := mux.NewRouter()
 
 	router.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -239,6 +250,10 @@ func startHttpServer(ctx context.Context) {
 	apiRouterV1.Handle("/teachers/{id}", authenticator.Roles(userHandlerFactory.DeleteTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodDelete)
 	apiRouterV1.Handle("/teachers/{id}", authenticator.Roles(userHandlerFactory.UpdateTeacher(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodPatch)
 	apiRouterV1.Handle("/teachers/{id}/classes", authenticator.Roles(userHandlerFactory.SetTeacherClass(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodPost)
+	apiRouterV1.Handle("/teachers/{teacherId}/schedules", authenticator.Roles(schedulesHandlerFactory.Add(schedulesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPost)
+	apiRouterV1.Handle("/teachers/{teacherId}/schedules/{scheduleId}", authenticator.Roles(schedulesHandlerFactory.Get(schedulesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/teachers/{teacherId}/schedules/{scheduleId}", authenticator.Roles(schedulesHandlerFactory.Update(schedulesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPatch)
+	apiRouterV1.Handle("/teachers/{teacherId}/schedules/{scheduleId}", authenticator.Roles(schedulesHandlerFactory.Delete(schedulesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodDelete)
 
 	apiRouterV1.Handle("/adults", authenticator.Roles(userHandlerFactory.CreateAdult(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodPost)
 	apiRouterV1.Handle("/adults", authenticator.Roles(userHandlerFactory.ListAdult(userOpts), ROLE_ADMIN, ROLE_OFFICE_MANAGER)).Methods(http.MethodGet)
@@ -251,8 +266,11 @@ func startHttpServer(ctx context.Context) {
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Get(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN, ROLE_TEACHER, ROLE_SERVICE)).Methods(http.MethodGet)
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Update(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADULT, ROLE_ADMIN)).Methods(http.MethodPatch)
 	apiRouterV1.Handle("/children/{childId}", authenticator.Roles(childrenHandlerFactory.Delete(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodDelete)
-
 	apiRouterV1.Handle("/children/{childId}/photos", authenticator.Roles(childrenHandlerFactory.AddPhoto(childrenOpts), ROLE_SERVICE)).Methods(http.MethodPost)
+	apiRouterV1.Handle("/children/{childId}/schedules", authenticator.Roles(schedulesHandlerFactory.Add(schedulesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPost)
+	apiRouterV1.Handle("/children/{childId}/schedules/{scheduleId}", authenticator.Roles(schedulesHandlerFactory.Get(schedulesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodGet)
+	apiRouterV1.Handle("/children/{childId}/schedules/{scheduleId}", authenticator.Roles(schedulesHandlerFactory.Update(schedulesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPatch)
+	apiRouterV1.Handle("/children/{childId}/schedules/{scheduleId}", authenticator.Roles(schedulesHandlerFactory.Delete(schedulesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodDelete)
 
 	apiRouterV1.Handle("/age-ranges", authenticator.Roles(ageRangesHandlerFactory.Add(ageRangesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPost)
 	apiRouterV1.Handle("/age-ranges", authenticator.Roles(ageRangesHandlerFactory.List(ageRangesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodGet)

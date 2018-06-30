@@ -34,7 +34,7 @@ func (a *Allergies) add(allergy Allergy) {
 
 func (s *Store) AddAllergy(tx *gorm.DB, allergy Allergy) (Allergy, error) {
 	db := s.dbOrTx(tx)
-	allergy.AllergyId = DbNullString(s.StringGenerator.GenerateUuid())
+	allergy.AllergyId = s.newId()
 	if err := db.Create(&allergy).Error; err != nil {
 		return Allergy{}, err
 	}

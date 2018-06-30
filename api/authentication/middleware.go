@@ -99,7 +99,7 @@ func (f *Authenticator) Firebase(next http.Handler, excludePath []string) http.H
 
 		if !f.hasAtLeastOneRoleInCustomClaim(firebaseUser.CustomClaims) {
 			// lookup database user with email
-			user, err := f.UserService.GetUserByEmail(ctx, users.UserTransport{Email: firebaseUser.Email})
+			user, err := f.UserService.GetUserByEmail(ctx, users.UserTransport{Email: &firebaseUser.Email})
 			if err != nil {
 				HttpError(w, NewError(fmt.Sprintf("user not registered: %s", err.Error())), http.StatusForbidden)
 				return

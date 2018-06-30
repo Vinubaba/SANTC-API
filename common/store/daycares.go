@@ -68,7 +68,7 @@ func (s *Store) scanDaycareRows(rows *sql.Rows) ([]Daycare, error) {
 func (s *Store) AddDaycare(tx *gorm.DB, daycare Daycare) (Daycare, error) {
 	db := s.dbOrTx(tx)
 
-	daycare.DaycareId = DbNullString(s.StringGenerator.GenerateUuid())
+	daycare.DaycareId = s.newId()
 
 	if err := db.Create(&daycare).Error; err != nil {
 		return Daycare{}, err

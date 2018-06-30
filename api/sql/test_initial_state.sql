@@ -7,6 +7,7 @@ TRUNCATE TABLE "children" CASCADE;
 TRUNCATE TABLE "age_ranges" CASCADE;
 TRUNCATE TABLE "daycares" CASCADE;
 TRUNCATE TABLE "teacher_classes" CASCADE;
+TRUNCATE TABLE "schedules" CASCADE;
 
 INSERT INTO daycares ("daycare_id", "name", "address_1", "address_2", "city", "state", "zip") VALUES ('peyredragon', 'peyredragon', 'peyredragon', 'peyredragon', 'peyredragon', 'peyredragon', 'peyredragon');
 INSERT INTO "users" ("user_id","email","first_name","last_name","gender","phone","address_1","address_2","city","state","zip","image_uri","daycare_id","work_address_1","work_address_2","work_city","work_state","work_zip","work_phone") VALUES ('id1','elaria.sand@got.com','Elaria','Sand','M','+3365651','address','floor','Peyredragon','WESTEROS','31400','http://image.com','peyredragon','work_address_1','work_address_2','work_city','work_state','work_zip','work_phone');
@@ -51,3 +52,7 @@ INSERT INTO "children" ("child_id","first_name","last_name","birth_date","start_
 INSERT INTO "children" ("child_id","first_name","last_name","birth_date","start_date","gender","image_uri","notes","daycare_id","class_id") VALUES ('childid-4','Joffrey','Baratheon','1992-10-13T00:00:00Z','2018-03-28T00:00:00Z','M','gs://foo/bar.jpg', 'some special notes','peyredragon','classid-2');
 INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('id4','childid-3','mother');
 INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES ('id3','childid-4','father');
+
+INSERT INTO "schedules" ("schedule_id","walk_in","monday_start","monday_end","tuesday_start","tuesday_end","wednesday_start","wednesday_end","thursday_start","thursday_end","friday_start","friday_end") VALUES ('scheduleid-1','false', '8:30 AM', '6:00 PM', '8:30 AM', '6:00 PM', '8:30 AM', '6:00 PM', '8:30 AM', '6:00 PM', '8:30 AM', '6:00 PM');
+UPDATE users SET schedule_id = 'scheduleid-1' WHERE user_id = 'id9';
+UPDATE children SET schedule_id = 'scheduleid-1' WHERE child_id = 'childid-1';

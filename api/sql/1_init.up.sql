@@ -10,6 +10,25 @@ CREATE TABLE IF NOT EXISTS daycares (
   zip varchar NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS schedules (
+  schedule_id varchar UNIQUE NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+  walk_in BOOLEAN NOT NULL default false,
+  monday_start varchar,
+  monday_end varchar,
+  tuesday_start varchar,
+  tuesday_end varchar,
+  wednesday_start varchar,
+  wednesday_end varchar,
+  thursday_start varchar,
+  thursday_end varchar,
+  friday_start varchar,
+  friday_end varchar,
+  saturday_start varchar,
+  saturday_end varchar,
+  sunday_start varchar,
+  sunday_end varchar
+);
+
 CREATE TABLE IF NOT EXISTS age_ranges (
   age_range_id varchar PRIMARY KEY UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
   daycare_id varchar REFERENCES daycares (daycare_id) NOT NULL,
@@ -31,6 +50,7 @@ CREATE TABLE IF NOT EXISTS classes (
 
 CREATE TABLE IF NOT EXISTS users (
   user_id varchar PRIMARY KEY UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+  schedule_id varchar REFERENCES schedules (schedule_id) ON DELETE SET NULL,
   email varchar UNIQUE NOT NULL,
   first_name varchar,
   last_name varchar,
@@ -55,6 +75,7 @@ CREATE TABLE IF NOT EXISTS children (
   child_id varchar UNIQUE NOT NULL PRIMARY KEY,
   daycare_id varchar REFERENCES daycares (daycare_id) NOT NULL,
   class_id varchar REFERENCES classes (class_id) ON DELETE SET NULL,
+  schedule_id varchar REFERENCES schedules (schedule_id) ON DELETE SET NULL,
   first_name varchar NOT NULL,
   last_name varchar NOT NULL,
   gender varchar NOT NULL,
@@ -107,7 +128,6 @@ INSERT INTO daycares ("daycare_id", "name", "address_1", "address_2", "city", "s
 
 INSERT INTO users VALUES ('dd3a81f0-6432-4ddf-842a-b82a3911dadb', 'arthur.gustin@gmail.com', 'arthur', 'gustin', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
 INSERT INTO users VALUES ('7ab5b1ca-8dfa-4695-a05f-3fc860900449', 'vinu.singh@gmail.com', 'vinu', 'singh', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
-INSERT INTO users VALUES ('0f7892f6-dbd6-4c83-9bde-a35d0fd4b260', 'muneerkk66@gmail.com', 'muneer', 'kk', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
 INSERT INTO users VALUES ('0f7892f6-dbd6-4c83-9bde-a35d0fd4b260', 'muneerkk66@gmail.com', 'muneer', 'kk', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
 INSERT INTO users VALUES ('0f7892f6-dbd6-4c83-9bde-a35d0fd4b261', 'muneerkk7066@gmail.com', 'muneer', 'kk', NULL, NULL, NULL, NULL, NULL, NULL, 'm', NULL, 'PUBLIC');
 

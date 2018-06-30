@@ -4,13 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/Vinubaba/SANTC-API/api/shared"
+	. "github.com/Vinubaba/SANTC-API/common/api"
 	"github.com/Vinubaba/SANTC-API/common/store"
 
-	. "github.com/Vinubaba/SANTC-API/common/api"
-	"github.com/araddon/dateparse"
 	"github.com/go-kit/kit/endpoint"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
@@ -165,7 +163,7 @@ func decodeGetOrDeleteChildTransport(_ context.Context, r *http.Request) (interf
 	if !ok {
 		return nil, ErrBadRouting
 	}
-	return ChildTransport{Id: childId}, nil
+	return ChildTransport{Id: &childId}, nil
 }
 
 func decodeUpdateChildRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -180,7 +178,7 @@ func decodeUpdateChildRequest(_ context.Context, r *http.Request) (interface{}, 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
-	request.Id = id
+	request.Id = &id
 	return request, nil
 }
 
@@ -196,7 +194,7 @@ func decodePhotoRequest(_ context.Context, r *http.Request) (interface{}, error)
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
-	request.ChildId = childId
+	request.ChildId = &childId
 	return request, nil
 }
 
@@ -221,90 +219,53 @@ func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 }
 
 func storeToTransport(child store.Child) ChildTransport {
+	birthDate := child.BirthDate.UTC().String()
+	startDate := child.StartDate.UTC().String()
 	ret := ChildTransport{
-		Id:            child.ChildId.String,
-		DaycareId:     child.DaycareId.String,
-		ClassId:       child.ClassId.String,
-		LastName:      child.LastName.String,
-		FirstName:     child.FirstName.String,
-		BirthDate:     child.BirthDate.UTC().String(),
-		Gender:        child.Gender.String,
-		ImageUri:      child.ImageUri.String,
-		StartDate:     child.StartDate.UTC().String(),
-		Notes:         child.Notes.String,
-		ResponsibleId: child.ResponsibleId.String,
-		Relationship:  child.Relationship.String,
+		Id:            &child.ChildId.String,
+		DaycareId:     &child.DaycareId.String,
+		ClassId:       &child.ClassId.String,
+		LastName:      &child.LastName.String,
+		FirstName:     &child.FirstName.String,
+		BirthDate:     &birthDate,
+		Gender:        &child.Gender.String,
+		ImageUri:      &child.ImageUri.String,
+		StartDate:     &startDate,
+		Notes:         &child.Notes.String,
+		ResponsibleId: &child.ResponsibleId.String,
+		Relationship:  &child.Relationship.String,
 	}
 
 	for _, allergy := range child.Allergies {
 		ret.Allergies = append(ret.Allergies, AllergyTransport{
-			Id:          allergy.AllergyId.String,
-			Allergy:     allergy.Allergy.String,
-			Instruction: allergy.Instruction.String,
+			Id:          &allergy.AllergyId.String,
+			Allergy:     &allergy.Allergy.String,
+			Instruction: &allergy.Instruction.String,
 		})
 	}
 
 	for _, instruction := range child.SpecialInstructions {
 		ret.SpecialInstructions = append(ret.SpecialInstructions, SpecialInstructionTransport{
-			Id:          instruction.SpecialInstructionId.String,
-			ChildId:     instruction.ChildId.String,
-			Instruction: instruction.Instruction.String,
+			Id:          &instruction.SpecialInstructionId.String,
+			ChildId:     &instruction.ChildId.String,
+			Instruction: &instruction.Instruction.String,
 		})
 	}
+	ret.Schedule.Id = &child.Schedule.ScheduleId.String
+	ret.Schedule.MondayStart = &child.Schedule.MondayStart.String
+	ret.Schedule.MondayEnd = &child.Schedule.MondayEnd.String
+	ret.Schedule.TuesdayStart = &child.Schedule.TuesdayStart.String
+	ret.Schedule.TuesdayEnd = &child.Schedule.TuesdayEnd.String
+	ret.Schedule.WednesdayStart = &child.Schedule.WednesdayStart.String
+	ret.Schedule.WednesdayEnd = &child.Schedule.WednesdayEnd.String
+	ret.Schedule.ThursdayStart = &child.Schedule.ThursdayStart.String
+	ret.Schedule.ThursdayEnd = &child.Schedule.ThursdayEnd.String
+	ret.Schedule.FridayStart = &child.Schedule.FridayStart.String
+	ret.Schedule.FridayEnd = &child.Schedule.FridayEnd.String
+	ret.Schedule.SaturdayStart = &child.Schedule.SaturdayStart.String
+	ret.Schedule.SaturdayEnd = &child.Schedule.SaturdayEnd.String
+	ret.Schedule.SundayStart = &child.Schedule.SundayStart.String
+	ret.Schedule.SundayEnd = &child.Schedule.SundayEnd.String
+	ret.Schedule.WalkIn = &child.Schedule.WalkIn.Bool
 	return ret
-}
-
-func transportToStore(request ChildTransport, strict bool) (store.Child, error) {
-	var birthDate, startDate time.Time
-	var err error
-
-	// In case of AddChild, dates are mandatory while in case of update they are not
-	if strict || (!strict && request.BirthDate != "") {
-		birthDate, err = dateparse.ParseIn(request.BirthDate, time.UTC)
-		if err != nil {
-			return store.Child{}, err
-		}
-	}
-
-	if strict || (!strict && request.StartDate != "") {
-		startDate, err = dateparse.ParseIn(request.StartDate, time.UTC)
-		if err != nil {
-			return store.Child{}, err
-		}
-	}
-
-	child := store.Child{
-		ChildId:       store.DbNullString(request.Id),
-		DaycareId:     store.DbNullString(request.DaycareId),
-		ClassId:       store.DbNullString(request.ClassId),
-		BirthDate:     birthDate,
-		FirstName:     store.DbNullString(request.FirstName),
-		LastName:      store.DbNullString(request.LastName),
-		Gender:        store.DbNullString(request.Gender),
-		ImageUri:      store.DbNullString(request.ImageUri),
-		Notes:         store.DbNullString(request.Notes),
-		StartDate:     startDate,
-		ResponsibleId: store.DbNullString(request.ResponsibleId),
-		Relationship:  store.DbNullString(request.Relationship),
-	}
-	for _, specialInstruction := range request.SpecialInstructions {
-		instructionToCreate := store.SpecialInstruction{Instruction: store.DbNullString(specialInstruction.Instruction)}
-		child.SpecialInstructions = append(child.SpecialInstructions, instructionToCreate)
-	}
-	for _, allergy := range request.Allergies {
-		allergyToCreate := store.Allergy{Allergy: store.DbNullString(allergy.Allergy), Instruction: store.DbNullString(allergy.Instruction)}
-		child.Allergies = append(child.Allergies, allergyToCreate)
-	}
-	return child, nil
-}
-
-func photoTransportToStore(request PhotoRequestTransport) store.ChildPhoto {
-	childPhoto := store.ChildPhoto{
-		ChildId:         store.DbNullString(request.ChildId),
-		ImageUri:        store.DbNullString(request.Filename),
-		Approved:        false,
-		PublishedBy:     store.DbNullString(request.SenderId),
-		PublicationDate: time.Now(),
-	}
-	return childPhoto
 }

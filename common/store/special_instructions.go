@@ -32,7 +32,7 @@ func (SpecialInstruction) TableName() string {
 
 func (s *Store) AddSpecialInstruction(tx *gorm.DB, specialInstruction SpecialInstruction) (SpecialInstruction, error) {
 	db := s.dbOrTx(tx)
-	specialInstruction.SpecialInstructionId = DbNullString(s.StringGenerator.GenerateUuid())
+	specialInstruction.SpecialInstructionId = s.newId()
 	err := db.Create(&specialInstruction).Error
 	return specialInstruction, err
 }

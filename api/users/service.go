@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"github.com/Vinubaba/SANTC-API/api/shared"
+	. "github.com/Vinubaba/SANTC-API/common/api"
 	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
 	"github.com/Vinubaba/SANTC-API/common/log"
 	"github.com/Vinubaba/SANTC-API/common/storage"
@@ -58,15 +59,16 @@ type UserService struct {
 }
 
 func (c *UserService) validateDaycareRequest(ctx context.Context, request *UserTransport) error {
-	if claims.IsAdmin(ctx) && request.DaycareId == "" {
+	if claims.IsAdmin(ctx) && IsNilOrEmpty(request.DaycareId) {
 		return errors.New("as an admin, you must specify the user daycare")
 	}
 
+	daycareId := claims.GetDaycareId(ctx)
 	// default to requester daycare (e.g office manager)
-	if request.DaycareId == "" {
-		request.DaycareId = claims.GetDaycareId(ctx)
+	if IsNilOrEmpty(request.DaycareId) {
+		request.DaycareId = &daycareId
 	}
-	if claims.GetDaycareId(ctx) != request.DaycareId {
+	if daycareId != *request.DaycareId {
 		return ErrCreateDifferentDaycare
 	}
 
@@ -87,13 +89,16 @@ func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport,
 		return store.User{}, errors.Wrap(tx.Error, "failed to create user")
 	}
 
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(request.DaycareId))
-	if err != nil {
-		return store.User{}, err
+	if !IsNilOrEmpty(request.ImageUri) {
+		imageUri, err := c.Storage.Store(ctx, *request.ImageUri, c.storageFolder(*request.DaycareId))
+		if err != nil {
+			return store.User{}, err
+		}
+		request.ImageUri = &imageUri
 	}
 
-	if request.DaycareId == "" {
-		request.DaycareId = c.Config.PublicDaycareId
+	if IsNilOrEmpty(request.DaycareId) {
+		request.DaycareId = &c.Config.PublicDaycareId
 	}
 
 	createdUser, err := c.Store.AddUser(tx, transportToDb(request))
@@ -124,7 +129,7 @@ func (c *UserService) AddUserByRoles(ctx context.Context, request UserTransport,
 
 func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	user, err := c.Store.GetUser(nil, request.Id, searchOptions)
+	user, err := c.Store.GetUser(nil, *request.Id, searchOptions)
 	if err != nil {
 		return store.User{}, errors.Wrap(err, "failed to update user")
 	}
@@ -135,10 +140,12 @@ func (c *UserService) UpdateUserByRoles(ctx context.Context, request UserTranspo
 		}
 	}
 
-	request.ImageUri, err = c.Storage.Store(ctx, request.ImageUri, c.storageFolder(user.DaycareId.String))
+	imageUri, err := c.Storage.Store(ctx, *request.ImageUri, c.storageFolder(user.DaycareId.String))
 	if err != nil {
 		return store.User{}, err
 	}
+	request.ImageUri = &imageUri
+
 	user, err = c.Store.UpdateUser(nil, transportToDb(request))
 	if err != nil {
 		return store.User{}, err
@@ -162,7 +169,7 @@ func (c *UserService) setBucketUri(ctx context.Context, user *store.User) {
 
 func (c *UserService) GetUserByRoles(ctx context.Context, request UserTransport, roles ...string) (store.User, error) {
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	user, err := c.Store.GetUser(nil, request.Id, searchOptions)
+	user, err := c.Store.GetUser(nil, *request.Id, searchOptions)
 	if err != nil {
 		return store.User{}, errors.Wrap(err, "failed to get user")
 	}
@@ -180,7 +187,7 @@ func (c *UserService) GetUserByRoles(ctx context.Context, request UserTransport,
 
 // Only called by firebase middleware
 func (c *UserService) GetUserByEmail(ctx context.Context, request UserTransport) (store.User, error) {
-	user, err := c.Store.GetUserByEmail(nil, request.Email)
+	user, err := c.Store.GetUserByEmail(nil, *request.Email)
 	if err != nil {
 		return store.User{}, errors.Wrap(err, "failed to get user")
 	}
@@ -192,7 +199,7 @@ func (c *UserService) GetUserByEmail(ctx context.Context, request UserTransport)
 
 func (c *UserService) DeleteUserByRoles(ctx context.Context, request UserTransport, roles ...string) error {
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	user, err := c.Store.GetUser(nil, request.Id, searchOptions)
+	user, err := c.Store.GetUser(nil, *request.Id, searchOptions)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete user")
 	}
@@ -207,7 +214,7 @@ func (c *UserService) DeleteUserByRoles(ctx context.Context, request UserTranspo
 		c.Logger.Warn(ctx, "failed to delete user from firebase")
 	}
 
-	if err := c.Store.DeleteUser(nil, request.Id); err != nil {
+	if err := c.Store.DeleteUser(nil, *request.Id); err != nil {
 		return errors.Wrap(err, "failed to delete user")
 	}
 
@@ -252,8 +259,8 @@ func (c *UserService) SetTeacherClass(ctx context.Context, teacherId, classId st
 	}
 
 	if err := c.Store.SetTeacherClass(nil, store.TeacherClass{
-		TeacherId: store.DbNullString(teacherId),
-		ClassId:   store.DbNullString(classId),
+		TeacherId: store.DbNullString(&teacherId),
+		ClassId:   store.DbNullString(&classId),
 	}); err != nil {
 		return err
 	}
@@ -267,6 +274,7 @@ type ServiceMiddleware func(UserService) UserService
 func transportToDb(user UserTransport) store.User {
 	return store.User{
 		UserId:        store.DbNullString(user.Id),
+		ScheduleId:    store.DbNullString(user.ScheduleId),
 		Email:         store.DbNullString(user.Email),
 		Address_1:     store.DbNullString(user.Address_1),
 		Address_2:     store.DbNullString(user.Address_2),

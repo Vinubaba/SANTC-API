@@ -20,13 +20,13 @@ var (
 )
 
 type DaycareTransport struct {
-	Id        string `json:"id"`
-	Name      string `json:"name"`
-	Address_1 string `json:"address_1"`
-	Address_2 string `json:"address_2"`
-	City      string `json:"city"`
-	State     string `json:"state"`
-	Zip       string `json:"zip"`
+	Id        *string `json:"id"`
+	Name      *string `json:"name"`
+	Address_1 *string `json:"address_1"`
+	Address_2 *string `json:"address_2"`
+	City      *string `json:"city"`
+	State     *string `json:"state"`
+	Zip       *string `json:"zip"`
 }
 
 type HandlerFactory struct {
@@ -143,13 +143,13 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 
 func dbDaycareToTransportDaycare(daycare store.Daycare) DaycareTransport {
 	return DaycareTransport{
-		Id:        daycare.DaycareId.String,
-		Address_1: daycare.Address_1.String,
-		Address_2: daycare.Address_2.String,
-		City:      daycare.City.String,
-		State:     daycare.State.String,
-		Zip:       daycare.Zip.String,
-		Name:      daycare.Name.String,
+		Id:        &daycare.DaycareId.String,
+		Address_1: &daycare.Address_1.String,
+		Address_2: &daycare.Address_2.String,
+		City:      &daycare.City.String,
+		State:     &daycare.State.String,
+		Zip:       &daycare.Zip.String,
+		Name:      &daycare.Name.String,
 	}
 }
 
@@ -167,7 +167,7 @@ func decodeGetOrDeleteDaycareTransport(_ context.Context, r *http.Request) (inte
 	if !ok {
 		return nil, ErrBadRouting
 	}
-	return DaycareTransport{Id: id}, nil
+	return DaycareTransport{Id: &id}, nil
 }
 
 func decodeUpdateDaycareRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -182,7 +182,7 @@ func decodeUpdateDaycareRequest(_ context.Context, r *http.Request) (interface{}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
-	request.Id = id
+	request.Id = &id
 	return request, nil
 }
 

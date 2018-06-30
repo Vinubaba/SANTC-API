@@ -11,9 +11,9 @@ type AgeRange struct {
 	AgeRangeId sql.NullString
 	DaycareId  sql.NullString
 	Stage      sql.NullString
-	Min        int
+	Min        sql.NullInt64
 	MinUnit    sql.NullString
-	Max        int
+	Max        sql.NullInt64
 	MaxUnit    sql.NullString
 }
 
@@ -23,8 +23,7 @@ var (
 
 func (s *Store) AddAgeRange(tx *gorm.DB, ageRange AgeRange) (AgeRange, error) {
 	db := s.dbOrTx(tx)
-
-	ageRange.AgeRangeId = DbNullString(s.StringGenerator.GenerateUuid())
+	ageRange.AgeRangeId = s.newId()
 
 	if err := db.Create(&ageRange).Error; err != nil {
 		return AgeRange{}, err

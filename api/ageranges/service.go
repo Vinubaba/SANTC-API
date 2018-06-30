@@ -3,10 +3,11 @@ package ageranges
 import (
 	"context"
 
-	"github.com/Vinubaba/SANTC-API/common/store"
-
+	"github.com/Vinubaba/SANTC-API/common/api"
 	"github.com/Vinubaba/SANTC-API/common/firebase/claims"
 	"github.com/Vinubaba/SANTC-API/common/log"
+	"github.com/Vinubaba/SANTC-API/common/store"
+
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -40,8 +41,8 @@ func (c *AgeRangeService) transportToStore(request AgeRangeTransport) store.AgeR
 	return store.AgeRange{
 		AgeRangeId: store.DbNullString(request.Id),
 		DaycareId:  store.DbNullString(request.DaycareId),
-		Min:        request.Min,
-		Max:        request.Max,
+		Min:        store.DbNullInt64(request.Min),
+		Max:        store.DbNullInt64(request.Max),
 		MinUnit:    store.DbNullString(request.MinUnit),
 		MaxUnit:    store.DbNullString(request.MaxUnit),
 		Stage:      store.DbNullString(request.Stage),
@@ -49,12 +50,13 @@ func (c *AgeRangeService) transportToStore(request AgeRangeTransport) store.AgeR
 }
 
 func (c *AgeRangeService) AddAgeRange(ctx context.Context, request AgeRangeTransport) (store.AgeRange, error) {
-	if claims.IsAdmin(ctx) && request.DaycareId == "" {
+	if claims.IsAdmin(ctx) && api.IsNilOrEmpty(request.DaycareId) {
 		return store.AgeRange{}, errors.New("as an admin, you must specify the a daycareId")
 	} else {
 		// default to requester daycare (e.g office manager)
-		if request.DaycareId == "" {
-			request.DaycareId = claims.GetDaycareId(ctx)
+		if request.DaycareId == nil {
+			daycareId := claims.GetDaycareId(ctx)
+			request.DaycareId = &daycareId
 		}
 	}
 
@@ -67,8 +69,12 @@ func (c *AgeRangeService) AddAgeRange(ctx context.Context, request AgeRangeTrans
 }
 
 func (c *AgeRangeService) GetAgeRange(ctx context.Context, request AgeRangeTransport) (store.AgeRange, error) {
+	if api.IsNilOrEmpty(request.Id) {
+		return store.AgeRange{}, ErrEmptyAgeRange
+	}
+
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	ageRange, err := c.Store.GetAgeRange(nil, request.Id, searchOptions)
+	ageRange, err := c.Store.GetAgeRange(nil, *request.Id, searchOptions)
 	if err != nil {
 		return ageRange, errors.Wrap(err, "failed to get age range")
 	}
@@ -77,13 +83,17 @@ func (c *AgeRangeService) GetAgeRange(ctx context.Context, request AgeRangeTrans
 }
 
 func (c *AgeRangeService) DeleteAgeRange(ctx context.Context, request AgeRangeTransport) error {
+	if api.IsNilOrEmpty(request.Id) {
+		return ErrEmptyAgeRange
+	}
+
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	_, err := c.Store.GetAgeRange(nil, request.Id, searchOptions)
+	_, err := c.Store.GetAgeRange(nil, *request.Id, searchOptions)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete age range")
 	}
 
-	if err := c.Store.DeleteAgeRange(nil, request.Id); err != nil {
+	if err := c.Store.DeleteAgeRange(nil, *request.Id); err != nil {
 		return errors.Wrap(err, "failed to delete age range")
 	}
 
@@ -101,12 +111,12 @@ func (c *AgeRangeService) ListAgeRange(ctx context.Context) ([]store.AgeRange, e
 }
 
 func (c *AgeRangeService) UpdateAgeRange(ctx context.Context, request AgeRangeTransport) (store.AgeRange, error) {
-	if request.Id == "" {
+	if api.IsNilOrEmpty(request.Id) {
 		return store.AgeRange{}, ErrEmptyAgeRange
 	}
 
 	searchOptions := claims.GetDefaultSearchOptions(ctx)
-	_, err := c.Store.GetAgeRange(nil, request.Id, searchOptions)
+	_, err := c.Store.GetAgeRange(nil, *request.Id, searchOptions)
 	if err != nil {
 		return store.AgeRange{}, errors.Wrap(err, "failed to update age range")
 	}
