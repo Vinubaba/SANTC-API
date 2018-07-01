@@ -288,7 +288,7 @@ func startHttpServer(ctx context.Context) {
 
 	checkErrAndExit(http.ListenAndServe("0.0.0.0:8080",
 		logger.RequestLoggerMiddleware(
-			authenticator.Firebase(router, []string{"/healthz", "/readyz", "/auth/login", "/auth/success", "/swagger.yaml", "/api/v1/"}),
+			authenticator.Firebase(router, []string{"/healthz", "/readyz", "/auth/login", "/auth/success", "/swagger.yaml", "/api/v1"}),
 		),
 	))
 }

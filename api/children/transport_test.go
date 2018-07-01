@@ -162,6 +162,7 @@ var _ = Describe("Transport", func() {
 		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Update(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADULT, roles.ROLE_ADMIN)).Methods(http.MethodPatch)
 		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Delete(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodDelete)
 		router.Handle("/children/{childId}/photos", authenticator.Roles(handlerFactory.AddPhoto(opts), roles.ROLE_SERVICE)).Methods(http.MethodPost)
+		router.Handle("/photos-to-approve", authenticator.Roles(handlerFactory.AddPhoto(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodPost)
 		recorder = httptest.NewRecorder()
 
 		shared.SetDbInitialState()
@@ -755,6 +756,57 @@ var _ = Describe("Transport", func() {
 				httpEndpointToUse = "/children/childid-1/photos"
 				httpBodyToUse = `{"filename": "abcd-efgh.jpg", "childId": "childid-1", "senderId": "id6", "bucket": "photo-approvals"}`
 				headersToUse.Set(roles.ROLE_REQUEST_HEADER, roles.ROLE_SERVICE)
+				claims = map[string]interface{}{}
+			})
+			Context("Default", func() {
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusCreated)
+			})
+
+			Context("When database is closed", func() {
+				BeforeEach(func() {
+					concreteDb.Close()
+				})
+				assertJsonResponse(`{"error":"failed to get child: sql: database is closed"}`)
+				assertHttpCode(http.StatusInternalServerError)
+			})
+
+			Context("When the childId does not belong to the same daycare as senderId", func() {
+				BeforeEach(func() {
+					httpBodyToUse = `{"filename": "abcd-efgh.jpg", "senderId": "id2", "bucket": "photo-approvals"}`
+				})
+				assertJsonResponse(`{"error":"child does not belong to this daycare"}`)
+				assertHttpCode(http.StatusBadRequest)
+			})
+
+			Context("When the childId does not exist", func() {
+				BeforeEach(func() {
+					httpBodyToUse = `{"filename": "abcd-efgh.jpg", "senderId": "id6", "bucket": "photo-approvals"}`
+					httpEndpointToUse = "/children/foobar/photos"
+
+				})
+				assertJsonResponse(`{"error":"failed to get child: child not found"}`)
+				assertHttpCode(http.StatusNotFound)
+			})
+
+			Context("When the request does not come from a service", func() {
+				BeforeEach(func() {
+					httpBodyToUse = `{"filename": "abcd-efgh.jpg", "senderId": "id6", "bucket": "photo-approvals"}`
+					httpEndpointToUse = "/children/foobar/photos"
+					headersToUse = http.Header{}
+				})
+				assertReturnedNoPayload()
+				assertHttpCode(http.StatusUnauthorized)
+			})
+
+		})
+
+		Describe("LIST PHOTOS TO APPROVE", func() {
+
+			BeforeEach(func() {
+				httpMethodToUse = http.MethodPost
+				httpEndpointToUse = "/photos-to-approve"
+				httpBodyToUse = ``
 				claims = map[string]interface{}{}
 			})
 			Context("Default", func() {

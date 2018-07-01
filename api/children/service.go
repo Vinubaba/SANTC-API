@@ -254,10 +254,20 @@ func (c *ChildService) AddPhoto(ctx context.Context, request PhotoRequestTranspo
 func (c *ChildService) GetPhotosToApprove(ctx context.Context) ([]store.ChildPhoto, error) {
 	photos, err := c.Store.ListPhotos(nil, store.ChildPhotosSearchOptions{
 		Approved: false,
+		DaycareId: claims.GetDaycareId(ctx),
 	})
 	if err != nil {
 		return photos, errors.Wrap(err, "failed to store photo")
 	}
+
+	for i := 0; i < len(photos); i++ {
+		uri, err := c.Storage.Get(ctx, photos[i].ImageUri.String)
+		if err != nil {
+			return []store.ChildPhoto{}, errors.Wrap(err, "failed to generate image uri")
+		}
+		photos[i].ImageUri = store.DbNullString(&uri)
+	}
+
 	return photos, nil
 }
 

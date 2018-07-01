@@ -38,17 +38,21 @@ func (s *Store) ListPhotos(tx *gorm.DB, options ChildPhotosSearchOptions) ([]Chi
 	ret := make([]ChildPhoto, 0)
 
 	db := s.dbOrTx(tx)
-	query := db.Table("child_photos").Select(
+	query := db.Table("child_photos,children").Select(
 		"child_photos.photo_id," +
 		"child_photos.child_id," +
 		"children.published_by," +
 		"children.approved_by," +
 		"children.image_uri," +
 		"children.approved")
+	query = query.Where("child_photos.child_id = children.child_id")
 	if options.Approved {
 		query = query.Where("approved = true")
 	} else {
 		query = query.Where("approved = false")
+	}
+	if options.DaycareId != "" {
+		query = query.Where("children.daycare_id = ?", options.DaycareId)
 	}
 
 	rows, err := query.Rows()
@@ -68,6 +72,7 @@ func (s *Store) ListPhotos(tx *gorm.DB, options ChildPhotosSearchOptions) ([]Chi
 
 type ChildPhotosSearchOptions struct {
 	Approved bool
+	DaycareId string
 }
 
 func (s *Store) scanChildPhotosRows(rows *sql.Rows) ([]ChildPhoto, error) {

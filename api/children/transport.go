@@ -111,11 +111,11 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 
 func makeGetPhotosToApproveEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(ChildTransport)
-		if err := svc.GetPhotosToApprove(ctx, req); err != nil {
+		photos, err := svc.GetPhotosToApprove(ctx)
+		if err != nil {
 			return nil, err
 		}
-		return nil, nil
+		return photos, nil
 	}
 }
 
