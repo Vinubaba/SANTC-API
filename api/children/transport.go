@@ -41,6 +41,15 @@ func (h *HandlerFactory) Get(opts []kithttp.ServerOption) *kithttp.Server {
 	)
 }
 
+func (h *HandlerFactory) GetPhotosToApprove(opts []kithttp.ServerOption) *kithttp.Server {
+	return kithttp.NewServer(
+		makeGetPhotosToApproveEndpoint(h.Service),
+		ignorePayload,
+		shared.EncodeResponse200,
+		opts...,
+	)
+}
+
 func (h *HandlerFactory) Delete(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
 		makeDeleteEndpoint(h.Service),
@@ -97,6 +106,16 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 			return nil, err
 		}
 		return storeToTransport(child), nil
+	}
+}
+
+func makeGetPhotosToApproveEndpoint(svc Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(ChildTransport)
+		if err := svc.GetPhotosToApprove(ctx, req); err != nil {
+			return nil, err
+		}
+		return nil, nil
 	}
 }
 

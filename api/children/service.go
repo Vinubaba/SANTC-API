@@ -31,6 +31,7 @@ type Service interface {
 	ListChildren(ctx context.Context) ([]store.Child, error)
 
 	AddPhoto(ctx context.Context, request PhotoRequestTransport) error
+	GetPhotosToApprove(ctx context.Context) ([]store.ChildPhoto, error)
 }
 
 type ChildService struct {
@@ -43,6 +44,7 @@ type ChildService struct {
 		DeleteChild(tx *gorm.DB, childId string) error
 
 		AddChildPhoto(tx *gorm.DB, childPhoto store.ChildPhoto) error
+		ListPhotos(tx *gorm.DB, options store.ChildPhotosSearchOptions) ([]store.ChildPhoto, error)
 
 		GetClass(tx *gorm.DB, classId string, options store.SearchOptions) (store.Class, error)
 		GetUser(tx *gorm.DB, userId string, searchOptions store.SearchOptions) (store.User, error)
@@ -247,6 +249,16 @@ func (c *ChildService) AddPhoto(ctx context.Context, request PhotoRequestTranspo
 	}
 
 	return nil
+}
+
+func (c *ChildService) GetPhotosToApprove(ctx context.Context) ([]store.ChildPhoto, error) {
+	photos, err := c.Store.ListPhotos(nil, store.ChildPhotosSearchOptions{
+		Approved: false,
+	})
+	if err != nil {
+		return photos, errors.Wrap(err, "failed to store photo")
+	}
+	return photos, nil
 }
 
 func transportToStore(request ChildTransport, strict bool) (store.Child, error) {

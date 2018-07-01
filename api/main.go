@@ -284,6 +284,8 @@ func startHttpServer(ctx context.Context) {
 	apiRouterV1.Handle("/classes/{classId}", authenticator.Roles(classesHandlerFactory.Update(classesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodPatch)
 	apiRouterV1.Handle("/classes/{classId}", authenticator.Roles(classesHandlerFactory.Delete(classesOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodDelete)
 
+	apiRouterV1.Handle("/photos-to-approve", authenticator.Roles(childrenHandlerFactory.GetPhotosToApprove(childrenOpts), ROLE_OFFICE_MANAGER, ROLE_ADMIN)).Methods(http.MethodGet)
+
 	checkErrAndExit(http.ListenAndServe("0.0.0.0:8080",
 		logger.RequestLoggerMiddleware(
 			authenticator.Firebase(router, []string{"/healthz", "/readyz", "/auth/login", "/auth/success", "/swagger.yaml", "/api/v1/"}),
