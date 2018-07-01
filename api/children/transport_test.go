@@ -162,7 +162,7 @@ var _ = Describe("Transport", func() {
 		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Update(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADULT, roles.ROLE_ADMIN)).Methods(http.MethodPatch)
 		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Delete(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodDelete)
 		router.Handle("/children/{childId}/photos", authenticator.Roles(handlerFactory.AddPhoto(opts), roles.ROLE_SERVICE)).Methods(http.MethodPost)
-		router.Handle("/photos-to-approve", authenticator.Roles(handlerFactory.AddPhoto(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodPost)
+		router.Handle("/photos-to-approve", authenticator.Roles(handlerFactory.GetPhotosToApprove(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodGet)
 		recorder = httptest.NewRecorder()
 
 		shared.SetDbInitialState()
@@ -804,14 +804,16 @@ var _ = Describe("Transport", func() {
 		Describe("LIST PHOTOS TO APPROVE", func() {
 
 			BeforeEach(func() {
-				httpMethodToUse = http.MethodPost
+				httpMethodToUse = http.MethodGet
 				httpEndpointToUse = "/photos-to-approve"
-				httpBodyToUse = ``
-				claims = map[string]interface{}{}
+				httpBodyToUse = ""
+				claims[roles.ROLE_ADMIN] = true
+				claims["daycareId"] = "namek"
 			})
-			Context("Default", func() {
-				assertReturnedNoPayload()
-				assertHttpCode(http.StatusCreated)
+
+			FContext("Default", func() {
+				assertJsonResponse(`{"error":"failed to get child: sql: database is closed"}`)
+				assertHttpCode(http.StatusOK)
 			})
 
 			Context("When database is closed", func() {

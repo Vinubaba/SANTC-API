@@ -257,7 +257,7 @@ func (c *ChildService) GetPhotosToApprove(ctx context.Context) ([]store.ChildPho
 		DaycareId: claims.GetDaycareId(ctx),
 	})
 	if err != nil {
-		return photos, errors.Wrap(err, "failed to store photo")
+		return photos, errors.Wrap(err, "failed to get photo")
 	}
 
 	for i := 0; i < len(photos); i++ {

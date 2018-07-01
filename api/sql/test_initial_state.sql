@@ -56,3 +56,5 @@ INSERT INTO "responsible_of" ("responsible_id","child_id","relationship") VALUES
 INSERT INTO "schedules" ("schedule_id","walk_in","monday_start","monday_end","tuesday_start","tuesday_end","wednesday_start","wednesday_end","thursday_start","thursday_end","friday_start","friday_end") VALUES ('scheduleid-1','false', '8:30 AM', '6:00 PM', '8:30 AM', '6:00 PM', '8:30 AM', '6:00 PM', '8:30 AM', '6:00 PM', '8:30 AM', '6:00 PM');
 UPDATE users SET schedule_id = 'scheduleid-1' WHERE user_id = 'id9';
 UPDATE children SET schedule_id = 'scheduleid-1' WHERE child_id = 'childid-1';
+
+INSERT INTO "child_photos" ("photo_id","child_id","published_by","approved_by","image_uri","approved","publication_date") VALUES ('photoid-1','id6', 'id9',NULL,'foo/bar.jpg','false','1992-10-13T15:13:00Z');
