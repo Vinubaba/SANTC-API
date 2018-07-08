@@ -13,7 +13,7 @@ type ChildPhoto struct {
 	PublishedBy     sql.NullString
 	ApprovedBy      sql.NullString
 	ImageUri        sql.NullString
-	Approved        bool
+	Approved        sql.NullBool
 	PublicationDate time.Time
 }
 
@@ -38,14 +38,15 @@ func (s *Store) ListPhotos(tx *gorm.DB, options ChildPhotosSearchOptions) ([]Chi
 	ret := make([]ChildPhoto, 0)
 
 	db := s.dbOrTx(tx)
-	query := db.Table("child_photos").Select(
-		"child_photos.photo_id," +
-		"child_photos.child_id," +
-		"child_photos.published_by," +
-		"child_photos.approved_by," +
-		"child_photos.image_uri," +
-		"child_photos.approved",
-		"child_photos.publication_date").Joins("join children ON children.child_id = child_photos.child_id")
+	query := db.Table("child_photos").
+		Select("child_photos.photo_id," +
+			"child_photos.child_id," +
+			"child_photos.published_by," +
+			"child_photos.approved_by," +
+			"child_photos.image_uri," +
+			"child_photos.approved," +
+			"child_photos.publication_date").
+		Joins("join children ON children.child_id = child_photos.child_id")
 	if options.Approved {
 		query = query.Where("child_photos.approved = true")
 	} else {
@@ -68,12 +69,12 @@ func (s *Store) ListPhotos(tx *gorm.DB, options ChildPhotosSearchOptions) ([]Chi
 }
 
 type ChildPhotosSearchOptions struct {
-	Approved bool
+	Approved  bool
 	DaycareId string
 }
 
 func (s *Store) scanChildPhotosRows(rows *sql.Rows) ([]ChildPhoto, error) {
-	photos := make([]ChildPhoto, 0)
+	photos := []ChildPhoto{}
 	for rows.Next() {
 		currentPhoto := ChildPhoto{}
 		if err := rows.Scan(&currentPhoto.PhotoId,
@@ -86,6 +87,7 @@ func (s *Store) scanChildPhotosRows(rows *sql.Rows) ([]ChildPhoto, error) {
 		); err != nil {
 			return []ChildPhoto{}, err
 		}
+		photos = append(photos, currentPhoto)
 	}
 	return photos, nil
 }

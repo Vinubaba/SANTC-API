@@ -1,9 +1,13 @@
 package api
 
 type PhotoRequestTransport struct {
-	Filename *string `json:"filename"`
-	ChildId  *string `json:"childId"`
-	SenderId *string `json:"senderId"`
+	Filename        *string `json:"filename"`
+	ChildId         *string `json:"childId"`
+	PublishedBy     *string `json:"publishedBy"`
+	PhotoId         *string `json:"photoId"`
+	ApprovedBy      *string `json:"approvedBy"`
+	Approved        *bool   `json:"approved"`
+	PublicationDate *string `json:"publicationDate"`
 }
 
 type ChildTransport struct {

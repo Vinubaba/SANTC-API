@@ -235,7 +235,7 @@ func (c *ChildService) AddPhoto(ctx context.Context, request PhotoRequestTranspo
 		return err
 	}
 
-	requesterUser, err := c.Store.GetUser(nil, *request.SenderId, store.SearchOptions{})
+	requesterUser, err := c.Store.GetUser(nil, *request.PublishedBy, store.SearchOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to get user")
 	}
@@ -253,11 +253,11 @@ func (c *ChildService) AddPhoto(ctx context.Context, request PhotoRequestTranspo
 
 func (c *ChildService) GetPhotosToApprove(ctx context.Context) ([]store.ChildPhoto, error) {
 	photos, err := c.Store.ListPhotos(nil, store.ChildPhotosSearchOptions{
-		Approved: false,
+		Approved:  false,
 		DaycareId: claims.GetDaycareId(ctx),
 	})
 	if err != nil {
-		return photos, errors.Wrap(err, "failed to get photo")
+		return []store.ChildPhoto{}, errors.Wrap(err, "failed to get photo")
 	}
 
 	for i := 0; i < len(photos); i++ {
@@ -339,9 +339,11 @@ func photoTransportToStore(request PhotoRequestTransport) store.ChildPhoto {
 	childPhoto := store.ChildPhoto{
 		ChildId:         store.DbNullString(request.ChildId),
 		ImageUri:        store.DbNullString(request.Filename),
-		Approved:        false,
-		PublishedBy:     store.DbNullString(request.SenderId),
+		Approved:        store.DbNullBool(request.Approved),
+		PublishedBy:     store.DbNullString(request.PublishedBy),
 		PublicationDate: time.Now(),
+		ApprovedBy:      store.DbNullString(request.ApprovedBy),
+		PhotoId:         store.DbNullString(request.PhotoId),
 	}
 	return childPhoto
 }

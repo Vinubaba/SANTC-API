@@ -82,7 +82,6 @@ func SetDbInitialState() {
 		log.Fatal(err.Error())
 		panic(err)
 	}
-	fmt.Println(string(out))
 }
 
 func NewDbInstance(verbose bool, logger ...interface {
