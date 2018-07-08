@@ -19,6 +19,26 @@ paths:
       responses:
         200:
           description: "success"
+  /api/v1/photos-to-approve:
+    get:
+      tags:
+      - "photos"
+      summary: "Office manager can retrieve photos that need approval before being sent to parents"
+      description: ""
+      operationId: "listPhotosToApprove"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "success"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/PhotoToApprove"
+        500:
+          description: "server error"
   /api/v1/office-managers:
     get:
       tags:
@@ -1431,3 +1451,24 @@ definitions:
       classId:
         type: "string"
         format: "uid"
+  PhotoToApprove:
+    type: "object"
+    properties:
+      filename:
+        type: "string"
+      childId:
+        type: "string"
+        format: "uid"
+      publishedBy:
+        type: "string"
+        format: "uid"
+      photoId:
+        type: "string"
+        format: "uid"
+      approvedBy:
+        type: "string"
+        format: "uid"
+      approved:
+        type: "boolean"
+      publicationDate:
+        type: "string"

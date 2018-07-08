@@ -31,6 +31,7 @@ type Service interface {
 	ListChildren(ctx context.Context) ([]store.Child, error)
 
 	AddPhoto(ctx context.Context, request PhotoRequestTransport) error
+	GetPhotosToApprove(ctx context.Context) ([]store.ChildPhoto, error)
 }
 
 type ChildService struct {
@@ -43,6 +44,7 @@ type ChildService struct {
 		DeleteChild(tx *gorm.DB, childId string) error
 
 		AddChildPhoto(tx *gorm.DB, childPhoto store.ChildPhoto) error
+		ListPhotos(tx *gorm.DB, options store.ChildPhotosSearchOptions) ([]store.ChildPhoto, error)
 
 		GetClass(tx *gorm.DB, classId string, options store.SearchOptions) (store.Class, error)
 		GetUser(tx *gorm.DB, userId string, searchOptions store.SearchOptions) (store.User, error)
@@ -233,7 +235,7 @@ func (c *ChildService) AddPhoto(ctx context.Context, request PhotoRequestTranspo
 		return err
 	}
 
-	requesterUser, err := c.Store.GetUser(nil, *request.SenderId, store.SearchOptions{})
+	requesterUser, err := c.Store.GetUser(nil, *request.PublishedBy, store.SearchOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to get user")
 	}
@@ -247,6 +249,26 @@ func (c *ChildService) AddPhoto(ctx context.Context, request PhotoRequestTranspo
 	}
 
 	return nil
+}
+
+func (c *ChildService) GetPhotosToApprove(ctx context.Context) ([]store.ChildPhoto, error) {
+	photos, err := c.Store.ListPhotos(nil, store.ChildPhotosSearchOptions{
+		Approved:  false,
+		DaycareId: claims.GetDaycareId(ctx),
+	})
+	if err != nil {
+		return []store.ChildPhoto{}, errors.Wrap(err, "failed to get photo")
+	}
+
+	for i := 0; i < len(photos); i++ {
+		uri, err := c.Storage.Get(ctx, photos[i].ImageUri.String)
+		if err != nil {
+			return []store.ChildPhoto{}, errors.Wrap(err, "failed to generate image uri")
+		}
+		photos[i].ImageUri = store.DbNullString(&uri)
+	}
+
+	return photos, nil
 }
 
 func transportToStore(request ChildTransport, strict bool) (store.Child, error) {
@@ -317,9 +339,11 @@ func photoTransportToStore(request PhotoRequestTransport) store.ChildPhoto {
 	childPhoto := store.ChildPhoto{
 		ChildId:         store.DbNullString(request.ChildId),
 		ImageUri:        store.DbNullString(request.Filename),
-		Approved:        false,
-		PublishedBy:     store.DbNullString(request.SenderId),
+		Approved:        store.DbNullBool(request.Approved),
+		PublishedBy:     store.DbNullString(request.PublishedBy),
 		PublicationDate: time.Now(),
+		ApprovedBy:      store.DbNullString(request.ApprovedBy),
+		PhotoId:         store.DbNullString(request.PhotoId),
 	}
 	return childPhoto
 }

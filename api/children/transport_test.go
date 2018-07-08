@@ -106,7 +106,7 @@ var _ = Describe("Transport", func() {
 
 	BeforeEach(func() {
 		concreteDb = shared.NewDbInstance(false)
-		concreteDb.LogMode(true)
+		concreteDb.LogMode(false)
 		mockStringGenerator = &MockStringGenerator{}
 		mockStringGenerator.On("GenerateUuid").Return("generatedId1").Once()
 		mockStringGenerator.On("GenerateUuid").Return("generatedId2").Once()
@@ -162,6 +162,7 @@ var _ = Describe("Transport", func() {
 		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Update(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADULT, roles.ROLE_ADMIN)).Methods(http.MethodPatch)
 		router.Handle("/children/{childId}", authenticator.Roles(handlerFactory.Delete(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodDelete)
 		router.Handle("/children/{childId}/photos", authenticator.Roles(handlerFactory.AddPhoto(opts), roles.ROLE_SERVICE)).Methods(http.MethodPost)
+		router.Handle("/photos-to-approve", authenticator.Roles(handlerFactory.GetPhotosToApprove(opts), roles.ROLE_OFFICE_MANAGER, roles.ROLE_ADMIN)).Methods(http.MethodGet)
 		recorder = httptest.NewRecorder()
 
 		shared.SetDbInitialState()
@@ -753,7 +754,7 @@ var _ = Describe("Transport", func() {
 			BeforeEach(func() {
 				httpMethodToUse = http.MethodPost
 				httpEndpointToUse = "/children/childid-1/photos"
-				httpBodyToUse = `{"filename": "abcd-efgh.jpg", "childId": "childid-1", "senderId": "id6", "bucket": "photo-approvals"}`
+				httpBodyToUse = `{"filename": "abcd-efgh.jpg", "childId": "childid-1", "publishedBy": "id6"}`
 				headersToUse.Set(roles.ROLE_REQUEST_HEADER, roles.ROLE_SERVICE)
 				claims = map[string]interface{}{}
 			})
@@ -770,9 +771,9 @@ var _ = Describe("Transport", func() {
 				assertHttpCode(http.StatusInternalServerError)
 			})
 
-			Context("When the childId does not belong to the same daycare as senderId", func() {
+			Context("When the childId does not belong to the same daycare as publishedBy", func() {
 				BeforeEach(func() {
-					httpBodyToUse = `{"filename": "abcd-efgh.jpg", "senderId": "id2", "bucket": "photo-approvals"}`
+					httpBodyToUse = `{"filename": "abcd-efgh.jpg", "publishedBy": "id2"}`
 				})
 				assertJsonResponse(`{"error":"child does not belong to this daycare"}`)
 				assertHttpCode(http.StatusBadRequest)
@@ -796,6 +797,39 @@ var _ = Describe("Transport", func() {
 				})
 				assertReturnedNoPayload()
 				assertHttpCode(http.StatusUnauthorized)
+			})
+
+		})
+
+		Describe("LIST PHOTOS TO APPROVE", func() {
+
+			BeforeEach(func() {
+				httpMethodToUse = http.MethodGet
+				httpEndpointToUse = "/photos-to-approve"
+				httpBodyToUse = ""
+				claims[roles.ROLE_ADMIN] = true
+				claims["daycareId"] = "namek"
+			})
+
+			Context("Default", func() {
+				assertJsonResponse(`[{
+                "filename": "gs://foo/bar.jpg",
+                "childId": "childid-1",
+                "publishedBy": "id9",
+                "photoId": "photoid-1",
+                "approvedBy": "",
+                "approved": false,
+                "publicationDate": "1992-10-13 00:00:00 +0000 UTC"
+              }]`)
+				assertHttpCode(http.StatusOK)
+			})
+
+			Context("When database is closed", func() {
+				BeforeEach(func() {
+					concreteDb.Close()
+				})
+				assertJsonResponse(`{"error":"failed to get photo: sql: database is closed"}`)
+				assertHttpCode(http.StatusInternalServerError)
 			})
 
 		})

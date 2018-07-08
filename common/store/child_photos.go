@@ -13,7 +13,7 @@ type ChildPhoto struct {
 	PublishedBy     sql.NullString
 	ApprovedBy      sql.NullString
 	ImageUri        sql.NullString
-	Approved        bool
+	Approved        sql.NullBool
 	PublicationDate time.Time
 }
 
@@ -32,4 +32,62 @@ func (s *Store) ApprovePhoto(tx *gorm.DB, photoId, approvedBy string) error {
 	return db.Table("child_photos").
 		Where("photo_id = ?", photoId).
 		Update(map[string]interface{}{"approved": true, "approvedBy": approvedBy}).Error
+}
+
+func (s *Store) ListPhotos(tx *gorm.DB, options ChildPhotosSearchOptions) ([]ChildPhoto, error) {
+	ret := make([]ChildPhoto, 0)
+
+	db := s.dbOrTx(tx)
+	query := db.Table("child_photos").
+		Select("child_photos.photo_id," +
+			"child_photos.child_id," +
+			"child_photos.published_by," +
+			"child_photos.approved_by," +
+			"child_photos.image_uri," +
+			"child_photos.approved," +
+			"child_photos.publication_date").
+		Joins("join children ON children.child_id = child_photos.child_id")
+	if options.Approved {
+		query = query.Where("child_photos.approved = true")
+	} else {
+		query = query.Where("child_photos.approved = false")
+	}
+	if options.DaycareId != "" {
+		query = query.Where("children.daycare_id = ?", options.DaycareId)
+	}
+
+	rows, err := query.Rows()
+	if err != nil {
+		return ret, err
+	}
+	ret, err = s.scanChildPhotosRows(rows)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+type ChildPhotosSearchOptions struct {
+	Approved  bool
+	DaycareId string
+}
+
+func (s *Store) scanChildPhotosRows(rows *sql.Rows) ([]ChildPhoto, error) {
+	photos := []ChildPhoto{}
+	for rows.Next() {
+		currentPhoto := ChildPhoto{}
+		if err := rows.Scan(&currentPhoto.PhotoId,
+			&currentPhoto.ChildId,
+			&currentPhoto.PublishedBy,
+			&currentPhoto.ApprovedBy,
+			&currentPhoto.ImageUri,
+			&currentPhoto.Approved,
+			&currentPhoto.PublicationDate,
+		); err != nil {
+			return []ChildPhoto{}, err
+		}
+		photos = append(photos, currentPhoto)
+	}
+	return photos, nil
 }

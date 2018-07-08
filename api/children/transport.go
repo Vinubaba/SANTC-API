@@ -41,6 +41,15 @@ func (h *HandlerFactory) Get(opts []kithttp.ServerOption) *kithttp.Server {
 	)
 }
 
+func (h *HandlerFactory) GetPhotosToApprove(opts []kithttp.ServerOption) *kithttp.Server {
+	return kithttp.NewServer(
+		makeGetPhotosToApproveEndpoint(h.Service),
+		ignorePayload,
+		shared.EncodeResponse200,
+		opts...,
+	)
+}
+
 func (h *HandlerFactory) Delete(opts []kithttp.ServerOption) *kithttp.Server {
 	return kithttp.NewServer(
 		makeDeleteEndpoint(h.Service),
@@ -100,6 +109,23 @@ func makeGetEndpoint(svc Service) endpoint.Endpoint {
 	}
 }
 
+func makeGetPhotosToApproveEndpoint(svc Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		photos, err := svc.GetPhotosToApprove(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		photosRet := []PhotoRequestTransport{}
+
+		for _, photo := range photos {
+			photosRet = append(photosRet, photoStoreToTransport(photo))
+		}
+
+		return photosRet, nil
+	}
+}
+
 func makeDeleteEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(ChildTransport)
@@ -141,6 +167,7 @@ func makeUpdateEndpoint(svc Service) endpoint.Endpoint {
 func makeAddPhotoEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(PhotoRequestTransport)
+		req.Approved = new(bool)
 		if err := svc.AddPhoto(ctx, req); err != nil {
 			return nil, err
 		}
@@ -269,4 +296,18 @@ func storeToTransport(child store.Child) ChildTransport {
 	ret.Schedule.SundayEnd = &child.Schedule.SundayEnd.String
 	ret.Schedule.WalkIn = &child.Schedule.WalkIn.Bool
 	return ret
+}
+
+func photoStoreToTransport(request store.ChildPhoto) PhotoRequestTransport {
+	publicationDate := request.PublicationDate.UTC().String()
+	childPhoto := PhotoRequestTransport{
+		ChildId:         &request.ChildId.String,
+		Filename:        &request.ImageUri.String,
+		Approved:        &request.Approved.Bool,
+		PublishedBy:     &request.PublishedBy.String,
+		PublicationDate: &publicationDate,
+		ApprovedBy:      &request.ApprovedBy.String,
+		PhotoId:         &request.PhotoId.String,
+	}
+	return childPhoto
 }
