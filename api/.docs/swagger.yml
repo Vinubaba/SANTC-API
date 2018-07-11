@@ -7,7 +7,7 @@ info:
 host: "dev.teddycare.net"
 basePath: "/"
 schemes:
-- "http"
+- "https"
 paths:
   /auth/login:
     get:
@@ -30,6 +30,11 @@ paths:
       - "application/json"
       produces:
       - "application/json"
+      parameters:
+        - name: authorization
+          in: header
+          type: string
+          required: true
       responses:
         200:
           description: "success"
@@ -50,6 +55,11 @@ paths:
       - "application/json"
       produces:
       - "application/json"
+      parameters:
+        - name: authorization
+          in: header
+          type: string
+          required: true
       responses:
         200:
           description: "success"
@@ -77,6 +87,10 @@ paths:
         required: true
         type: "string"
         format: "uid"
+      - name: authorization
+        in: header
+        type: string
+        required: true
       responses:
         200:
           description: "success"
@@ -109,6 +123,10 @@ paths:
         required: true
         type: "string"
         format: "uid"
+      - name: authorization
+        in: header
+        type: string
+        required: true
       responses:
         204:
           description: "success"
@@ -135,10 +153,14 @@ paths:
       parameters:
       - name: "id"
         in: "path"
-        description: "ID of office manager to delete"
+        description: "ID of office manager to update"
         required: true
         type: "string"
         format: "uid"
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - in: body
         name: user
         description: The user to update.
@@ -170,6 +192,11 @@ paths:
       - "application/json"
       produces:
       - "application/json"
+      parameters:
+        - name: authorization
+          in: header
+          type: string
+          required: true
       responses:
         200:
           description: "success"
@@ -190,6 +217,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - in: body
         name: user
         description: The teacher to create
@@ -228,6 +259,10 @@ paths:
         required: true
         type: "string"
         format: "uid"
+      - name: authorization
+        in: header
+        type: string
+        required: true
       responses:
         200:
           description: "success"
@@ -260,6 +295,10 @@ paths:
         required: true
         type: "string"
         format: "uid"
+      - name: authorization
+        in: header
+        type: string
+        required: true
       responses:
         204:
           description: "success"
@@ -284,6 +323,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of teacher to delete"
@@ -322,6 +365,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of teacher"
@@ -358,6 +405,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of teacher"
@@ -396,6 +447,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of teacher"
@@ -434,6 +489,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of teacher"
@@ -472,6 +531,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of teacher"
@@ -508,6 +571,11 @@ paths:
       - "application/json"
       produces:
       - "application/json"
+      parameters:
+        - name: authorization
+          in: header
+          type: string
+          required: true
       responses:
         200:
           description: "success"
@@ -528,6 +596,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - in: body
         name: user
         description: The adult to create
@@ -560,6 +632,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of adult to return"
@@ -592,6 +668,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of adult to delete"
@@ -622,6 +702,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of adult to delete"
@@ -659,6 +743,11 @@ paths:
       - "application/json"
       produces:
       - "application/json"
+      parameters:
+        - name: authorization
+          in: header
+          type: string
+          required: true
       responses:
         200:
           description: "success"
@@ -679,6 +768,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - in: body
         name: child
         description: The child to create
@@ -709,6 +802,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of child to return"
@@ -741,6 +838,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of child to delete"
@@ -771,6 +872,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of child to delete"
@@ -809,6 +914,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of child"
@@ -847,6 +956,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of child"
@@ -885,6 +998,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of child"
@@ -923,6 +1040,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of child"
@@ -952,13 +1073,18 @@ paths:
     get:
       tags:
       - "age-ranges"
-      summary: "List age ranges"
+      summary: "List ageRanges"
       description: ""
       operationId: "listAgeRanges"
       consumes:
       - "application/json"
       produces:
       - "application/json"
+      parameters:
+        - name: authorization
+          in: header
+          type: string
+          required: true
       responses:
         200:
           description: "success"
@@ -971,7 +1097,7 @@ paths:
     post:
       tags:
       - "age-ranges"
-      summary: "Create a new age range"
+      summary: "Create a new ageRange"
       description: ""
       operationId: "createAgeRange"
       consumes:
@@ -979,9 +1105,13 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - in: body
         name: ageRange
-        description: The age range to create
+        description: The ageRange to create
         schema:
           $ref: "#/definitions/AgeRange"
       responses:
@@ -1003,7 +1133,7 @@ paths:
     get:
       tags:
       - "age-ranges"
-      summary: "Retrieve existing age range"
+      summary: "Retrieve existing ageRange"
       description: ""
       operationId: "getAgeRange"
       consumes:
@@ -1011,6 +1141,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of ageRange to return"
@@ -1035,7 +1169,7 @@ paths:
     delete:
       tags:
       - "age-ranges"
-      summary: "Delete an existing age range"
+      summary: "Delete an existing ageRange"
       description: ""
       operationId: "deleteAgeRange"
       consumes:
@@ -1043,9 +1177,13 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
-        description: "ID of age range to delete"
+        description: "ID of ageRange to delete"
         required: true
         type: "string"
         format: "uid"
@@ -1059,13 +1197,13 @@ paths:
         403:
           description: "when user requester is not registered"
         404:
-          description: "age range not found"
+          description: "ageRange not found"
         500:
           description: "server error"
     patch:
       tags:
       - "age-ranges"
-      summary: "Update an existing age range"
+      summary: "Update an existing ageRange"
       description: ""
       operationId: "updateAgeRange"
       consumes:
@@ -1073,15 +1211,19 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
-        description: "ID of age range to delete"
+        description: "ID of ageRange to delete"
         required: true
         type: "string"
         format: "uid"
       - in: body
-        name: age range
-        description: The age range to update.
+        name: ageRange
+        description: The ageRange to update.
         schema:
           $ref: "#/definitions/AgeRange"
       responses:
@@ -1096,7 +1238,7 @@ paths:
         403:
           description: "when user requester is not registered"
         404:
-          description: "age range not found"
+          description: "ageRange not found"
         500:
           description: "server error"
   /api/v1/classes:
@@ -1110,6 +1252,11 @@ paths:
       - "application/json"
       produces:
       - "application/json"
+      parameters:
+        - name: authorization
+          in: header
+          type: string
+          required: true
       responses:
         200:
           description: "success"
@@ -1130,6 +1277,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - in: body
         name: class
         description: The class to create
@@ -1162,6 +1313,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of class to return"
@@ -1194,6 +1349,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of class to delete"
@@ -1224,6 +1383,10 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: authorization
+        in: header
+        type: string
+        required: true
       - name: "id"
         in: "path"
         description: "ID of class to delete"
@@ -1231,8 +1394,8 @@ paths:
         type: "string"
         format: "uid"
       - in: body
-        name: age range
-        description: The age range to update.
+        name: ageRange
+        description: The ageRange to update.
         schema:
           $ref: "#/definitions/Class"
       responses:
