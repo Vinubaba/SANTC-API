@@ -1577,37 +1577,61 @@ definitions:
       walkIn:
         type: "boolean"
       mondayStart:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       mondayEnd:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       tuesdayStart:
-        $ref: "#/definitions/ScheduleTime"
+       type: "string"
+       pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+       example: "8:30 AM"
       tuesdayEnd:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       wednesdayStart:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       wednesdayEnd:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       thursdayStart:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       thursdayEnd:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       fridayStart:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       fridayEnd:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       saturdayStart:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       saturdayEnd:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       sundayStart:
-        $ref: "#/definitions/ScheduleTime"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
       sundayEnd:
-        $ref: "#/definitions/ScheduleTime"
-  ScheduleTime:
-    type: "string"
-    pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
-    example: "8:30 AM"
+        type: "string"
+        pattern: '^\d{1,2}:\d{2}\s(AM|PM)$'
+        example: "8:30 AM"
   TeacherClass:
     type: "object"
     properties:
